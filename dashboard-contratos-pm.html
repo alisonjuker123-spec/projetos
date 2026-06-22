@@ -430,15 +430,21 @@ function pct(v){const n=parseFloat(v)||0;const p=Math.abs(n)>2?n:(n*100);return 
 function pctV(v){const n=parseFloat(v)||0;const p=Math.abs(n)>2?n:(n*100);return p}
 function fDate(v){
   if(!v||v==='00/00/0000'||v==='N/A'||v===0)return'—';
-  if(v instanceof Date)return v.toLocaleDateString('pt-BR');
+  if(v instanceof Date){
+    const y=v.getFullYear();
+    if(y<1900||y>2100)return'—';
+    return v.toLocaleDateString('pt-BR');
+  }
   if(typeof v==='number'){
-    // Excel serial date
+    if(v<10000)return'—';
     const d=new Date(Math.round((v-25569)*86400*1000));
-    if(!isNaN(d))return d.toLocaleDateString('pt-BR');
+    if(!isNaN(d.getTime())&&d.getFullYear()>1900)return d.toLocaleDateString('pt-BR');
+    return'—';
   }
   if(typeof v==='string'){
-    const m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const m=v.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if(m)return`${m[3]}/${m[2]}/${m[1]}`;
+    if(v.match(/^\d{2}\/\d{2}\/\d{4}$/))return v;
     return v;
   }
   return'—';
@@ -446,19 +452,25 @@ function fDate(v){
 function num(v){
   if(v===null||v===undefined||v==='')return 0;
   if(typeof v==='number')return v;
-  return parseFloat(String(v).replace(/[^\d.,-]/g,'').replace(',','.'))||0;
+  if(v instanceof Date)return 0;
+  let s=String(v).trim().replace(/[^\d.,-]/g,'');
+  if(!s)return 0;
+  // Detecta formato: se última vírgula vem depois do último ponto → formato BR (1.234,56)
+  const li=s.lastIndexOf(','),ld=s.lastIndexOf('.');
+  if(li>ld){s=s.replace(/\./g,'').replace(',','.')}  // BR: remove pontos, troca vírgula
+  else{s=s.replace(/,/g,'')}                           // US / sem sep: remove vírgulas
+  return parseFloat(s)||0;
 }
 function str(v){return v===null||v===undefined?'':String(v).trim()}
 function destroyC(k){if(STATE.charts[k]){STATE.charts[k].destroy();delete STATE.charts[k]}}
-// Converte serial de data do Excel para string 'yyyy-mm-dd'
+// Converte serial de data do Excel ou objeto Date para string 'yyyy-mm-dd'
 function excelSerialToDate(v){
   if(!v)return null;
+  if(v instanceof Date){const y=v.getFullYear();return y>1900&&y<2100?v.toISOString().split('T')[0]:null}
   const n=parseFloat(v);
-  if(isNaN(n)||n<1)return str(v);
-  // Serial < 10000 provavelmente é percentual, não data
-  if(n<10000)return str(v);
+  if(isNaN(n)||n<10000)return str(v)||null;
   const d=new Date(Math.round((n-25569)*86400*1000));
-  if(isNaN(d))return str(v);
+  if(isNaN(d.getTime()))return null;
   return d.toISOString().split('T')[0];
 }
 
@@ -536,7 +548,7 @@ function parseWorkbook(buffer,fileName){
     // Read GMS and empresa from the first data row of the sheet
     try{
       const ws=wb.Sheets[name];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:null});
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
       // Row 1 (index 1) has the first unit's data: [GMS, Tipo, Empresa, ...]
       if(rows[1]){
         const gms=str(rows[1][0]);
@@ -571,7 +583,7 @@ function parseWorkbook(buffer,fileName){
 function sheetToObjs(wb,name){
   const ws=wb.Sheets[name];
   if(!ws)return[];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'yyyy-mm-dd',defval:null});
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
   if(rows.length<2)return[];
   const headers=rows[0].map(h=>str(h));
   return rows.slice(1).map(row=>{
@@ -585,7 +597,7 @@ function sheetToObjs(wb,name){
 function parseNFSheet(wb,name){
   const ws=wb.Sheets[name];
   if(!ws)return[];
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,dateNF:'dd/mm/yyyy',defval:null});
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
   let nfStart=-1;
   for(let i=0;i<rows.length;i++){
     const r=rows[i];
@@ -599,9 +611,18 @@ function parseNFSheet(wb,name){
     const r=rows[i];
     if(!r||(!r[0]&&!r[1]))continue;
     const unidade=str(r[0]);if(!unidade)continue;
-    const valorRaw=r[1];
-    const valor=parseFloat(String(valorRaw||0).replace(',','.'))||0;
-    nfs.push({unidade,valor,numeroNF:str(r[2]),data:str(r[3]),ano:r[4]?parseInt(r[4]):null});
+    const valor=typeof r[1]==='number'?r[1]:parseFloat(String(r[1]||0).replace(',','.'))||0;
+    // Data: pode vir como Date object (cellDates:true) ou string
+    let dataStr='';
+    if(r[3] instanceof Date)dataStr=r[3].toLocaleDateString('pt-BR');
+    else dataStr=str(r[3]);
+    // Ano: pode ser número, Date ou string
+    let ano=null;
+    if(typeof r[4]==='number')ano=Math.round(r[4]);
+    else if(r[4] instanceof Date)ano=r[4].getFullYear();
+    else if(r[3] instanceof Date)ano=r[3].getFullYear();
+    else if(r[4])ano=parseInt(r[4]);
+    nfs.push({unidade,valor,numeroNF:str(r[2]),data:dataStr,ano});
   }
   return nfs;
 }
