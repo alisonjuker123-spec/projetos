@@ -619,8 +619,7 @@ const C={
   gms:      o=>col(o,['Numero GMS','Número GMS','GMS','Nº GMS']),
   tipo:     o=>col(o,['Tipo','Objeto','Tipo de Contrato']),
   empresa:  o=>col(o,['Empresa','Fornecedor','Contratada']),
-  unidPrincipal:o=>col(o,['Unidade Principal','Unidade']),
-  unidsAtendidas:o=>col(o,['Unidades Atendidas','Unidades']),
+  unidsAtendidas:o=>col(o,['Unidades Atendidas','Unidade Principal','Unidades']),
   qtdeUnidades:o=>col(o,['Qtde Unidades','Quantidade Unidades']),
   efetTotal:o=>col(o,['Efetivo Total (todas unidades)','Efetivo Total','Efetivo']),
   efetAtual:o=>col(o,['Efetivo Atual (unid. principal)','Efetivo Atual']),
@@ -681,7 +680,8 @@ const B={
 function mapPainel(raw){
   return raw.map(o=>({
     gms:str(C.gms(o)),tipo:str(C.tipo(o)),empresa:str(C.empresa(o)),
-    unidPrincipal:str(C.unidPrincipal(o)),unidsAtendidas:str(C.unidsAtendidas(o)),
+    unidsAtendidas:str(C.unidsAtendidas(o)),
+    unidPrincipal:str(C.unidsAtendidas(o)).split(/\s*\+\s*/)[0]||'',
     qtdeUnidades:num(C.qtdeUnidades(o)),efetTotal:num(C.efetTotal(o)),efetAtual:num(C.efetAtual(o)),
     valorOriginal:num(C.valorOriginal(o)),pctReajuste:num(C.pctReajuste(o)),
     valorGlobal:num(C.valorGlobal(o)),valorMensal:num(C.valorMensal(o)),
