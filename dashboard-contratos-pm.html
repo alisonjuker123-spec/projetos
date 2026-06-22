@@ -416,9 +416,10 @@ const SUMMARY_SHEETS=new Set([SHEET_PAINEL,SHEET_BASE,SHEET_EMP,SHEET_UNI,SHEET_
 // STATE
 // ============================================================
 let STATE={
-  painel:[],base:[],res_emp:[],res_uni:[],res_tipo:[],nfs:{},
+  painel:[],base:[],res_emp:[],res_uni:[],res_tipo:[],nfs:{},nfsIndex:{},
   filtered:[],charts:{},currentGMS:null,currentEmp:null,
-  tableSearch:'',resTab:'emp',fileName:''
+  tableSearch:'',resTab:'emp',fileName:'',
+  _currentNFs:[]
 };
 
 // ============================================================
@@ -449,6 +450,17 @@ function num(v){
 }
 function str(v){return v===null||v===undefined?'':String(v).trim()}
 function destroyC(k){if(STATE.charts[k]){STATE.charts[k].destroy();delete STATE.charts[k]}}
+// Converte serial de data do Excel para string 'yyyy-mm-dd'
+function excelSerialToDate(v){
+  if(!v)return null;
+  const n=parseFloat(v);
+  if(isNaN(n)||n<1)return str(v);
+  // Serial < 10000 provavelmente é percentual, não data
+  if(n<10000)return str(v);
+  const d=new Date(Math.round((n-25569)*86400*1000));
+  if(isNaN(d))return str(v);
+  return d.toISOString().split('T')[0];
+}
 
 // ============================================================
 // TOAST
@@ -515,10 +527,23 @@ function parseWorkbook(buffer,fileName){
   STATE.res_tipo= sheetToObjs(wb,SHEET_TIPO);
 
   // Individual contract sheets → NF records
+  // Build index by reading GMS+empresa from inside each sheet (row 1, cols 0 and 2)
   STATE.nfs={};
+  STATE.nfsIndex={};
   wb.SheetNames.forEach(name=>{
     if(SUMMARY_SHEETS.has(name))return;
     STATE.nfs[name]=parseNFSheet(wb,name);
+    // Read GMS and empresa from the first data row of the sheet
+    try{
+      const ws=wb.Sheets[name];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:null});
+      // Row 1 (index 1) has the first unit's data: [GMS, Tipo, Empresa, ...]
+      if(rows[1]){
+        const gms=str(rows[1][0]);
+        const empresa=str(rows[1][2]);
+        if(gms&&empresa)STATE.nfsIndex[gms+'|'+empresa]=name;
+      }
+    }catch(e){}
   });
 
   hideSpinner();
@@ -629,6 +654,13 @@ const C={
 };
 
 // Campos da Base Detalhada
+// NOTA: Os cabeçalhos da planilha estão deslocados em relação aos dados reais.
+// Mapeamento corrigido conforme posição real dos dados:
+//   col "Valor Global Alocado (proporcional)" → dado real: Executado nesta Unidade
+//   col "Executado nesta Unidade"             → dado real: Saldo Alocado
+//   col "Saldo Alocado"                       → dado real: % Execução (decimal)
+//   col "% Execução (alocado)"                → dado real: Data Fim (serial Excel)
+//   col "Data Fim Atual"                      → dado real: Status Vigência
 const B={
   gms:      o=>col(o,['Numero GMS','GMS']),
   tipo:     o=>col(o,['Tipo']),
@@ -637,13 +669,13 @@ const B={
   efetivo:  o=>col(o,['Efetivo (desta unidade)','Efetivo']),
   efetTotal:o=>col(o,['Efetivo Total do Contrato','Efetivo Total']),
   pctEfetivo:o=>col(o,['% Efetivo no Contrato','% Efetivo']),
-  valorGlobalContrato:o=>col(o,['Valor Global do Contrato','Valor Global Contrato']),
-  valorGlobalAlocado: o=>col(o,['Valor Global Alocado (proporcional)','Valor Global Alocado','Executado nesta Unidade']),
-  executado:o=>col(o,['Executado nesta Unidade','Executado']),
-  saldoAlocado:o=>col(o,['Saldo Alocado','Saldo']),
-  pctExec:  o=>col(o,['% Execução (alocado)','% Execução']),
-  dataFim:  o=>col(o,['Data Fim Atual','Data Fim']),
-  status:   o=>col(o,['Status Vigência','Status']),
+  valorGlobalContrato:o=>col(o,['Valor Global do Contrato']),
+  valorGlobalAlocado: o=>col(o,['Valor Global do Contrato']),
+  executado:          o=>col(o,['Valor Global Alocado (proporcional)']),
+  saldoAlocado:       o=>col(o,['Executado nesta Unidade']),
+  pctExec:            o=>col(o,['Saldo Alocado']),
+  dataFim:            o=>excelSerialToDate(col(o,['% Execução (alocado)'])),
+  status:             o=>col(o,['Data Fim Atual']),
 };
 
 function mapPainel(raw){
@@ -986,18 +1018,19 @@ function showContract(gms,empresa){
 // FIND NF SHEET: match by GMS number and empresa name
 // ============================================================
 function findNFSheet(gms,empresa){
-  // Try exact match or partial match
+  // Primary: use index built by reading GMS+empresa from inside each sheet
+  const key=gms+'|'+empresa;
+  if(STATE.nfsIndex[key])return STATE.nfsIndex[key];
+  // Fallback: match by GMS only
+  for(const k of Object.keys(STATE.nfsIndex)){
+    if(k.startsWith(gms+'|'))return STATE.nfsIndex[k];
+  }
+  // Last resort: fuzzy name match
   const gmsPure=gms.replace(/\//g,'').replace(/^0+/,'');
   const empPure=empresa.replace(/\s+/g,'').toUpperCase();
   for(const name of Object.keys(STATE.nfs)){
     const nPure=name.replace(/\s+/g,'').toUpperCase();
     if(nPure.includes(gmsPure)&&nPure.includes(empPure))return name;
-    if(nPure.includes(gmsPure.replace(/^0/,''))){}
-  }
-  // Fallback: match by GMS only (for single-unit contracts)
-  for(const name of Object.keys(STATE.nfs)){
-    const nPure=name.replace(/\s+/g,'').toUpperCase();
-    if(nPure.includes(gmsPure))return name;
   }
   return null;
 }
