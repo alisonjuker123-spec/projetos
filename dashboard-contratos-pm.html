@@ -430,6 +430,8 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
           <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Provisão Mensal Total</div><div class="kv" id="k-mensal">0,00</div></div>
           <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Efetivo Total (todas unidades)</div><div class="kv" id="k-efetivo">0</div><div class="ks">policiais atendidos</div></div>
           <div class="kc big" style="border-top-color:var(--pk)"><div class="kl">Custo Total / Policial</div><div class="kv" id="k-custo-pol">0,00</div><div class="ks">executado ÷ efetivo</div></div>
+          <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Contratos Gêneros Alim.</div><div class="kv" id="k-ct-gen">0</div><div class="ks">gêneros alimentícios</div></div>
+          <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Contratos Hortifrutigr.</div><div class="kv" id="k-ct-hort">0</div><div class="ks">hortifrutigranjeiros</div></div>
         </div>
         <!-- EXEC BAR -->
         <div class="exec-wrap">
@@ -996,9 +998,12 @@ function renderDash(){
   const sm=rows.reduce((a,r)=>a+r.valorMensal,0);
   const sef=rows.reduce((a,r)=>a+r.efetTotal,0);
   const scp=sef>0?se/sef:0;
+  const ctGen=rows.filter(r=>!str(r.tipo).toLowerCase().includes('hortif')).length;
+  const ctHort=rows.filter(r=>str(r.tipo).toLowerCase().includes('hortif')).length;
   animMoney('k-global',sg);animMoney('k-anual',so);animMoney('k-anual-reaj',sr);
   animMoney('k-pago',se);animMoney('k-exec2026',se26);animMoney('k-saldo',ss);animMoney('k-mensal',sm);
   animNum('k-efetivo',sef);animMoney('k-custo-pol',scp);
+  animNum('k-ct-gen',ctGen);animNum('k-ct-hort',ctHort);
   // Exec bar
   const tot=sg||1,pp=(se/tot)*100,ps=(ss/tot)*100;
   setTimeout(()=>{
