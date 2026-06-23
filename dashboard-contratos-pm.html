@@ -537,7 +537,11 @@ const SHEET_UNI='Resumo por Unidade';
 const SHEET_TIPO='Resumo por Tipo';
 
 // Abas que NÃO são individuais de contratos
-const SUMMARY_SHEETS=new Set([SHEET_PAINEL,SHEET_BASE,SHEET_EMP,SHEET_UNI,SHEET_TIPO]);
+const SUMMARY_SHEETS=new Set([
+  SHEET_PAINEL,SHEET_BASE,SHEET_EMP,SHEET_UNI,SHEET_TIPO,
+  'Painel postos de Serviços','Base Detalhada Serviços',
+  'Resumo Empresa PRODUSERV','Resumo Tipo PRODUSERV'
+]);
 
 // ============================================================
 // STATE
@@ -825,12 +829,12 @@ const C={
   unidsAtendidas:o=>col(o,['Unidades Atendidas','Unidade Principal','Unidades']),
   qtdeUnidades:o=>col(o,['Qtde Unidades','Quantidade Unidades']),
   efetTotal:o=>col(o,['Efetivo Total (todas unidades)','Efetivo Total','Efetivo']),
-  efetAtual:o=>col(o,['Efetivo Atual (unid. principal)','Efetivo Atual']),
+  efetAtual:o=>col(o,['Efetivo Atual (unid. principal)','Efetivo Atual (principal)','Efetivo Atual']),
   valorOriginal:o=>col(o,['Valor Original (anual)','Valor Original','Valor Anual Original']),
   pctReajuste:o=>col(o,['% Reajuste Aplicado','% Reajuste','Reajuste %']),
   valorGlobal:o=>col(o,['Valor Global (vigência)','Valor Global','Valor Total']),
   valorMensal:o=>col(o,['Valor Mensal','Valor Mensal Total']),
-  valorMensalPol:o=>col(o,['Valor Mensal / Policial (planejado)','Valor Mensal / Policial','R$/Policial/Mês']),
+  valorMensalPol:o=>col(o,['Valor Mensal / Policial (planejado)','Valor Mensal / Policial','Valor Mensal/Policial','R$/Policial/Mês']),
   dataInicio:o=>col(o,['Data Início','Data de Início','Início','Data Inicio']),
   dataFim:  o=>col(o,['Data Fim Atual','Data Fim','Fim','Vencimento']),
   diasRest: o=>col(o,['Dias Restantes','Dias Rest.','Dias']),
@@ -847,37 +851,29 @@ const C={
   pctExecTotal:o=>col(o,['% Execução Total (sobre Valor Global)','% Execução Total','% Execução','Exec. %']),
   pctExecAnual:o=>col(o,['% Execução Anual (ritmo do ano)','% Execução Anual']),
   mediaGasto:o=>col(o,['Média Gasto Mensal','Gasto Médio Mensal','Gasto Mensal Médio']),
-  gastoMensalPol:o=>col(o,['Gasto Mensal / Policial (atual, unid. principal)','Gasto Mensal / Policial','Gasto/Policial']),
+  gastoMensalPol:o=>col(o,['Gasto Mensal / Policial (atual, unid. principal)','Gasto Mensal / Policial','Gasto Mensal/Policial','Gasto/Policial']),
   mesesRest:o=>col(o,['Meses Restantes de Vigência','Meses Restantes','Meses Rest.']),
   mesesSaldo:o=>col(o,['Meses de Saldo (ritmo atual)','Meses de Saldo','Saldo (meses)']),
-  acimaDoTeto:o=>col(o,['Acima do Teto Contratual?','Acima do Teto','Acima Teto?']),
+  acimaDoTeto:o=>col(o,['Acima do Teto Contratual?','Acima do Teto?','Acima do Teto','Acima Teto?']),
   necessitaSupl:o=>col(o,['Necessita Suplementação?','Necessita Suplementação','Suplementação?']),
-  valorSupl:o=>col(o,['Valor Estimado de Suplementação','Valor Suplementação','Suplementação R$']),
+  valorSupl:o=>col(o,['Valor Estimado de Suplementação','Valor Estimado Suplementação','Valor Suplementação','Suplementação R$']),
 };
 
-// Campos da Base Detalhada
-// NOTA: Os cabeçalhos da planilha estão deslocados em relação aos dados reais.
-// Mapeamento corrigido conforme posição real dos dados:
-//   col "Valor Global Alocado (proporcional)" → dado real: Executado nesta Unidade
-//   col "Executado nesta Unidade"             → dado real: Saldo Alocado
-//   col "Saldo Alocado"                       → dado real: % Execução (decimal)
-//   col "% Execução (alocado)"                → dado real: Data Fim (serial Excel)
-//   col "Data Fim Atual"                      → dado real: Status Vigência
+// Campos da Base Detalhada (v6+ — colunas corretamente alinhadas)
 const B={
-  gms:      o=>col(o,['Numero GMS','GMS']),
-  tipo:     o=>col(o,['Tipo']),
-  empresa:  o=>col(o,['Empresa','Fornecedor']),
-  unidade:  o=>col(o,['Unidade']),
-  efetivo:  o=>col(o,['Efetivo (desta unidade)','Efetivo']),
-  efetTotal:o=>col(o,['Efetivo Total do Contrato','Efetivo Total']),
+  gms:       o=>col(o,['Numero GMS','GMS']),
+  tipo:      o=>col(o,['Tipo']),
+  empresa:   o=>col(o,['Empresa','Fornecedor']),
+  unidade:   o=>col(o,['Unidade']),
+  efetivo:   o=>col(o,['Efetivo (unidade)','Efetivo (desta unidade)','Efetivo']),
+  efetTotal: o=>col(o,['Efetivo Total Contrato','Efetivo Total do Contrato','Efetivo Total']),
   pctEfetivo:o=>col(o,['% Efetivo no Contrato','% Efetivo']),
-  valorGlobalContrato:o=>col(o,['Valor Global do Contrato']),
-  valorGlobalAlocado: o=>col(o,['Valor Global do Contrato']),
-  executado:          o=>col(o,['Valor Global Alocado (proporcional)']),
-  saldoAlocado:       o=>col(o,['Executado nesta Unidade']),
-  pctExec:            o=>col(o,['Saldo Alocado']),
-  dataFim:            o=>excelSerialToDate(col(o,['% Execução (alocado)'])),
-  status:             o=>col(o,['Data Fim Atual']),
+  valorGlobalContrato:o=>col(o,['Valor Global Contrato','Valor Global do Contrato']),
+  executado:          o=>col(o,['Executado nesta Unidade']),
+  saldoAlocado:       o=>col(o,['Saldo','Saldo Alocado']),
+  pctExec:            o=>col(o,['% Execução','% Execução (alocado)']),
+  dataFim:            o=>excelSerialToDate(col(o,['Data Fim Atual'])),
+  status:             o=>col(o,['Status Vigência','Status']),
 };
 
 function mapPainel(raw){
@@ -904,13 +900,19 @@ function mapPainel(raw){
 }
 
 function mapBase(raw){
-  return raw.map(o=>({
-    gms:str(B.gms(o)),tipo:str(B.tipo(o)),empresa:str(B.empresa(o)),unidade:str(B.unidade(o)),
-    efetivo:num(B.efetivo(o)),efetTotal:num(B.efetTotal(o)),pctEfetivo:num(B.pctEfetivo(o)),
-    valorGlobalContrato:num(B.valorGlobalContrato(o)),valorGlobalAlocado:num(B.valorGlobalAlocado(o)),
-    executado:num(B.executado(o)),saldoAlocado:num(B.saldoAlocado(o)),
-    pctExec:num(B.pctExec(o)),dataFim:B.dataFim(o),status:str(B.status(o))
-  })).filter(r=>r.gms&&r.unidade);
+  return raw.map(o=>{
+    const valorGlobal=num(B.valorGlobalContrato(o));
+    const pctEfet=num(B.pctEfetivo(o));
+    // valorGlobalAlocado = valor proporcional ao efetivo da unidade
+    const valorGlobalAlocado=pctEfet>0?(pctEfet<=1?valorGlobal*pctEfet:valorGlobal*(pctEfet/100)):valorGlobal;
+    return{
+      gms:str(B.gms(o)),tipo:str(B.tipo(o)),empresa:str(B.empresa(o)),unidade:str(B.unidade(o)),
+      efetivo:num(B.efetivo(o)),efetTotal:num(B.efetTotal(o)),pctEfetivo:pctEfet,
+      valorGlobalContrato:valorGlobal,valorGlobalAlocado,
+      executado:num(B.executado(o)),saldoAlocado:num(B.saldoAlocado(o)),
+      pctExec:num(B.pctExec(o)),dataFim:B.dataFim(o),status:str(B.status(o))
+    };
+  }).filter(r=>r.gms&&r.unidade);
 }
 
 // ============================================================
