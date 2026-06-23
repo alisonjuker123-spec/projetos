@@ -88,11 +88,10 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .sec-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--lbl);margin-bottom:10px;margin-top:2px}
 
 /* KPI GRIDS */
-.kpi-g7{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:14px}
-.kpi-g5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.kpi-g7{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.kpi-g5{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px}
 .kpi-g8{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:1500px){.kpi-g7{grid-template-columns:repeat(4,1fr)}.kpi-g5{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:1100px){.kpi-g7{grid-template-columns:repeat(3,1fr)}.kpi-g5{grid-template-columns:repeat(2,1fr)}.kpi-g8{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1100px){.kpi-g8{grid-template-columns:repeat(2,1fr)}}
 
 .kc{background:var(--card);border-radius:8px;padding:14px 16px;border-top:4px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .kc .kl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--lbl);margin-bottom:6px}
@@ -341,7 +340,7 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
         <!-- CHARTS ROW 1 -->
         <div class="cr6040">
           <div class="cc"><h3>Valores Globais por Fornecedor</h3><canvas id="ch-forn" height="200"></canvas></div>
-          <div class="cc"><h3>Executado por Unidade</h3><canvas id="ch-uni" height="200"></canvas><div class="leg" id="leg-uni"></div></div>
+          <div class="cc"><h3>Distribuição do Valor Global por Unidade</h3><canvas id="ch-uni" height="200"></canvas><div class="leg" id="leg-uni"></div></div>
         </div>
         <!-- CHARTS ROW 2 -->
         <div class="cr5050">
@@ -842,12 +841,14 @@ function renderChUni(rows){
   destroyC('uni');
   const gmsSet=new Set(rows.map(r=>r.gms));
   const map={};
-  STATE.base.filter(b=>gmsSet.has(b.gms)).forEach(b=>{const k=b.unidade||'—';map[k]=(map[k]||0)+b.executado});
-  const labs=Object.keys(map),data=labs.map(k=>map[k]),cols=labs.map((_,i)=>gc(i));
+  // Distribuição do Valor Global por unidade (valorGlobalContrato = valor alocado à unidade)
+  STATE.base.filter(b=>gmsSet.has(b.gms)).forEach(b=>{const k=b.unidade||'—';map[k]=(map[k]||0)+b.valorGlobalContrato});
+  const labs=Object.keys(map).sort((a,b)=>map[b]-map[a]);
+  const data=labs.map(k=>map[k]),cols=labs.map((_,i)=>gc(i));
   state_charts('uni',new Chart(document.getElementById('ch-uni'),{type:'doughnut',
     data:{labels:labs,datasets:[{data,backgroundColor:cols,borderWidth:2,borderColor:'#1e2130'}]},
     options:{responsive:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.label}: ${brl(c.raw)}`}}}}}));
-  document.getElementById('leg-uni').innerHTML=labs.slice(0,10).map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${cols[i]}"></span>${l}</span>`).join('');
+  document.getElementById('leg-uni').innerHTML=labs.slice(0,12).map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${cols[i]}"></span>${l}</span>`).join('');
 }
 
 function renderChPct(rows){
