@@ -423,7 +423,9 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
         <div class="kpi-g5">
           <div class="kc big" style="border-top-color:var(--lbl)"><div class="kl">Valor Global Contratado</div><div class="kv" id="k-global">0,00</div></div>
           <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Valor Original Anual</div><div class="kv" id="k-anual">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Valor Anual c/ Reajuste</div><div class="kv" id="k-anual-reaj">0,00</div><div class="ks">após reajuste contratual</div></div>
           <div class="kc big" style="border-top-color:var(--green)"><div class="kl">Total Executado / Pago</div><div class="kv" id="k-pago">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--lm)"><div class="kl">Executado 2026</div><div class="kv" id="k-exec2026">0,00</div></div>
           <div class="kc big" style="border-top-color:var(--cyn)"><div class="kl">Saldo Disponível</div><div class="kv" id="k-saldo">0,00</div></div>
           <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Provisão Mensal Total</div><div class="kv" id="k-mensal">0,00</div></div>
         </div>
@@ -985,10 +987,13 @@ function renderDash(){
   // Financeiro
   const sg=rows.reduce((a,r)=>a+r.valorGlobal,0);
   const so=rows.reduce((a,r)=>a+r.valorOriginal,0);
+  const sr=rows.reduce((a,r)=>{const f=Math.abs(r.pctReajuste)>2?r.pctReajuste/100:r.pctReajuste;return a+r.valorOriginal*(1+(f||0))},0);
   const se=rows.reduce((a,r)=>a+r.executadoTotal,0);
+  const se26=rows.reduce((a,r)=>a+r.executado2026,0);
   const ss=rows.reduce((a,r)=>a+r.saldo,0);
   const sm=rows.reduce((a,r)=>a+r.valorMensal,0);
-  animMoney('k-global',sg);animMoney('k-anual',so);animMoney('k-pago',se);animMoney('k-saldo',ss);animMoney('k-mensal',sm);
+  animMoney('k-global',sg);animMoney('k-anual',so);animMoney('k-anual-reaj',sr);
+  animMoney('k-pago',se);animMoney('k-exec2026',se26);animMoney('k-saldo',ss);animMoney('k-mensal',sm);
   // Exec bar
   const tot=sg||1,pp=(se/tot)*100,ps=(ss/tot)*100;
   setTimeout(()=>{
