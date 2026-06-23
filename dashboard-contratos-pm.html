@@ -238,6 +238,23 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
 .fade-in{animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
+/* MODE TOGGLE */
+.mode-toggle{display:none;background:var(--hov);border-radius:7px;padding:2px;gap:2px;flex-shrink:0}
+.mode-toggle.show{display:flex}
+.btn-mode{background:transparent;border:none;color:var(--txt2);border-radius:5px;padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.btn-mode:hover{color:var(--txt)}
+.btn-mode.active-mode{background:var(--card);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.mode-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:4px;background:var(--blue);color:#fff;vertical-align:middle}
+body.serv-mode .mode-badge.food-badge{background:var(--orn)}
+/* SERV OVERVIEW */
+.serv-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+.serv-contract-card{background:var(--card);border-radius:10px;padding:20px;border-left:4px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.3);margin-bottom:12px;cursor:pointer;transition:all .2s}
+.serv-contract-card:hover{border-left-color:var(--cyn);background:var(--card2)}
+.scc-gms{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:4px}
+.scc-emp{font-size:13px;font-weight:600;margin-bottom:10px}
+.scc-stats{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--txt2)}
+.scc-stat strong{color:var(--txt);font-weight:700}
+
 /* HAMBURGER / SIDEBAR RESPONSIVO */
 .hamburger{display:none;background:transparent;border:1px solid var(--bdr);color:var(--txt2);border-radius:6px;padding:6px 10px;font-size:18px;cursor:pointer;line-height:1;flex-shrink:0}
 .hamburger:hover{border-color:var(--blue);color:var(--blue)}
@@ -349,6 +366,10 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <div class="top-bar-info">
         <div class="top-bar-title">Dashboard Unificado – Contratos e Notas Fiscais</div>
         <div class="top-bar-sub">Gestão Avançada de Contratos – 3º Comando Regional PM</div>
+      </div>
+      <div class="mode-toggle" id="mode-toggle">
+        <button class="btn-mode active-mode" id="btn-mode-food" onclick="switchMode('food')">🍽 Gêneros Alimentícios</button>
+        <button class="btn-mode" id="btn-mode-serv" onclick="switchMode('serv')">🏢 Serviços PRODUSERV</button>
       </div>
       <span class="ref-date" id="ref-date"></span>
       <span class="file-name-tag" id="file-name-tag">📄 —</span>
@@ -510,6 +531,12 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <!-- DETAIL VIEW -->
       <div class="view" id="v-detail"></div>
 
+      <!-- SERV OVERVIEW (PRODUSERV) -->
+      <div class="view" id="v-serv"></div>
+
+      <!-- SERV DETAIL VIEW -->
+      <div class="view" id="v-serv-detail"></div>
+
     </div><!-- /main-scroll -->
 
     <!-- TABS BAR -->
@@ -529,32 +556,45 @@ const gc=i=>PAL[i%PAL.length];
 const TT={backgroundColor:'#1e2130',titleColor:'#e2e8f0',bodyColor:'#94a3b8',borderColor:'#333650',borderWidth:1};
 const GC='#2a2d3e',TC='#64748b';
 
-// Nomes das abas esperadas
+// Nomes das abas — Gêneros Alimentícios
 const SHEET_PAINEL='Painel Consolidado';
 const SHEET_BASE='Base Detalhada por Unidade';
 const SHEET_EMP='Resumo por Empresa';
 const SHEET_UNI='Resumo por Unidade';
 const SHEET_TIPO='Resumo por Tipo';
 
+// Nomes das abas — Serviços PRODUSERV
+const SHEET_SERV_PAINEL='Painel postos de Serviços';
+const SHEET_SERV_BASE='Base Detalhada Serviços';
+const SHEET_SERV_EMP='Resumo Empresa PRODUSERV';
+const SHEET_SERV_TIPO='Resumo Tipo PRODUSERV';
+
 // Abas que NÃO são individuais de contratos
 const SUMMARY_SHEETS=new Set([
   SHEET_PAINEL,SHEET_BASE,SHEET_EMP,SHEET_UNI,SHEET_TIPO,
-  'Painel postos de Serviços','Base Detalhada Serviços',
-  'Resumo Empresa PRODUSERV','Resumo Tipo PRODUSERV'
+  SHEET_SERV_PAINEL,SHEET_SERV_BASE,SHEET_SERV_EMP,SHEET_SERV_TIPO
 ]);
 
 // ============================================================
 // STATE
 // ============================================================
 let STATE={
-  painel:[],base:[],res_emp:[],res_uni:[],res_tipo:[],nfs:{},nfsIndex:{},
-  filtered:[],charts:{},currentGMS:null,currentEmp:null,
+  // Gêneros Alimentícios
+  painel:[],base:[],res_emp:[],res_uni:[],res_tipo:[],
+  filtered:[],
+  // Serviços PRODUSERV
+  serv_painel:[],serv_base:[],serv_res_emp:[],serv_res_tipo:[],
+  serv_filtered:[],
+  // Shared
+  nfs:{},nfsIndex:{},
+  charts:{},currentGMS:null,currentEmp:null,
   tableSearch:'',resTab:'emp',fileName:'',
   _currentNFs:[],
   importDate:null,
   sortCol:null,sortDir:1,
   pctPage:0,pctPageSize:10,
-  _pctRows:[]
+  _pctRows:[],
+  mode:'food' // 'food' | 'serv'
 };
 
 // ============================================================
@@ -690,12 +730,18 @@ function hideSpinner(){document.getElementById('spinner').classList.remove('show
 function parseWorkbook(buffer,fileName){
   const wb=XLSX.read(buffer,{type:'array',cellDates:true,dateNF:'yyyy-mm-dd'});
 
-  // Parse named summary sheets
+  // Parse named summary sheets — Gêneros Alimentícios
   STATE.painel  = sheetToObjs(wb,SHEET_PAINEL);
   STATE.base    = sheetToObjs(wb,SHEET_BASE);
   STATE.res_emp = sheetToObjs(wb,SHEET_EMP);
   STATE.res_uni = sheetToObjs(wb,SHEET_UNI);
   STATE.res_tipo= sheetToObjs(wb,SHEET_TIPO);
+
+  // Parse summary sheets — Serviços PRODUSERV
+  STATE.serv_painel  = sheetToObjs(wb,SHEET_SERV_PAINEL);
+  STATE.serv_base    = sheetToObjs(wb,SHEET_SERV_BASE);
+  STATE.serv_res_emp = sheetToObjs(wb,SHEET_SERV_EMP);
+  STATE.serv_res_tipo= sheetToObjs(wb,SHEET_SERV_TIPO);
 
   // Individual contract sheets → NF records
   // Build index by reading GMS+empresa from inside each sheet (row 1, cols 0 and 2)
@@ -735,6 +781,8 @@ function parseWorkbook(buffer,fileName){
   document.getElementById('btn-export-xlsx').style.display='';
   document.getElementById('btn-export-pdf').style.display='';
   document.getElementById('dash-sub').textContent=`Importado: ${fileName}`;
+  // Show mode toggle only if PRODUSERV data exists
+  if(STATE.serv_painel.length>0)document.getElementById('mode-toggle').classList.add('show');
 
   // Import validation modal
   const checkSheets=[
@@ -876,6 +924,100 @@ const B={
   status:             o=>col(o,['Status Vigência','Status']),
 };
 
+// ============================================================
+// ACCESSORS — PRODUSERV (Painel postos de Serviços)
+// ============================================================
+const CP={
+  gms:        o=>col(o,['Numero GMS']),
+  tipo:       o=>col(o,['Tipo']),
+  empresa:    o=>col(o,['Empresa']),
+  unidPrincipal:o=>col(o,['Unidade Principal']),
+  unidsAtendidas:o=>col(o,['Unidades Atendidas']),
+  qtdeUnidades:o=>col(o,['Qtde Unidades']),
+  qtdPostos:  o=>col(o,['Qtd Total Postos']),
+  dataInicio: o=>col(o,['Data Início']),
+  dataFim:    o=>col(o,['Data Fim Atual']),
+  diasRest:   o=>col(o,['Dias Restantes']),
+  status:     o=>col(o,['Status Vigência']),
+  prorrogado: o=>col(o,['Prorrogado?']),
+  valorGlobal:o=>col(o,['Valor Global']),
+  valorMensal:o=>col(o,['Valor Mensal Total']),
+  execTotal:  o=>col(o,['Executado Total']),
+  exec2025:   o=>col(o,['Executado 2025']),
+  exec2026:   o=>col(o,['Executado 2026']),
+  saldo:      o=>col(o,['Saldo do Contrato']),
+  pctExecTotal:o=>col(o,['% Execução Total']),
+  mediaGasto: o=>col(o,['Média Gasto Mensal']),
+  mesesRest:  o=>col(o,['Meses Restantes']),
+  mesesSaldo: o=>col(o,['Meses de Saldo']),
+  acimaDoTeto:o=>col(o,['Acima do Teto?']),
+  necessitaSupl:o=>col(o,['Necessita Suplementação?']),
+  valorSupl:  o=>col(o,['Valor Estimado Suplementação']),
+};
+
+// PRODUSERV Base Detalhada Serviços
+const BP={
+  gms:        o=>col(o,['Numero GMS']),
+  tipo:       o=>col(o,['Tipo']),
+  empresa:    o=>col(o,['Empresa']),
+  unidade:    o=>col(o,['Unidade']),
+  descricao:  o=>col(o,['Descrição do Posto']),
+  qtdPostos:  o=>col(o,['Qtd Postos']),
+  valorMensalPosto:o=>col(o,['Valor Mensal (posto)']),
+  executado:  o=>col(o,['Executado nesta Unidade']),
+  exec2025:   o=>col(o,['Executado 2025']),
+  exec2026:   o=>col(o,['Executado 2026']),
+  saldoAlocado:o=>col(o,['Saldo']),
+  pctExec:    o=>col(o,['% Execução']),
+  dataFim:    o=>excelSerialToDate(col(o,['Data Fim Atual'])),
+  status:     o=>col(o,['Status']),
+};
+
+function mapPainelServ(raw){
+  return raw.map(o=>({
+    gms:str(CP.gms(o)),tipo:str(CP.tipo(o)),empresa:str(CP.empresa(o)),
+    unidPrincipal:str(CP.unidPrincipal(o)),
+    unidsAtendidas:str(CP.unidsAtendidas(o)),
+    qtdeUnidades:num(CP.qtdeUnidades(o)),qtdPostos:num(CP.qtdPostos(o)),
+    dataInicio:CP.dataInicio(o),dataFim:CP.dataFim(o),
+    diasRestantes:num(CP.diasRest(o)),statusVigencia:str(CP.status(o)),
+    prorrogado:str(CP.prorrogado(o)),
+    valorGlobal:num(CP.valorGlobal(o)),valorMensal:num(CP.valorMensal(o)),
+    executadoTotal:num(CP.execTotal(o)),executado2025:num(CP.exec2025(o)),executado2026:num(CP.exec2026(o)),
+    saldo:num(CP.saldo(o)),pctExecTotal:num(CP.pctExecTotal(o)),
+    mediaGastoMensal:num(CP.mediaGasto(o)),
+    mesesRestantes:CP.mesesRest(o),mesesSaldo:CP.mesesSaldo(o),
+    acimaDoTeto:str(CP.acimaDoTeto(o)),necessitaSupl:str(CP.necessitaSupl(o)),
+    valorSupl:num(CP.valorSupl(o)),
+    // compat fields para renderização compartilhada
+    valorOriginal:0,pctReajuste:0,efetTotal:0,reajustePendente:'',
+    prorrogacaoIniciar:'',proxReajuste:null,iniciarProrx:null,
+    gastoMensalPol:0,valorMensalPol:0,valorSupl:num(CP.valorSupl(o))
+  })).filter(r=>r.gms);
+}
+
+function mapBaseServ(raw){
+  return raw.map(o=>({
+    gms:str(BP.gms(o)),tipo:str(BP.tipo(o)),empresa:str(BP.empresa(o)),
+    unidade:str(BP.unidade(o)),descricao:str(BP.descricao(o)),
+    qtdPostos:num(BP.qtdPostos(o)),valorMensalPosto:num(BP.valorMensalPosto(o)),
+    executado:num(BP.executado(o)),exec2025:num(BP.exec2025(o)),exec2026:num(BP.exec2026(o)),
+    saldoAlocado:num(BP.saldoAlocado(o)),pctExec:num(BP.pctExec(o)),
+    dataFim:BP.dataFim(o),status:str(BP.status(o)),
+    // compat
+    efetivo:0,efetTotal:0,valorGlobalContrato:0,valorGlobalAlocado:0,pctEfetivo:0
+  })).filter(r=>r.gms&&r.unidade);
+}
+
+function getActivePainel(){return STATE.mode==='serv'?STATE.serv_filtered:STATE.filtered}
+function getActiveBase(){
+  const gmsSet=new Set(getActivePainel().map(r=>r.gms));
+  const base=STATE.mode==='serv'?STATE.serv_base:STATE.base;
+  return base.filter(b=>gmsSet.has(b.gms));
+}
+function getActiveResEmp(){return STATE.mode==='serv'?STATE.serv_res_emp:STATE.res_emp}
+function getActiveResTipo(){return STATE.mode==='serv'?STATE.serv_res_tipo:STATE.res_tipo}
+
 function mapPainel(raw){
   return raw.map(o=>({
     gms:str(C.gms(o)),tipo:str(C.tipo(o)),empresa:str(C.empresa(o)),
@@ -919,7 +1061,7 @@ function mapBase(raw){
 // FILTERS
 // ============================================================
 function populateFilters(){
-  const p=STATE.painel;
+  const p=STATE.mode==='serv'?STATE.serv_painel:STATE.painel;
   fillSel('f-gms',[...new Set(p.map(r=>r.gms))].sort(),'Todos');
   fillSel('f-empresa',[...new Set(p.map(r=>r.empresa))].sort(),'Todos');
   const unis=new Set();
@@ -940,14 +1082,13 @@ function clearFilters(){
   applyFilters();
 }
 
-function applyFilters(){
-  if(!STATE.painel.length)return;
+function _filterRows(painel){
   const gms=document.getElementById('f-gms').value;
   const emp=document.getElementById('f-empresa').value;
   const uni=document.getElementById('f-unidade').value;
   const tipo=document.getElementById('f-tipo').value;
   const stat=document.getElementById('f-status').value;
-  STATE.filtered=STATE.painel.filter(r=>{
+  return painel.filter(r=>{
     if(gms&&r.gms!==gms)return false;
     if(emp&&r.empresa!==emp)return false;
     if(uni){const us=str(r.unidsAtendidas).split(/\s*\+\s*/).map(u=>u.trim());if(!us.includes(uni))return false}
@@ -955,10 +1096,19 @@ function applyFilters(){
     if(stat&&r.statusVigencia!==stat)return false;
     return true;
   });
+}
+function applyFilters(){
+  if(STATE.mode==='serv'){
+    if(!STATE.serv_painel.length)return;
+    STATE.serv_filtered=_filterRows(STATE.serv_painel);
+  } else {
+    if(!STATE.painel.length)return;
+    STATE.filtered=_filterRows(STATE.painel);
+  }
   renderDash();buildTabs();
   if(STATE.currentGMS){
-    const still=STATE.filtered.find(r=>r.gms===STATE.currentGMS&&r.empresa===STATE.currentEmp);
-    if(!still)showOverview();
+    const pool=STATE.mode==='serv'?STATE.serv_filtered:STATE.filtered;
+    if(!pool.find(r=>r.gms===STATE.currentGMS&&r.empresa===STATE.currentEmp))showOverview();
   }
 }
 
@@ -980,6 +1130,7 @@ function animNum(id,val){
 // RENDER DASHBOARD
 // ============================================================
 function renderDash(){
+  if(STATE.mode==='serv'){renderServDash();return}
   const rows=STATE.filtered;
   // Vigência
   animNum('k-total',rows.length);
@@ -1042,8 +1193,12 @@ function renderChUni(rows){
   destroyC('uni');
   const gmsSet=new Set(rows.map(r=>r.gms));
   const map={};
-  // Distribuição do Valor Global por unidade (valorGlobalContrato = valor alocado à unidade)
-  STATE.base.filter(b=>gmsSet.has(b.gms)).forEach(b=>{const k=b.unidade||'—';map[k]=(map[k]||0)+b.valorGlobalContrato});
+  const baseData=STATE.mode==='serv'?STATE.serv_base:STATE.base;
+  baseData.filter(b=>gmsSet.has(b.gms)).forEach(b=>{
+    const k=b.unidade||'—';
+    const val=STATE.mode==='serv'?b.executado:b.valorGlobalContrato;
+    map[k]=(map[k]||0)+val;
+  });
   const labs=Object.keys(map).sort((a,b)=>map[b]-map[a]);
   const data=labs.map(k=>map[k]),cols=labs.map((_,i)=>gc(i));
   state_charts('uni',new Chart(document.getElementById('ch-uni'),{type:'doughnut',
@@ -1131,12 +1286,13 @@ function renderResTab(tab){
   const el=document.getElementById('res-content');if(!el)return;
   if(tab==='emp'){
     const cols=['Empresa','Qtde','Valor Global','Executado','Saldo','% Exec.'];
-    el.innerHTML=resTable(cols,STATE.res_emp.map(r=>[
+    const src=getActiveResEmp();
+    el.innerHTML=resTable(cols,src.map(r=>[
       col(r,['Empresa']),col(r,['Qtde Contratos','Quantidade']),
       brl(col(r,['Valor Global Total','Valor Global'])),brl(col(r,['Executado Total','Executado'])),
       brl(col(r,['Saldo Total','Saldo'])),pct(col(r,['% Execução','% Exec.']))
     ]));
-  } else if(tab==='uni'){
+  } else if(tab==='uni'&&STATE.mode==='food'){
     const cols=['Unidade','Contratos','Efetivo','Val. Alocado','Executado','Saldo','% Exec.'];
     el.innerHTML=resTable(cols,STATE.res_uni.map(r=>[
       col(r,['Unidade']),col(r,['Qtde Contratos','Quantidade']),col(r,['Efetivo (mais recente)','Efetivo']),
@@ -1146,8 +1302,9 @@ function renderResTab(tab){
     ]));
   } else {
     const cols=['Tipo','Qtde','Valor Global','Executado','Saldo','% Exec.','Gasto Mensal'];
-    el.innerHTML=resTable(cols,STATE.res_tipo.map(r=>[
-      col(r,['Tipo']),col(r,['Qtde Contratos','Quantidade']),
+    const src=getActiveResTipo();
+    el.innerHTML=resTable(cols,src.map(r=>[
+      col(r,['Tipo','Tipo de Serviço']),col(r,['Qtde Contratos','Quantidade']),
       brl(col(r,['Valor Global Total','Valor Global'])),brl(col(r,['Executado Total','Executado'])),
       brl(col(r,['Saldo Total','Saldo'])),pct(col(r,['% Execução'])),brl(col(r,['Gasto Mensal Total','Gasto Mensal']))
     ]));
@@ -1226,7 +1383,8 @@ function suplBadge(s){
 function buildTabs(){
   const bar=document.getElementById('tabs-bar');
   bar.querySelectorAll('.tab-contract').forEach(e=>e.remove());
-  STATE.filtered.forEach(r=>{
+  const pool=STATE.mode==='serv'?STATE.serv_filtered:STATE.filtered;
+  pool.forEach(r=>{
     const t=document.createElement('div');
     t.className='tab-i tab-contract';
     const pe=pctV(r.pctExecTotal);
@@ -1258,16 +1416,27 @@ function updateActiveTab(){
 // ============================================================
 function showOverview(){
   STATE.currentGMS=null;STATE.currentEmp=null;
-  switchView('v-overview');updateActiveTab();
+  switchView(STATE.mode==='serv'?'v-serv':'v-overview');updateActiveTab();
 }
 function switchView(id){
-  ['v-empty','v-overview','v-detail'].forEach(v=>{
+  ['v-empty','v-overview','v-detail','v-serv','v-serv-detail'].forEach(v=>{
     const el=document.getElementById(v);
     if(el)el.classList.toggle('show',el.id===id);
   });
 }
 
 function showContract(gms,empresa){
+  if(STATE.mode==='serv'){
+    const row=STATE.serv_filtered.find(r=>r.gms===gms&&r.empresa===empresa)
+           ||STATE.serv_painel.find(r=>r.gms===gms&&r.empresa===empresa);
+    if(!row)return;
+    STATE.currentGMS=gms;STATE.currentEmp=empresa;
+    switchView('v-serv-detail');
+    renderServDetail(row);
+    updateActiveTab();
+    document.getElementById('main-scroll').scrollTop=0;
+    return;
+  }
   const row=STATE.filtered.find(r=>r.gms===gms&&r.empresa===empresa)
          ||STATE.painel.find(r=>r.gms===gms&&r.empresa===empresa);
   if(!row)return;
@@ -1541,6 +1710,444 @@ function buildDetailAlerts(row){
 }
 
 // ============================================================
+// SWITCH MODE
+// ============================================================
+function switchMode(mode){
+  STATE.mode=mode;
+  STATE.currentGMS=null;STATE.currentEmp=null;
+  STATE.sortCol=null;STATE.sortDir=1;STATE.pctPage=0;
+  document.getElementById('btn-mode-food').classList.toggle('active-mode',mode==='food');
+  document.getElementById('btn-mode-serv').classList.toggle('active-mode',mode==='serv');
+  // Sidebar title update
+  document.querySelector('.sb-head p').textContent=mode==='serv'?'Serviços Terceirizados':'Gêneros Alimentícios';
+  // Update top-bar sub title for overview
+  const sub=document.getElementById('dash-sub');
+  if(sub)sub.textContent=mode==='serv'?'Serviços Terceirizados – PRODUSERV':'3º Comando Regional PM';
+  populateFilters();
+  if(mode==='serv'){
+    STATE.serv_filtered=[...STATE.serv_painel];
+    applyFilters();
+    showOverview();
+  } else {
+    STATE.filtered=[...STATE.painel];
+    applyFilters();
+    showOverview();
+  }
+}
+
+// ============================================================
+// RENDER PRODUSERV DASHBOARD (overview)
+// ============================================================
+function renderServDash(){
+  const rows=STATE.serv_filtered;
+  const container=document.getElementById('v-serv');
+  if(!container)return;
+
+  const sg=rows.reduce((a,r)=>a+r.valorGlobal,0);
+  const se=rows.reduce((a,r)=>a+r.executadoTotal,0);
+  const se26=rows.reduce((a,r)=>a+r.executado2026,0);
+  const ss=rows.reduce((a,r)=>a+r.saldo,0);
+  const sm=rows.reduce((a,r)=>a+r.valorMensal,0);
+  const postos=rows.reduce((a,r)=>a+r.qtdPostos,0);
+  const tot=sg||1; const pp=(se/tot)*100; const ps=(ss/tot)*100;
+
+  const d30=rows.filter(r=>num(r.diasRestantes)<=30&&num(r.diasRestantes)>=0).length;
+  const d60=rows.filter(r=>{const d=num(r.diasRestantes);return d>30&&d<=60}).length;
+  const d90=rows.filter(r=>{const d=num(r.diasRestantes);return d>60&&d<=90}).length;
+  const d180=rows.filter(r=>{const d=num(r.diasRestantes);return d>90&&d<=180}).length;
+  const dok=rows.filter(r=>num(r.diasRestantes)>180).length;
+  const dprorr=rows.filter(r=>str(r.prorrogado).toLowerCase()==='sim').length;
+
+  container.innerHTML=`
+  <div class="mh fade-in">
+    <div><h1>Serviços Terceirizados – PRODUSERV</h1><p style="color:var(--txt2);font-size:12px;margin-top:3px">Contratos de Postos de Serviço – 3º CRPM</p></div>
+    <button class="btn-sec" onclick="document.getElementById('file-input').click()">📂 Trocar Planilha</button>
+  </div>
+
+  <div class="sec-lbl">Indicadores de Vigência</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px;margin-bottom:18px">
+    <div class="kc" style="border-top-color:var(--blue)"><div class="kl">Contratos</div><div class="kv">${rows.length}</div><div class="ks">no filtro</div></div>
+    <div class="kc" style="border-top-color:var(--red)"><div class="kl">Vence ≤30d</div><div class="kv">${d30}</div></div>
+    <div class="kc" style="border-top-color:var(--orn)"><div class="kl">Vence ≤60d</div><div class="kv">${d60}</div></div>
+    <div class="kc" style="border-top-color:var(--yel)"><div class="kl">Vence ≤90d</div><div class="kv">${d90}</div></div>
+    <div class="kc" style="border-top-color:var(--green)"><div class="kl">Vence ≤180d</div><div class="kv">${d180}</div></div>
+    <div class="kc" style="border-top-color:var(--lm)"><div class="kl">Confortável >180d</div><div class="kv">${dok}</div></div>
+    <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Prorrogados</div><div class="kv">${dprorr}</div></div>
+  </div>
+
+  <div class="sec-lbl">Indicadores Financeiros</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:18px">
+    <div class="kc big" style="border-top-color:var(--lbl)"><div class="kl">Valor Global Total</div><div class="kv" id="sv-global">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--green)"><div class="kl">Total Executado</div><div class="kv" id="sv-exec">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--lm)"><div class="kl">Executado 2026</div><div class="kv" id="sv-exec26">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--cyn)"><div class="kl">Saldo Disponível</div><div class="kv" id="sv-saldo">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Mensal Total</div><div class="kv" id="sv-mensal">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Total de Postos</div><div class="kv" id="sv-postos">${postos}</div><div class="ks">postos contratados</div></div>
+  </div>
+
+  <!-- EXEC BAR -->
+  <div class="exec-wrap">
+    <div class="exec-top">
+      <span class="exec-title">Execução Orçamentária</span>
+      <div class="exec-leg">
+        <span><span class="exec-dot" style="background:var(--green)"></span><span>Executado (${pp.toFixed(1)}%)</span></span>
+        <span><span class="exec-dot" style="background:var(--blue)"></span><span>Saldo (${ps.toFixed(1)}%)</span></span>
+      </div>
+    </div>
+    <div class="exec-track">
+      <div class="exec-fill" id="sv-ef-exec" style="width:0%;background:var(--green)"></div>
+      <div class="exec-fill" id="sv-ef-saldo" style="width:0%;background:var(--blue)"></div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="cr5050">
+    <div class="cc"><h3>Valor Global por Contrato</h3><canvas id="sv-ch-forn" height="220"></canvas></div>
+    <div class="cc"><h3>Executado por Unidade</h3><canvas id="sv-ch-uni" height="220"></canvas><div class="leg" id="sv-leg-uni"></div></div>
+  </div>
+  <div class="cr5050">
+    <div class="cc">
+      <h3>% Execução por Contrato</h3>
+      <div style="position:relative;height:130px"><canvas id="sv-ch-pct" height="130"></canvas></div>
+    </div>
+    <div class="cc"><h3>Executado 2025 vs 2026</h3><canvas id="sv-ch-anos" height="220"></canvas></div>
+  </div>
+  <div class="cc" id="sv-cc-monthly" style="margin-bottom:14px"><h3>Evolução Mensal de Pagamentos (NFs)</h3><canvas id="sv-ch-monthly" height="120"></canvas></div>
+
+  <!-- ALERTAS -->
+  <div class="alrt-panel" style="margin-bottom:14px">
+    <div class="alrt-title">⚠ PROSPECÇÃO DE SUPLEMENTAÇÃO</div>
+    <div class="alrt-sub">Contratos com indicação de suplementação necessária</div>
+    <div id="sv-alrt-content"></div>
+  </div>
+
+  <!-- RESUMO -->
+  <div class="cc" style="margin-bottom:14px">
+    <div class="res-tabs">
+      <div class="res-tab active" onclick="showResTab('emp',this)">Por Empresa</div>
+      <div class="res-tab" onclick="showResTab('tipo',this)">Por Tipo</div>
+    </div>
+    <div id="res-content"></div>
+  </div>
+
+  <!-- TABELA -->
+  <div class="tbl-wrap">
+    <div class="tbl-hdr">
+      <div><span class="tbl-ttl">Contratos PRODUSERV</span><span class="tbl-badge">${rows.length}</span></div>
+      <input type="text" class="tbl-search" id="sv-tbl-search" placeholder="🔍 GMS..." oninput="STATE.tableSearch=this.value;renderServDash()">
+    </div>
+    <div class="tbl-cont">
+      <table class="dt"><thead><tr>
+        <th>Nº GMS</th><th>Tipo</th><th>Unidades Atendidas</th><th>Postos</th>
+        <th>Valor Global</th><th>Executado</th><th>Saldo</th><th>% Exec.</th>
+        <th>Mensal</th><th>Status</th><th>Fim Vigência</th>
+      </tr></thead><tbody>
+      ${(()=>{
+        const q=STATE.tableSearch.toLowerCase();
+        const disp=q?rows.filter(r=>r.gms.toLowerCase().includes(q)||r.empresa.toLowerCase().includes(q)):rows;
+        return disp.map(r=>{
+          const pe=pctV(r.pctExecTotal);
+          const pcl=pe>100?'td-r':pe>=70?'td-g':'';
+          return`<tr onclick="showContract('${escJS(r.gms)}','${escJS(r.empresa)}')">
+            <td><div class="td-blue">${r.gms}</div><div class="td-sub">${r.empresa}</div></td>
+            <td><span class="badge bg-p" style="font-size:9px">${r.tipo||'—'}</span></td>
+            <td style="font-size:10px;color:var(--txt2)">${r.unidsAtendidas||'—'}</td>
+            <td style="font-weight:700;color:var(--orn)">${r.qtdPostos||'—'}</td>
+            <td>${brl(r.valorGlobal)}</td>
+            <td class="td-g">${brl(r.executadoTotal)}</td>
+            <td>${brl(r.saldo)}</td>
+            <td class="${pcl}">${pct(r.pctExecTotal)}</td>
+            <td>${brl(r.valorMensal)}</td>
+            <td>${statusBadge(r.statusVigencia)}</td>
+            <td>${fDate(r.dataFim)}</td>
+          </tr>`;
+        }).join('');
+      })()}
+      </tbody></table>
+    </div>
+  </div>`;
+
+  // Animate KPIs
+  animMoney('sv-global',sg);animMoney('sv-exec',se);animMoney('sv-exec26',se26);
+  animMoney('sv-saldo',ss);animMoney('sv-mensal',sm);
+  setTimeout(()=>{
+    const ee=document.getElementById('sv-ef-exec');if(ee)ee.style.width=Math.min(pp,100)+'%';
+    const es=document.getElementById('sv-ef-saldo');if(es)es.style.width=Math.min(ps,100-Math.min(pp,100))+'%';
+  },100);
+
+  // Charts (rendered after DOM update)
+  setTimeout(()=>{
+    // Bar: valor global por contrato
+    destroyC('sv-forn');
+    const labs=rows.map(r=>r.gms+' '+r.empresa);
+    const data=rows.map(r=>r.valorGlobal);
+    STATE.charts['sv-forn']=new Chart(document.getElementById('sv-ch-forn'),{type:'bar',
+      data:{labels:labs,datasets:[{data,backgroundColor:labs.map((_,i)=>gc(i)),borderRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>' '+brl(c.raw)}}},
+        scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+    // Doughnut: executado por unidade
+    destroyC('sv-uni');
+    const uMap={};
+    STATE.serv_base.filter(b=>new Set(rows.map(r=>r.gms)).has(b.gms)).forEach(b=>{uMap[b.unidade]=(uMap[b.unidade]||0)+b.executado});
+    const uLabs=Object.keys(uMap).sort((a,b)=>uMap[b]-uMap[a]);
+    const uData=uLabs.map(k=>uMap[k]),uCols=uLabs.map((_,i)=>gc(i));
+    STATE.charts['sv-uni']=new Chart(document.getElementById('sv-ch-uni'),{type:'doughnut',
+      data:{labels:uLabs,datasets:[{data:uData,backgroundColor:uCols,borderWidth:2,borderColor:'#1e2130'}]},
+      options:{responsive:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.label}: ${brl(c.raw)}`}}}}});
+    const legUni=document.getElementById('sv-leg-uni');
+    if(legUni)legUni.innerHTML=uLabs.slice(0,10).map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${uCols[i]}"></span>${l}</span>`).join('');
+    // Bar: % execução
+    destroyC('sv-pct');
+    const pSorted=[...rows].sort((a,b)=>pctV(b.pctExecTotal)-pctV(a.pctExecTotal));
+    STATE.charts['sv-pct']=new Chart(document.getElementById('sv-ch-pct'),{type:'bar',
+      data:{labels:pSorted.map(r=>r.gms),datasets:[{data:pSorted.map(r=>+pctV(r.pctExecTotal).toFixed(1)),backgroundColor:pSorted.map(r=>{const v=pctV(r.pctExecTotal);return v>100?'#ef4444':v>=70?'#22c55e':'#f59e0b'}),borderRadius:3}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.raw.toFixed(1)}%`}}},
+        scales:{x:{grid:{color:GC},ticks:{color:TC,callback:v=>v+'%'}},y:{grid:{color:GC},ticks:{color:TC,font:{size:10}}}}}});
+    // Bar: 2025 vs 2026
+    destroyC('sv-anos');
+    STATE.charts['sv-anos']=new Chart(document.getElementById('sv-ch-anos'),{type:'bar',
+      data:{labels:rows.map(r=>r.gms),datasets:[
+        {label:'2025',data:rows.map(r=>r.executado2025),backgroundColor:'#4f8ef7',borderRadius:3},
+        {label:'2026',data:rows.map(r=>r.executado2026),backgroundColor:'#22c55e',borderRadius:3}
+      ]},
+      options:{responsive:true,plugins:{legend:{display:true,labels:{color:'#94a3b8',font:{size:10}}},tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${brl(c.raw)}`}}},
+        scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+    // Monthly NF chart
+    renderServMonthly();
+  },80);
+
+  // Alertas
+  const needs=rows.filter(r=>str(r.necessitaSupl).toLowerCase().includes('sim')||str(r.necessitaSupl).toLowerCase().includes('urgente'));
+  const alvEl=document.getElementById('sv-alrt-content');
+  if(alvEl){
+    if(!needs.length){alvEl.innerHTML='<div class="alrt-ok">✓ Nenhum contrato necessita suplementação.</div>'}
+    else{const mx=Math.max(...needs.map(r=>r.valorSupl))||1;alvEl.innerHTML=needs.map(r=>`<div class="alrt-item"><div class="alrt-lbl">${r.gms} · ${r.empresa}</div><div class="alrt-track"><div class="alrt-fill" style="width:${Math.min((r.valorSupl/mx)*100,100)}%"></div></div><div class="alrt-val">${brl(r.valorSupl)}</div></div>`).join('')}
+  }
+
+  // Sync resumo tabs
+  document.querySelectorAll('.res-tab').forEach((t,i)=>{t.classList.toggle('active',i===0)});
+  STATE.resTab='emp';
+  renderResTab('emp');
+}
+
+function renderServMonthly(){
+  destroyC('sv-monthly');
+  const canvas=document.getElementById('sv-ch-monthly');
+  const wrap=document.getElementById('sv-cc-monthly');
+  if(!canvas)return;
+  const gmsSet=new Set(STATE.serv_filtered.map(r=>r.gms));
+  const map={};
+  Object.keys(STATE.nfs).forEach(name=>{
+    const nfArr=STATE.nfs[name];
+    const firstGms=Object.keys(STATE.nfsIndex).find(k=>STATE.nfsIndex[k]===name);
+    if(firstGms&&gmsSet.has(firstGms.split('|')[0])){
+      nfArr.forEach(n=>{
+        let d=str(n.data);if(!d)return;
+        let y,m;
+        if(d.match(/^\d{2}\/\d{2}\/\d{4}$/)){const p=d.split('/');m=parseInt(p[1]);y=parseInt(p[2])}
+        else if(d.match(/^\d{4}-\d{2}-\d{2}$/)){const p=d.split('-');y=parseInt(p[0]);m=parseInt(p[1])}
+        else return;
+        if(y<2020||y>2030)return;
+        const k=`${y}-${String(m).padStart(2,'0')}`;
+        map[k]=(map[k]||0)+n.valor;
+      });
+    }
+  });
+  if(!Object.keys(map).length){if(wrap)wrap.style.display='none';return}
+  if(wrap)wrap.style.display='';
+  const labs=Object.keys(map).sort();
+  const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const fmtL=k=>{const[y,mo]=k.split('-');return`${MN[parseInt(mo)-1]}/${y.slice(2)}`};
+  STATE.charts['sv-monthly']=new Chart(canvas,{type:'line',
+    data:{labels:labs.map(fmtL),datasets:[{label:'Pagamentos',data:labs.map(k=>map[k]),fill:true,
+      backgroundColor:'rgba(249,115,22,.15)',borderColor:'#f97316',pointBackgroundColor:'#f97316',
+      tension:.35,borderWidth:2,pointRadius:3}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},
+      scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:9}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+}
+
+// ============================================================
+// RENDER PRODUSERV DETAIL
+// ============================================================
+function renderServDetail(row){
+  ['sv-d-rosca','sv-d-saldo','sv-d-nf'].forEach(k=>destroyC(k));
+  const baseRows=STATE.serv_base.filter(b=>b.gms===row.gms);
+  const pe=pctV(row.pctExecTotal);
+  const barColor=pe>100?'var(--red)':pe>=70?'var(--green)':'var(--yel)';
+
+  let pctTime=50,diasP=0;
+  try{
+    const parseD=v=>{if(!v)return null;if(v instanceof Date)return v;if(typeof v==='string'){const m=v.match(/(\d{4})-(\d{2})-(\d{2})/);if(m)return new Date(v);}return null};
+    const ini=parseD(row.dataInicio),fim=parseD(row.dataFim),tod=new Date();
+    if(ini&&fim){const tot=(fim-ini)/864e5||1;diasP=(tod-ini)/864e5;pctTime=Math.max(0,Math.min((diasP/tot)*100,100))}
+  }catch(e){}
+
+  const nfSheetKey=findNFSheet(row.gms,row.empresa);
+  const nfs=nfSheetKey?STATE.nfs[nfSheetKey]||[]:[];
+  const nfTotal=nfs.reduce((a,n)=>a+n.valor,0);
+
+  document.getElementById('v-serv-detail').innerHTML=`
+  <!-- HEADER -->
+  <div class="detail-hdr fade-in">
+    <div>
+      <div class="dh-gms">GMS ${row.gms}</div>
+      <div class="dh-emp">${row.empresa}</div>
+      <div class="dh-badges">
+        ${statusBadge(row.statusVigencia)}
+        <span class="badge ${str(row.prorrogado).toLowerCase()==='sim'?'bg-c':'bg-gr'}">${str(row.prorrogado).toLowerCase()==='sim'?'Prorrogado':'Não Prorrog.'}</span>
+        <span class="badge bg-p">${row.tipo||'Postos de Serviço'}</span>
+        <span class="badge bg-o">${row.qtdPostos||0} postos</span>
+      </div>
+    </div>
+    <button class="btn-sec" onclick="showOverview()">← Visão Geral</button>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="sec-lbl">Indicadores do Contrato</div>
+  <div class="kpi-g8">
+    <div class="kc" style="border-top-color:var(--blue)"><div class="kl">Valor Global</div><div class="kv" style="font-size:15px">${brl(row.valorGlobal)}</div></div>
+    <div class="kc" style="border-top-color:var(--green)"><div class="kl">Total Executado</div><div class="kv" style="font-size:15px">${brl(row.executadoTotal)}</div></div>
+    <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Saldo Restante</div><div class="kv" style="font-size:15px">${brl(row.saldo)}</div></div>
+    <div class="kc" style="border-top-color:${barColor}"><div class="kl">% Execução</div><div class="kv" style="font-size:20px;color:${barColor}">${pct(row.pctExecTotal)}</div></div>
+    <div class="kc" style="border-top-color:var(--orn)"><div class="kl">Total Postos</div><div class="kv">${row.qtdPostos||'—'}</div></div>
+    <div class="kc" style="border-top-color:var(--yel)"><div class="kl">Mensal Total</div><div class="kv" style="font-size:14px">${brl(row.valorMensal)}</div></div>
+    <div class="kc" style="border-top-color:var(--pur)"><div class="kl">Meses Restantes</div><div class="kv">${row.mesesRestantes??'—'}</div></div>
+    <div class="kc" style="border-top-color:var(--red)"><div class="kl">Supl. Estimada</div><div class="kv" style="font-size:14px">${brl(row.valorSupl)}</div></div>
+  </div>
+
+  <!-- INFO GRID -->
+  <div class="info-grid">
+    <div class="info-item"><div class="il">Unidades Atendidas</div><div class="iv">${row.unidsAtendidas||'—'}</div></div>
+    <div class="info-item"><div class="il">Qtde Unidades</div><div class="iv">${row.qtdeUnidades}</div></div>
+    <div class="info-item"><div class="il">Executado 2025</div><div class="iv" style="color:var(--blue)">${brl(row.executado2025)}</div></div>
+    <div class="info-item"><div class="il">Executado 2026</div><div class="iv" style="color:var(--green)">${brl(row.executado2026)}</div></div>
+    <div class="info-item"><div class="il">Média Gasto Mensal</div><div class="iv">${brl(row.mediaGastoMensal)}</div></div>
+    <div class="info-item"><div class="il">Total NFs Liquidadas</div><div class="iv" style="color:var(--green)">${brl(nfTotal)}</div></div>
+  </div>
+
+  <!-- BARRA EXECUÇÃO -->
+  <div class="prog-wrap">
+    <div class="sec-lbl" style="margin-bottom:6px">Progresso de Execução</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-bottom:5px"><span>0%</span><span style="font-weight:700;color:${barColor}">${pct(row.pctExecTotal)} executado</span><span>100%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="sv-d-prog" style="width:0%;background:${barColor}">${pe>12?pct(row.pctExecTotal):''}</div></div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="tl-wrap">
+    <div class="sec-lbl" style="margin-bottom:2px">Linha do Tempo</div>
+    <div class="tl-dates" style="margin-top:10px"><span>Início: ${fDate(row.dataInicio)}</span><span>Fim: ${fDate(row.dataFim)}</span></div>
+    <div class="tl-track">
+      <div class="tl-fill" id="sv-d-tlfill" style="width:0%"></div>
+      <div class="tl-dot" style="left:${pctTime}%"></div>
+    </div>
+    <div class="tl-info">
+      <span>Dias decorridos: <strong>${Math.max(0,Math.floor(diasP))}</strong></span>
+      <span>Hoje: <strong>${new Date().toLocaleDateString('pt-BR')}</strong></span>
+      <span>Dias restantes: <strong>${row.diasRestantes??'—'}</strong></span>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="ac-grid" id="sv-d-alerts"></div>
+
+  ${baseRows.length?`
+  <!-- TABELA POSTOS POR UNIDADE -->
+  <div class="tbl-wrap">
+    <div class="tbl-hdr"><span class="tbl-ttl">Detalhamento por Unidade</span><span class="tbl-badge">${baseRows.length}</span></div>
+    <div class="tbl-cont"><table class="dt"><thead><tr>
+      <th>Unidade</th><th>Descrição do Posto</th><th>Qtd Postos</th><th>Mensal/Posto</th>
+      <th>Executado</th><th>Exec. 2026</th><th>Saldo</th><th>% Exec.</th><th>Status</th>
+    </tr></thead><tbody>
+    ${baseRows.map(u=>{const pu=pctV(u.pctExec);const bc=pu>100?'var(--red)':pu>=70?'var(--green)':'var(--yel)';
+      return`<tr><td style="font-weight:600">${u.unidade}</td>
+        <td style="color:var(--txt2)">${u.descricao||'—'}</td>
+        <td style="font-weight:700;color:var(--orn)">${u.qtdPostos}</td>
+        <td>${brl(u.valorMensalPosto)}</td>
+        <td class="td-g">${brl(u.executado)}</td>
+        <td style="color:var(--lm)">${brl(u.exec2026||0)}</td>
+        <td>${brl(u.saldoAlocado)}</td>
+        <td><div style="font-size:11px;font-weight:700;color:${bc}">${pct(u.pctExec)}</div>
+          <div class="mp"><div class="mp-f" style="width:${Math.min(pu,100)}%;background:${bc}"></div></div></td>
+        <td>${statusBadge(u.status)}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>
+  </div>
+  <!-- GRÁFICOS -->
+  <div class="cr5050">
+    <div class="cc"><h3>Executado por Unidade</h3><div style="max-width:300px;margin:0 auto"><canvas id="sv-ch-d-rosca" height="200"></canvas></div><div class="leg" id="sv-leg-d-rosca"></div></div>
+    <div class="cc"><h3>Saldo por Unidade</h3><canvas id="sv-ch-d-saldo" height="200"></canvas></div>
+  </div>`:''}
+
+  ${nfs.length?`
+  <!-- NOTAS FISCAIS -->
+  <div class="nf-wrap">
+    <div class="tbl-hdr" style="margin-bottom:8px">
+      <div><span class="tbl-ttl">Notas Fiscais / Pagamentos</span><span class="tbl-badge">${nfs.length}</span>
+        <span style="font-size:11px;color:var(--green);margin-left:10px;font-weight:600">Total: ${brl(nfTotal)}</span>
+      </div>
+      <div class="nf-filters">
+        <select id="sv-nf-f-uni" onchange="filterNFs()">
+          <option value="">Todas Unidades</option>
+          ${[...new Set(nfs.map(n=>n.unidade))].sort().map(u=>`<option value="${u}">${u}</option>`).join('')}
+        </select>
+        <select id="sv-nf-f-ano" onchange="filterNFs()">
+          <option value="">Todos Anos</option>
+          ${[...new Set(nfs.map(n=>n.ano).filter(Boolean))].sort().map(a=>`<option value="${a}">${a}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="tbl-cont" id="nf-table-cont" style="max-height:260px">${renderNFTable(nfs)}</div>
+    <div style="margin-top:14px"><canvas id="sv-ch-d-nf" height="120"></canvas></div>
+  </div>`:`<div class="cc" style="margin-bottom:14px;text-align:center;padding:18px;color:var(--lbl)">Sem registros de notas fiscais para este contrato.</div>`}
+  `;
+
+  // Animate
+  setTimeout(()=>{
+    const p=document.getElementById('sv-d-prog');if(p)p.style.width=Math.min(pe,100)+'%';
+    const tl=document.getElementById('sv-d-tlfill');if(tl)tl.style.width=pctTime+'%';
+  },80);
+
+  // Alerts
+  const aEl=document.getElementById('sv-d-alerts');
+  if(aEl){
+    const alerts=[];
+    if(str(row.acimaDoTeto).toLowerCase()==='sim')
+      alerts.push({cls:'ac-r',title:'🚨 Teto Contratual Excedido',body:'Gasto médio mensal acima da provisão. Verificar suplementação.'});
+    if(str(row.necessitaSupl).toLowerCase().includes('sim'))
+      alerts.push({cls:'ac-r',title:'⚠ Suplementação Necessária',body:`Valor estimado: <strong>${brl(row.valorSupl)}</strong>`});
+    if(!alerts.length)alerts.push({cls:'ac-g',title:'✓ Sem Alertas',body:'Nenhum alerta identificado para este contrato.'});
+    aEl.innerHTML=alerts.map(a=>`<div class="ac ${a.cls}"><h4>${a.title}</h4><p>${a.body}</p></div>`).join('');
+  }
+
+  // Unit charts
+  if(baseRows.length){
+    setTimeout(()=>{
+      const c1=document.getElementById('sv-ch-d-rosca'),c2=document.getElementById('sv-ch-d-saldo');
+      if(c1){
+        const labs=baseRows.map(b=>b.unidade),data=baseRows.map(b=>b.executado),cols=labs.map((_,i)=>gc(i));
+        STATE.charts['sv-d-rosca']=new Chart(c1,{type:'doughnut',data:{labels:labs,datasets:[{data,backgroundColor:cols,borderWidth:2,borderColor:'#1e2130'}]},options:{responsive:true,cutout:'60%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.label}: ${brl(c.raw)}`}}}}});
+        const leg=document.getElementById('sv-leg-d-rosca');if(leg)leg.innerHTML=labs.map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${cols[i]}"></span>${l}</span>`).join('');
+      }
+      if(c2){
+        STATE.charts['sv-d-saldo']=new Chart(c2,{type:'bar',data:{labels:baseRows.map(b=>b.unidade),datasets:[{label:'Saldo',data:baseRows.map(b=>b.saldoAlocado),backgroundColor:'#4f8ef7',borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},scales:{x:{grid:{color:GC},ticks:{color:TC}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+      }
+    },120);
+  }
+
+  // NF chart
+  if(nfs.length){
+    STATE._currentNFs=nfs;
+    setTimeout(()=>buildNFChart(nfs),140);
+    // Remap filter selects to correct IDs
+    const fUni=document.getElementById('sv-nf-f-uni');
+    const fAno=document.getElementById('sv-nf-f-ano');
+    if(fUni)fUni.id='nf-f-uni';
+    if(fAno)fAno.id='nf-f-ano';
+  }
+}
+
+// ============================================================
 // MONTHLY CHART (NFs de todos os contratos)
 // ============================================================
 function renderChMonthly(){
@@ -1669,6 +2276,9 @@ function renderImportHistory(){
     STATE.painel=mapPainel(STATE.painel);
     STATE.base=mapBase(STATE.base);
     STATE.filtered=[...STATE.painel];
+    STATE.serv_painel=mapPainelServ(STATE.serv_painel);
+    STATE.serv_base=mapBaseServ(STATE.serv_base);
+    STATE.serv_filtered=[...STATE.serv_painel];
     populateFilters();applyFilters();buildTabs();showOverview();
   };
 })();
