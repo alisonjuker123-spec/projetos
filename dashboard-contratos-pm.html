@@ -1167,16 +1167,13 @@ function renderDetail(row){
 
   <!-- INFO GRID -->
   <div class="info-grid">
-    <div class="info-item"><div class="il">Unidade Principal</div><div class="iv">${row.unidPrincipal||'—'}</div></div>
     <div class="info-item"><div class="il">Unidades Atendidas</div><div class="iv">${row.unidsAtendidas||'—'}</div></div>
     <div class="info-item"><div class="il">Efetivo Total</div><div class="iv">${row.efetTotal} policiais</div></div>
-    <div class="info-item"><div class="il">Efetivo Principal</div><div class="iv">${row.efetAtual} policiais</div></div>
     <div class="info-item"><div class="il">Valor Original Anual</div><div class="iv">${brl(row.valorOriginal)}</div></div>
     <div class="info-item"><div class="il">% Reajuste</div><div class="iv">${row.pctReajuste??0}%</div></div>
     <div class="info-item"><div class="il">Próx. Reajuste</div><div class="iv">${fDate(row.proxReajuste)}</div></div>
     <div class="info-item"><div class="il">Executado 2025</div><div class="iv" style="color:var(--blue)">${brl(row.executado2025)}</div></div>
     <div class="info-item"><div class="il">Executado 2026</div><div class="iv" style="color:var(--green)">${brl(row.executado2026)}</div></div>
-    <div class="info-item"><div class="il">Meses de Saldo</div><div class="iv">${row.mesesSaldo??'—'}</div></div>
     <div class="info-item"><div class="il">Total NFs Liquidadas</div><div class="iv" style="color:var(--green)">${brl(nfTotal)}</div></div>
     <div class="info-item"><div class="il">Qtde Unidades</div><div class="iv">${row.qtdeUnidades}</div></div>
   </div>
