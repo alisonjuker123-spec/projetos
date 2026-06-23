@@ -237,9 +237,75 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
 .view{display:none}.view.show{display:block}
 .fade-in{animation:fi .2s ease}
 @keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* HAMBURGER / SIDEBAR RESPONSIVO */
+.hamburger{display:none;background:transparent;border:1px solid var(--bdr);color:var(--txt2);border-radius:6px;padding:6px 10px;font-size:18px;cursor:pointer;line-height:1;flex-shrink:0}
+.hamburger:hover{border-color:var(--blue);color:var(--blue)}
+@media(max-width:800px){
+  .hamburger{display:flex;align-items:center}
+  .sidebar{position:fixed;left:-270px;top:0;bottom:0;z-index:200;transition:left .25s;box-shadow:none}
+  .sidebar.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.5)}
+  .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+  .sb-overlay.show{display:block}
+}
+/* TAB TOOLTIP */
+.tab-i{position:relative}
+.tab-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--bdr);border-radius:7px;padding:10px 14px;font-size:11px;color:var(--txt);white-space:nowrap;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;min-width:210px;line-height:1.7}
+.tab-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--bdr)}
+.tab-i:hover .tab-tip{display:block}
+/* IMPORT HISTORY */
+.hist-item{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:10px;color:var(--txt2)}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:3px}
+/* SORTABLE TABLE */
+table.dt th.sortable{cursor:pointer;user-select:none}
+table.dt th.sortable:hover{color:var(--blue)}
+table.dt th.sort-asc::after{content:' ▲';color:var(--blue)}
+table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
+/* CHART PAGINATION */
+.ch-pag{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;font-size:11px;color:var(--txt2)}
+.ch-pag button{background:var(--inp);border:1px solid var(--bdr);color:var(--txt2);border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit}
+.ch-pag button:hover{border-color:var(--blue);color:var(--blue)}
+.ch-pag button:disabled{opacity:.4;cursor:not-allowed}
+/* REF DATE */
+.ref-date{font-size:10px;color:var(--lbl);padding:3px 8px;border:1px solid var(--bdr);border-radius:4px;display:none;white-space:nowrap}
+.ref-date.show{display:inline-block}
+/* VALIDATION MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;justify-content:center;align-items:center}
+.modal-ov.show{display:flex}
+.modal-box{background:var(--card);border-radius:10px;padding:24px 28px;max-width:520px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5);border:1px solid var(--bdr)}
+.modal-box h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--txt)}
+.modal-sheet{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bdr);font-size:12px}
+.modal-sheet:last-child{border-bottom:none}
+.modal-sheet .ms-ok{color:var(--green);font-size:13px}
+.modal-sheet .ms-no{color:var(--red);font-size:13px}
+.modal-sheet .ms-cnt{margin-left:auto;font-size:10px;color:var(--txt2)}
+/* PRINT PDF */
+@media print{
+  .sidebar,.top-bar,.tabs-bar,.btn-theme,.btn-sec,.btn-pri,.btn-clr,.nf-filters,.tbl-search,.file-name-tag,.spinner-ov,.toast,.hamburger,.sb-overlay,.modal-ov{display:none!important}
+  .app{display:block}
+  .main{overflow:visible}
+  .main-scroll{overflow:visible;padding:10px}
+  .view{display:block!important}
+  body{background:#fff!important;color:#000!important;font-size:11px}
+  .kc,.cc,.tbl-wrap,.prog-wrap,.tl-wrap,.alrt-panel,.nf-wrap,.info-grid,.exec-wrap,.ac,.detail-hdr{break-inside:avoid;box-shadow:none!important;border:1px solid #ddd!important}
+  .kc .kv{font-size:18px!important}
+}
 </style>
 </head>
 <body>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
+<!-- IMPORT VALIDATION MODAL -->
+<div class="modal-ov" id="modal-val" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal-box">
+    <h3>📋 Resumo da Importação</h3>
+    <div id="modal-val-content"></div>
+    <div style="margin-top:16px;text-align:right"><button class="btn-pri" onclick="document.getElementById('modal-val').classList.remove('show')">OK</button></div>
+  </div>
+</div>
 
 <!-- SPINNER -->
 <div class="spinner-ov" id="spinner">
@@ -267,6 +333,11 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
     <div class="f-sec"><label class="f-lbl">Objeto / Tipo</label><select class="f-sel" id="f-tipo" onchange="applyFilters()"><option value="">Todos</option></select></div>
     <div class="f-sec"><label class="f-lbl">Status Vigência</label><select class="f-sel" id="f-status" onchange="applyFilters()"><option value="">Todos</option></select></div>
     <button class="btn-clr" onclick="clearFilters()">✕ Limpar Filtros</button>
+    <!-- HISTÓRICO DE IMPORTAÇÕES -->
+    <div class="f-sec" id="hist-sec" style="display:none">
+      <label class="f-lbl">Histórico de Importações</label>
+      <div id="hist-content"></div>
+    </div>
   </aside>
 
   <!-- MAIN -->
@@ -274,11 +345,15 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
 
     <!-- TOP BAR -->
     <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <div class="top-bar-info">
         <div class="top-bar-title">Dashboard Unificado – Contratos e Notas Fiscais</div>
         <div class="top-bar-sub">Gestão Avançada de Contratos – 3º Comando Regional PM</div>
       </div>
+      <span class="ref-date" id="ref-date"></span>
       <span class="file-name-tag" id="file-name-tag">📄 —</span>
+      <button class="btn-sec" id="btn-export-xlsx" onclick="exportExcel()" style="display:none" title="Exportar tabela atual para Excel">📥 Excel</button>
+      <button class="btn-sec" id="btn-export-pdf" onclick="exportPDF()" style="display:none" title="Imprimir / exportar como PDF">🖨 PDF</button>
       <button class="btn-pri" onclick="document.getElementById('file-input').click()">📂 Importar Planilha</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
@@ -339,6 +414,7 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
           <div class="kc" style="border-top-color:var(--orn)"><div class="kl">Vence ≤60d</div><div class="kv" id="k-60">0</div></div>
           <div class="kc" style="border-top-color:var(--yel)"><div class="kl">Vence ≤90d</div><div class="kv" id="k-90">0</div></div>
           <div class="kc" style="border-top-color:var(--green)"><div class="kl">Vence ≤180d</div><div class="kv" id="k-180">0</div></div>
+          <div class="kc" style="border-top-color:var(--lm)"><div class="kl">Confortável >180d</div><div class="kv" id="k-ok">0</div><div class="ks">vigência tranquila</div></div>
           <div class="kc" style="border-top-color:var(--pur)"><div class="kl">Reajustes</div><div class="kv" id="k-reaj">0</div><div class="ks">pendentes</div></div>
           <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Prorrogados</div><div class="kv" id="k-prorr">0</div></div>
         </div>
@@ -372,9 +448,19 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
         </div>
         <!-- CHARTS ROW 2 -->
         <div class="cr5050">
-          <div class="cc"><h3>% Execução por Contrato</h3><div id="ch-pct-wrap" style="position:relative"><canvas id="ch-pct" height="240"></canvas></div></div>
+          <div class="cc">
+            <h3>% Execução por Contrato</h3>
+            <div id="ch-pct-wrap" style="position:relative"><canvas id="ch-pct" height="240"></canvas></div>
+            <div class="ch-pag" id="pct-pag" style="display:none">
+              <button id="pct-prev" onclick="pctPageChange(-1)" disabled>◀ Ant.</button>
+              <span id="pct-page-lbl"></span>
+              <button id="pct-next" onclick="pctPageChange(1)">Próx. ▶</button>
+            </div>
+          </div>
           <div class="cc"><h3>Executado 2025 vs 2026 por Fornecedor</h3><canvas id="ch-anos" height="240"></canvas></div>
         </div>
+        <!-- CHART MENSAL -->
+        <div class="cc" id="cc-monthly" style="margin-bottom:14px"><h3>Evolução Mensal de Pagamentos (NFs)</h3><canvas id="ch-monthly" height="140"></canvas></div>
         <!-- ALERTAS -->
         <div class="alrt-panel">
           <div class="alrt-title">⚠ PROSPECÇÃO DE SUPLEMENTAÇÃO NECESSÁRIA</div>
@@ -398,10 +484,18 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
           </div>
           <div class="tbl-cont">
             <table class="dt"><thead><tr>
-              <th>Nº GMS</th><th>Fornecedor / Unid. Principal</th><th>Tipo</th>
-              <th>Valor Global</th><th>Executado</th><th>Saldo</th>
-              <th>% Exec.</th><th>Provisão/Mês</th><th>Gasto/Mês</th>
-              <th>Status</th><th>Fim Vigência</th><th>Suplementação</th>
+              <th class="sortable" onclick="sortTable('gms')">Nº GMS</th>
+              <th class="sortable" onclick="sortTable('empresa')">Fornecedor / Unid. Principal</th>
+              <th>Tipo</th>
+              <th class="sortable" onclick="sortTable('valorGlobal')">Valor Global</th>
+              <th class="sortable" onclick="sortTable('executadoTotal')">Executado</th>
+              <th class="sortable" onclick="sortTable('saldo')">Saldo</th>
+              <th class="sortable" onclick="sortTable('pctExecTotal')">% Exec.</th>
+              <th class="sortable" onclick="sortTable('valorMensal')">Provisão/Mês</th>
+              <th class="sortable" onclick="sortTable('mediaGastoMensal')">Gasto/Mês</th>
+              <th class="sortable" onclick="sortTable('statusVigencia')">Status</th>
+              <th class="sortable" onclick="sortTable('diasRestantes')">Fim Vigência</th>
+              <th>Suplementação</th>
             </tr></thead><tbody id="tbl-body"></tbody></table>
           </div>
         </div>
@@ -446,7 +540,11 @@ let STATE={
   painel:[],base:[],res_emp:[],res_uni:[],res_tipo:[],nfs:{},nfsIndex:{},
   filtered:[],charts:{},currentGMS:null,currentEmp:null,
   tableSearch:'',resTab:'emp',fileName:'',
-  _currentNFs:[]
+  _currentNFs:[],
+  importDate:null,
+  sortCol:null,sortDir:1,
+  pctPage:0,pctPageSize:10,
+  _pctRows:[]
 };
 
 // ============================================================
@@ -615,11 +713,38 @@ function parseWorkbook(buffer,fileName){
     toast('Aba "Painel Consolidado" não encontrada ou vazia. Verifique a planilha.','err');return;
   }
 
+  // Reference date
+  STATE.importDate=new Date();
+  const refEl=document.getElementById('ref-date');
+  if(refEl){refEl.textContent='🗓 Atualizado em '+STATE.importDate.toLocaleDateString('pt-BR');refEl.classList.add('show')}
+
   // Update UI
   const tag=document.getElementById('file-name-tag');
   tag.textContent='📄 '+fileName;tag.classList.add('show');
   document.getElementById('btn-ov').style.display='';
+  document.getElementById('btn-export-xlsx').style.display='';
+  document.getElementById('btn-export-pdf').style.display='';
   document.getElementById('dash-sub').textContent=`Importado: ${fileName}`;
+
+  // Import validation modal
+  const checkSheets=[
+    {name:SHEET_PAINEL,rows:STATE.painel.length,label:'Painel Consolidado'},
+    {name:SHEET_BASE,rows:STATE.base.length,label:'Base Detalhada'},
+    {name:SHEET_EMP,rows:STATE.res_emp.length,label:'Resumo por Empresa'},
+    {name:SHEET_UNI,rows:STATE.res_uni.length,label:'Resumo por Unidade'},
+    {name:SHEET_TIPO,rows:STATE.res_tipo.length,label:'Resumo por Tipo'},
+    {name:'NFs individuais',rows:Object.keys(STATE.nfs).length,label:'Abas de Contratos (NFs)'},
+  ];
+  document.getElementById('modal-val-content').innerHTML=checkSheets.map(s=>`
+    <div class="modal-sheet">
+      <span class="${s.rows>0?'ms-ok':'ms-no'}">${s.rows>0?'✓':'✗'}</span>
+      <span style="font-weight:600;flex:1">${s.label}</span>
+      <span class="ms-cnt">${s.rows>0?s.rows+' registros':'não encontrada'}</span>
+    </div>`).join('');
+  document.getElementById('modal-val').classList.add('show');
+
+  // Import history
+  saveImportHistory(fileName);
 
   // Boot dashboard
   STATE.filtered=[...STATE.painel];
@@ -854,6 +979,7 @@ function renderDash(){
   animNum('k-60',rows.filter(r=>{const d=num(r.diasRestantes);return d>30&&d<=60}).length);
   animNum('k-90',rows.filter(r=>{const d=num(r.diasRestantes);return d>60&&d<=90}).length);
   animNum('k-180',rows.filter(r=>{const d=num(r.diasRestantes);return d>90&&d<=180}).length);
+  animNum('k-ok',rows.filter(r=>num(r.diasRestantes)>180).length);
   animNum('k-reaj',rows.filter(r=>str(r.reajustePendente).toLowerCase()==='sim').length);
   animNum('k-prorr',rows.filter(r=>str(r.prorrogado).toLowerCase()==='sim').length);
   // Financeiro
@@ -872,7 +998,7 @@ function renderDash(){
   document.getElementById('lbl-exec').textContent=`Executado (${pp.toFixed(1)}%)`;
   document.getElementById('lbl-saldo').textContent=`Saldo (${ps.toFixed(1)}%)`;
   // Charts
-  renderChForn(rows);renderChUni(rows);renderChPct(rows);renderChAnos(rows);
+  renderChForn(rows);renderChUni(rows);renderChPct(rows);renderChAnos(rows);renderChMonthly();
   renderAlertas(rows);renderResTab(STATE.resTab);renderTable(rows);
 }
 
@@ -904,18 +1030,34 @@ function renderChUni(rows){
 }
 
 function renderChPct(rows){
-  destroyC('pct');
   const sorted=[...rows].sort((a,b)=>pctV(b.pctExecTotal)-pctV(a.pctExecTotal));
-  const labs=sorted.map(r=>`${r.gms} ${r.empresa}`);
-  const data=sorted.map(r=>+pctV(r.pctExecTotal).toFixed(1));
+  STATE._pctRows=sorted;
+  const pageSize=STATE.pctPageSize;
+  const totalPages=Math.max(1,Math.ceil(sorted.length/pageSize));
+  STATE.pctPage=Math.min(STATE.pctPage,totalPages-1);
+  const slice=sorted.slice(STATE.pctPage*pageSize,(STATE.pctPage+1)*pageSize);
+  const labs=slice.map(r=>`${r.gms} ${r.empresa}`);
+  const data=slice.map(r=>+pctV(r.pctExecTotal).toFixed(1));
   const cols=data.map(v=>v>100?'#ef4444':v>=70?'#22c55e':'#f59e0b');
   const wrap=document.getElementById('ch-pct-wrap');
-  if(wrap)wrap.style.height=Math.max(200,labs.length*26)+'px';
+  if(wrap)wrap.style.height=Math.max(160,labs.length*26)+'px';
+  destroyC('pct');
   state_charts('pct',new Chart(document.getElementById('ch-pct'),{type:'bar',
     data:{labels:labs,datasets:[{data,backgroundColor:cols,borderRadius:3}]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.raw.toFixed(1)}%`}}},
       scales:{x:{grid:{color:GC},ticks:{color:TC,callback:v=>v+'%'}},y:{grid:{color:GC},ticks:{color:TC,font:{size:9}}}}}}));
+  const pag=document.getElementById('pct-pag');
+  if(pag){
+    pag.style.display=sorted.length>pageSize?'flex':'none';
+    document.getElementById('pct-page-lbl').textContent=`${STATE.pctPage+1} / ${totalPages}`;
+    document.getElementById('pct-prev').disabled=STATE.pctPage===0;
+    document.getElementById('pct-next').disabled=STATE.pctPage>=totalPages-1;
+  }
+}
+function pctPageChange(dir){
+  STATE.pctPage+=dir;
+  renderChPct(STATE._pctRows);
 }
 
 function renderChAnos(rows){
@@ -998,9 +1140,25 @@ function resTable(cols,rows){
 // ============================================================
 // MAIN TABLE
 // ============================================================
+function sortTable(col){
+  if(STATE.sortCol===col){STATE.sortDir*=-1}else{STATE.sortCol=col;STATE.sortDir=1}
+  document.querySelectorAll('table.dt th.sortable').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.getAttribute('onclick')===`sortTable('${col}')`)th.classList.add(STATE.sortDir===1?'sort-asc':'sort-desc');
+  });
+  renderTable(STATE.filtered);
+}
 function renderTable(rows){
   const q=STATE.tableSearch.toLowerCase();
-  const disp=q?rows.filter(r=>r.gms.toLowerCase().includes(q)||r.empresa.toLowerCase().includes(q)):rows;
+  let disp=q?rows.filter(r=>r.gms.toLowerCase().includes(q)||r.empresa.toLowerCase().includes(q)):rows;
+  if(STATE.sortCol){
+    const k=STATE.sortCol,d=STATE.sortDir;
+    disp=[...disp].sort((a,b)=>{
+      const av=typeof a[k]==='number'?a[k]:str(a[k]).toLowerCase();
+      const bv=typeof b[k]==='number'?b[k]:str(b[k]).toLowerCase();
+      return av<bv?-d:av>bv?d:0;
+    });
+  }
   document.getElementById('tbl-cnt').textContent=disp.length;
   document.getElementById('tbl-body').innerHTML=disp.map(r=>{
     const pe=pctV(r.pctExecTotal);
@@ -1048,8 +1206,17 @@ function buildTabs(){
   STATE.filtered.forEach(r=>{
     const t=document.createElement('div');
     t.className='tab-i tab-contract';
-    t.textContent=`${r.gms} ${r.empresa}`;
-    t.title=`${r.gms} – ${r.empresa} – ${r.unidPrincipal}`;
+    const pe=pctV(r.pctExecTotal);
+    const peColor=pe>100?'var(--red)':pe>=70?'var(--green)':'var(--yel)';
+    const dias=num(r.diasRestantes);
+    const diasColor=dias<=30?'var(--red)':dias<=90?'var(--yel)':'var(--green)';
+    t.innerHTML=`${r.gms} ${r.empresa}<div class="tab-tip">
+      <div style="font-weight:700;margin-bottom:4px">${r.gms} – ${r.empresa}</div>
+      <div>💰 Valor Global: <strong>${brl(r.valorGlobal)}</strong></div>
+      <div>📊 Execução: <strong style="color:${peColor}">${pct(r.pctExecTotal)}</strong></div>
+      <div>📅 Dias restantes: <strong style="color:${diasColor}">${dias}</strong></div>
+      <div>📍 ${r.unidPrincipal||r.unidsAtendidas||'—'}</div>
+    </div>`;
     t.onclick=()=>showContract(r.gms,r.empresa);
     bar.appendChild(t);
   });
@@ -1351,10 +1518,127 @@ function buildDetailAlerts(row){
 }
 
 // ============================================================
+// MONTHLY CHART (NFs de todos os contratos)
+// ============================================================
+function renderChMonthly(){
+  destroyC('monthly');
+  const canvas=document.getElementById('ch-monthly');if(!canvas)return;
+  const map={};
+  Object.values(STATE.nfs).forEach(nfArr=>{
+    nfArr.forEach(n=>{
+      let d=str(n.data);if(!d)return;
+      let y,m;
+      if(d.match(/^\d{2}\/\d{2}\/\d{4}$/)){const p=d.split('/');m=parseInt(p[1]);y=parseInt(p[2])}
+      else if(d.match(/^\d{4}-\d{2}-\d{2}$/)){const p=d.split('-');y=parseInt(p[0]);m=parseInt(p[1])}
+      else return;
+      if(y<2020||y>2030)return;
+      const k=`${y}-${String(m).padStart(2,'0')}`;
+      map[k]=(map[k]||0)+n.valor;
+    });
+  });
+  const wrapper=document.getElementById('cc-monthly');
+  if(!Object.keys(map).length){if(wrapper)wrapper.style.display='none';return}
+  if(wrapper)wrapper.style.display='';
+  const labs=Object.keys(map).sort();
+  const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const fmtL=k=>{const[y,mo]=k.split('-');return`${MN[parseInt(mo)-1]}/${y.slice(2)}`};
+  const data=labs.map(k=>map[k]);
+  STATE.charts['monthly']=new Chart(canvas,{type:'line',
+    data:{labels:labs.map(fmtL),datasets:[{label:'Total Pago',data,fill:true,
+      backgroundColor:'rgba(79,142,247,.15)',borderColor:'#4f8ef7',pointBackgroundColor:'#4f8ef7',
+      tension:.35,borderWidth:2,pointRadius:3}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},
+      scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:9}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+}
+
+// ============================================================
+// EXPORT EXCEL
+// ============================================================
+function exportExcel(){
+  if(!STATE.filtered.length){toast('Sem dados para exportar.','err');return}
+  const wb=XLSX.utils.book_new();
+  // Main table
+  const headers=['GMS','Fornecedor','Unidade Principal','Tipo','Valor Global','Executado','Saldo','% Execução','Provisão Mensal','Gasto Mensal','Status','Dias Restantes','Suplementação'];
+  const data=STATE.filtered.map(r=>[
+    r.gms,r.empresa,r.unidPrincipal,r.tipo,
+    r.valorGlobal,r.executadoTotal,r.saldo,
+    pctV(r.pctExecTotal),r.valorMensal,r.mediaGastoMensal,
+    r.statusVigencia,r.diasRestantes,r.necessitaSupl
+  ]);
+  const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
+  // Column widths
+  ws['!cols']=[{wch:14},{wch:30},{wch:20},{wch:14},{wch:16},{wch:16},{wch:16},{wch:10},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws,'Contratos Filtrados');
+  // NF summary
+  const nfH=['GMS','Empresa','Unidade','Nº NF','Valor','Data','Ano'];
+  const nfD=[];
+  STATE.filtered.forEach(r=>{
+    const key=findNFSheet(r.gms,r.empresa);
+    const nfs=key?STATE.nfs[key]||[]:[];
+    nfs.forEach(n=>nfD.push([r.gms,r.empresa,n.unidade,n.numeroNF,n.valor,n.data,n.ano]));
+  });
+  if(nfD.length){
+    const ws2=XLSX.utils.aoa_to_sheet([nfH,...nfD]);
+    XLSX.utils.book_append_sheet(wb,ws2,'Notas Fiscais');
+  }
+  const date=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  XLSX.writeFile(wb,`contratos-3crpm-${date}.xlsx`);
+  toast('✓ Arquivo Excel exportado.','ok');
+}
+
+// ============================================================
+// EXPORT PDF
+// ============================================================
+function exportPDF(){
+  window.print();
+}
+
+// ============================================================
+// SIDEBAR HAMBURGER
+// ============================================================
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const ov=document.getElementById('sb-overlay');
+  const open=sb.classList.toggle('open');
+  ov.classList.toggle('show',open);
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('show');
+}
+
+// ============================================================
+// IMPORT HISTORY (localStorage)
+// ============================================================
+const HIST_KEY='crpm_import_history';
+const HIST_MAX=8;
+function saveImportHistory(fileName){
+  let hist=[];
+  try{hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]')}catch(e){}
+  const entry={name:fileName,date:new Date().toLocaleString('pt-BR')};
+  hist=hist.filter(h=>h.name!==fileName);
+  hist.unshift(entry);
+  if(hist.length>HIST_MAX)hist=hist.slice(0,HIST_MAX);
+  localStorage.setItem(HIST_KEY,JSON.stringify(hist));
+  renderImportHistory();
+}
+function renderImportHistory(){
+  let hist=[];
+  try{hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]')}catch(e){}
+  const sec=document.getElementById('hist-sec');
+  const cont=document.getElementById('hist-content');
+  if(!sec||!cont)return;
+  if(!hist.length){sec.style.display='none';return}
+  sec.style.display='';
+  cont.innerHTML=hist.map(h=>`<div class="hist-item"><span class="hist-dot"></span><div><div style="color:var(--txt);font-size:10px;font-weight:600">${h.name}</div><div style="font-size:9px;color:var(--lbl)">${h.date}</div></div></div>`).join('');
+}
+
+// ============================================================
 // BOOT — aguarda o usuário importar o arquivo
 // ============================================================
 (function init(){
   initTheme();
+  renderImportHistory();
   // Remap state.painel after parsing (called after processFile)
   const _origParseWB=parseWorkbook;
   window.parseWorkbook=function(buffer,fileName){
