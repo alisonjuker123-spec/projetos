@@ -453,6 +453,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
           <div class="kc big" style="border-top-color:var(--pk)"><div class="kl">Custo Total / Policial</div><div class="kv" id="k-custo-pol">0,00</div><div class="ks">executado ÷ efetivo</div></div>
           <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Contratos Gêneros Alim.</div><div class="kv" id="k-ct-gen">0</div><div class="ks">gêneros alimentícios</div></div>
           <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Contratos Hortifrutigr.</div><div class="kv" id="k-ct-hort">0</div><div class="ks">hortifrutigranjeiros</div></div>
+          <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Contratos Coffee Break</div><div class="kv" id="k-ct-coffee">0</div><div class="ks">coffee break</div></div>
         </div>
         <!-- EXEC BAR -->
         <div class="exec-wrap">
@@ -1157,12 +1158,13 @@ function renderDash(){
   });
   const sef=Object.values(uniEfet).reduce((a,v)=>a+v,0);
   const scp=sef>0?se/sef:0;
-  const ctGen=rows.filter(r=>!str(r.tipo).toLowerCase().includes('hortif')).length;
+  const ctGen=rows.filter(r=>{const t=str(r.tipo).toLowerCase();return!t.includes('hortif')&&!t.includes('coffee')}).length;
   const ctHort=rows.filter(r=>str(r.tipo).toLowerCase().includes('hortif')).length;
+  const ctCoffee=rows.filter(r=>str(r.tipo).toLowerCase().includes('coffee')).length;
   animMoney('k-global',sg);animMoney('k-anual',so);animMoney('k-anual-reaj',sr);
   animMoney('k-pago',se);animMoney('k-exec2026',se26);animMoney('k-saldo',ss);animMoney('k-mensal',sm);
   animNum('k-efetivo',sef);animMoney('k-custo-pol',scp);
-  animNum('k-ct-gen',ctGen);animNum('k-ct-hort',ctHort);
+  animNum('k-ct-gen',ctGen);animNum('k-ct-hort',ctHort);animNum('k-ct-coffee',ctCoffee);
   // Exec bar
   const tot=sg||1,pp=(se/tot)*100,ps=(ss/tot)*100;
   setTimeout(()=>{
@@ -1696,6 +1698,16 @@ function buildNFChart(nfs){
 function buildDetailAlerts(row){
   const el=document.getElementById('d-alerts');if(!el)return;
   const alerts=[];
+  const sv=str(row.statusVigencia||row.status).toLowerCase();
+  const dias=num(row.diasRestantes);
+  if(sv==='vencido')
+    alerts.push({cls:'ac-r',title:'🔴 Contrato Vencido',body:`Vigência encerrada. Data fim: <strong>${fDate(row.dataFim)}</strong>. Providenciar novo processo licitatório.`});
+  else if(sv==='crítico'||sv==='critico')
+    alerts.push({cls:'ac-r',title:'🔴 Situação Crítica',body:`Contrato em situação crítica — <strong>${dias>0?dias+' dias restantes':'prazo expirado'}</strong>. Ação imediata necessária.`});
+  else if(sv==='muita atenção'||sv==='muita atencao')
+    alerts.push({cls:'ac-o',title:'🟠 Muita Atenção',body:`Contrato requer atenção elevada — <strong>${dias} dias restantes</strong>. Iniciar processo de prorrogação/renovação.`});
+  else if(sv==='atenção'||sv==='atencao')
+    alerts.push({cls:'ac-y',title:'🟡 Atenção',body:`Contrato com prazo próximo do vencimento — <strong>${dias} dias restantes</strong>. Monitorar e planejar renovação.`});
   if(str(row.reajustePendente).toLowerCase()==='sim')
     alerts.push({cls:'ac-y',title:'💰 Reajuste Pendente',body:`Próximo reajuste previsto: <strong>${fDate(row.proxReajuste)||'não informado'}</strong>`});
   if(str(row.prorrogacaoIniciar).toLowerCase()==='sim')
@@ -1803,7 +1815,7 @@ function renderServDash(){
   <!-- CHARTS -->
   <div class="cr5050">
     <div class="cc"><h3>Valor Global por Contrato</h3><canvas id="sv-ch-forn" height="220"></canvas></div>
-    <div class="cc"><h3>Executado por Unidade</h3><canvas id="sv-ch-uni" height="220"></canvas><div class="leg" id="sv-leg-uni"></div></div>
+    <div class="cc"><h3>Valor Mensal por Unidade</h3><canvas id="sv-ch-uni" height="220"></canvas><div class="leg" id="sv-leg-uni"></div></div>
   </div>
   <div class="cr5050">
     <div class="cc">
@@ -1885,10 +1897,10 @@ function renderServDash(){
       data:{labels:labs,datasets:[{data,backgroundColor:labs.map((_,i)=>gc(i)),borderRadius:4}]},
       options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>' '+brl(c.raw)}}},
         scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
-    // Doughnut: executado por unidade
+    // Doughnut: valor mensal por unidade (valorMensalPosto * qtdPostos)
     destroyC('sv-uni');
     const uMap={};
-    STATE.serv_base.filter(b=>new Set(rows.map(r=>r.gms)).has(b.gms)).forEach(b=>{uMap[b.unidade]=(uMap[b.unidade]||0)+b.executado});
+    STATE.serv_base.filter(b=>new Set(rows.map(r=>r.gms)).has(b.gms)).forEach(b=>{uMap[b.unidade]=(uMap[b.unidade]||0)+(b.valorMensalPosto||0)*(b.qtdPostos||1)});
     const uLabs=Object.keys(uMap).sort((a,b)=>uMap[b]-uMap[a]);
     const uData=uLabs.map(k=>uMap[k]),uCols=uLabs.map((_,i)=>gc(i));
     STATE.charts['sv-uni']=new Chart(document.getElementById('sv-ch-uni'),{type:'doughnut',
@@ -2112,9 +2124,19 @@ function renderServDetail(row){
   const aEl=document.getElementById('sv-d-alerts');
   if(aEl){
     const alerts=[];
+    const sv2=str(row.statusVigencia||row.status).toLowerCase();
+    const dias2=num(row.diasRestantes);
+    if(sv2==='vencido')
+      alerts.push({cls:'ac-r',title:'🔴 Contrato Vencido',body:`Vigência encerrada. Data fim: <strong>${fDate(row.dataFim)}</strong>. Providenciar novo processo.`});
+    else if(sv2==='crítico'||sv2==='critico')
+      alerts.push({cls:'ac-r',title:'🔴 Situação Crítica',body:`Contrato em situação crítica — <strong>${dias2>0?dias2+' dias restantes':'prazo expirado'}</strong>. Ação imediata necessária.`});
+    else if(sv2==='muita atenção'||sv2==='muita atencao')
+      alerts.push({cls:'ac-o',title:'🟠 Muita Atenção',body:`Requer atenção elevada — <strong>${dias2} dias restantes</strong>. Iniciar processo de renovação.`});
+    else if(sv2==='atenção'||sv2==='atencao')
+      alerts.push({cls:'ac-y',title:'🟡 Atenção',body:`Prazo próximo do vencimento — <strong>${dias2} dias restantes</strong>. Planejar renovação.`});
     if(str(row.acimaDoTeto).toLowerCase()==='sim')
       alerts.push({cls:'ac-r',title:'🚨 Teto Contratual Excedido',body:'Gasto médio mensal acima da provisão. Verificar suplementação.'});
-    if(str(row.necessitaSupl).toLowerCase().includes('sim'))
+    if(str(row.necessitaSupl).toLowerCase().includes('sim')||str(row.necessitaSupl).toLowerCase().includes('urgente'))
       alerts.push({cls:'ac-r',title:'⚠ Suplementação Necessária',body:`Valor estimado: <strong>${brl(row.valorSupl)}</strong>`});
     if(!alerts.length)alerts.push({cls:'ac-g',title:'✓ Sem Alertas',body:'Nenhum alerta identificado para este contrato.'});
     aEl.innerHTML=alerts.map(a=>`<div class="ac ${a.cls}"><h4>${a.title}</h4><p>${a.body}</p></div>`).join('');
