@@ -1175,7 +1175,6 @@ function renderDetail(row){
     <div class="info-item"><div class="il">Executado 2025</div><div class="iv" style="color:var(--blue)">${brl(row.executado2025)}</div></div>
     <div class="info-item"><div class="il">Executado 2026</div><div class="iv" style="color:var(--green)">${brl(row.executado2026)}</div></div>
     <div class="info-item"><div class="il">Total NFs Liquidadas</div><div class="iv" style="color:var(--green)">${brl(nfTotal)}</div></div>
-    <div class="info-item"><div class="il">Qtde Unidades</div><div class="iv">${row.qtdeUnidades}</div></div>
   </div>
 
   <!-- BARRA EXECUÇÃO -->
@@ -1209,14 +1208,16 @@ function renderDetail(row){
   <div class="tbl-wrap">
     <div class="tbl-hdr"><span class="tbl-ttl">Detalhamento por Unidade</span><span class="tbl-badge">${baseRows.length}</span></div>
     <div class="tbl-cont"><table class="dt"><thead><tr>
-      <th>Unidade</th><th>Efetivo</th><th>Val. Global Alocado</th><th>Executado</th><th>Saldo</th><th>% Execução</th><th>Status</th>
+      <th>Unidade</th><th>Efetivo</th><th>Val. Global Alocado</th><th>Executado</th><th>Saldo</th><th>% Execução</th><th>Custo/Policial</th><th>Status</th>
     </tr></thead><tbody>
     ${baseRows.map(u=>{const pu=pctV(u.pctExec);const bc=pu>100?'var(--red)':pu>=70?'var(--green)':'var(--yel)';
+      const custoPol=u.efetivo>0?u.executado/u.efetivo:0;
       return`<tr><td style="font-weight:600">${u.unidade}</td><td>${u.efetivo}</td>
         <td>${brl(u.valorGlobalAlocado)}</td><td class="td-g">${brl(u.executado)}</td>
         <td>${brl(u.saldoAlocado)}</td>
         <td><div style="font-size:11px;font-weight:700;color:${bc}">${pct(u.pctExec)}</div>
           <div class="mp"><div class="mp-f" style="width:${Math.min(pu,100)}%;background:${bc}"></div></div></td>
+        <td style="color:var(--cyn);font-weight:600">${brl(custoPol)}</td>
         <td>${statusBadge(u.status)}</td></tr>`;
     }).join('')}
     </tbody></table></div>
