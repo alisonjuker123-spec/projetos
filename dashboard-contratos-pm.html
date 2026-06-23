@@ -16,6 +16,33 @@
   --pur:#a855f7;--cyn:#06b6d4;--orn:#f97316;--pk:#ec4899;
   --lm:#84cc16;--hov:#2a2d3e;--inp:#252836;
 }
+/* TEMA CLARO */
+body.light{
+  --bg:#f0f2f8;--sb:#ffffff;--card:#ffffff;--card2:#f8f9fc;
+  --bdr:#d1d5e8;--txt:#1a1d2e;--txt2:#5a6480;--lbl:#8892b0;
+  --hov:#eef0f8;--inp:#f0f2f8;
+}
+body.light ::-webkit-scrollbar-track{background:#e8eaf2}
+body.light ::-webkit-scrollbar-thumb{background:#c4c9e0}
+body.light .top-bar{background:#ffffff}
+body.light .tabs-bar{background:#ffffff}
+body.light table.dt th{background:#f0f2f8}
+body.light table.dt tr:nth-child(even) td{background:#f8f9fc}
+body.light table.dt tr:hover td{background:#eef0f8}
+body.light .exec-track{background:#e2e6f0}
+body.light .alrt-panel{background:#fffbeb;border-color:#f59e0b}
+body.light .alrt-track{background:#e2e6f0}
+body.light .drop-zone{background:#ffffff;border-color:#d1d5e8}
+body.light .nf-wrap{background:#ffffff;border-color:#d1d5e8}
+body.light .ac{border-color:#d1d5e8}
+body.light .ac.ac-g{background:#f0fdf4;border-color:#86efac}
+body.light .ac.ac-y{background:#fffbeb;border-color:#fcd34d}
+body.light .ac.ac-o{background:#fff7ed;border-color:#fdba74}
+body.light .ac.ac-r{background:#fef2f2;border-color:#fca5a5}
+body.light .toast{background:#ffffff}
+/* Botão toggle */
+.btn-theme{background:transparent;border:1px solid var(--bdr);color:var(--txt2);border-radius:6px;padding:6px 10px;font-size:16px;cursor:pointer;transition:all .2s;line-height:1}
+.btn-theme:hover{border-color:var(--blue);color:var(--blue)}
 html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:var(--sb)}
@@ -254,6 +281,7 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
       <span class="file-name-tag" id="file-name-tag">📄 —</span>
       <button class="btn-pri" onclick="document.getElementById('file-input').click()">📂 Importar Planilha</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
     </div>
 
     <!-- SCROLL AREA -->
@@ -471,6 +499,30 @@ function excelSerialToDate(v){
   const d=new Date(Math.round((n-25569)*86400*1000));
   if(isNaN(d.getTime()))return null;
   return d.toISOString().split('T')[0];
+}
+
+// ============================================================
+// TEMA CLARO / ESCURO
+// ============================================================
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  document.getElementById('btn-theme').textContent=light?'☀️':'🌙';
+  localStorage.setItem('theme',light?'light':'dark');
+  // Atualiza cores dos gráficos já renderizados
+  Object.values(STATE.charts).forEach(c=>{
+    if(!c)return;
+    try{
+      c.options.scales&&Object.values(c.options.scales).forEach(ax=>{
+        if(ax.grid)ax.grid.color=light?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
+        if(ax.ticks)ax.ticks.color=light?'#5a6480':'#94a3b8';
+      });
+      c.update('none');
+    }catch(e){}
+  });
+}
+function initTheme(){
+  const saved=localStorage.getItem('theme');
+  if(saved==='light'){document.body.classList.add('light');document.getElementById('btn-theme').textContent='☀️'}
 }
 
 // ============================================================
@@ -1304,6 +1356,7 @@ function buildDetailAlerts(row){
 // BOOT — aguarda o usuário importar o arquivo
 // ============================================================
 (function init(){
+  initTheme();
   // Remap state.painel after parsing (called after processFile)
   const _origParseWB=parseWorkbook;
   window.parseWorkbook=function(buffer,fileName){
