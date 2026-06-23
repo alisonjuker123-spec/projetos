@@ -345,11 +345,11 @@ table.dt tr:hover td{background:var(--hov);cursor:pointer}
         <!-- KPI FINANCEIRO -->
         <div class="sec-lbl" style="margin-top:2px">Indicadores Financeiros</div>
         <div class="kpi-g5">
-          <div class="kc big" style="border-top-color:var(--lbl)"><div class="kl">Valor Global Contratado</div><div class="kv" id="k-global">R$ 0,00</div></div>
-          <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Valor Original Anual</div><div class="kv" id="k-anual">R$ 0,00</div></div>
-          <div class="kc big" style="border-top-color:var(--green)"><div class="kl">Total Executado / Pago</div><div class="kv" id="k-pago">R$ 0,00</div></div>
-          <div class="kc big" style="border-top-color:var(--cyn)"><div class="kl">Saldo Disponível</div><div class="kv" id="k-saldo">R$ 0,00</div></div>
-          <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Provisão Mensal Total</div><div class="kv" id="k-mensal">R$ 0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--lbl)"><div class="kl">Valor Global Contratado</div><div class="kv" id="k-global">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Valor Original Anual</div><div class="kv" id="k-anual">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--green)"><div class="kl">Total Executado / Pago</div><div class="kv" id="k-pago">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--cyn)"><div class="kl">Saldo Disponível</div><div class="kv" id="k-saldo">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Provisão Mensal Total</div><div class="kv" id="k-mensal">0,00</div></div>
         </div>
         <!-- EXEC BAR -->
         <div class="exec-wrap">
@@ -835,7 +835,7 @@ function applyFilters(){
 function animMoney(id,val){
   const el=document.getElementById(id);if(!el)return;
   const dur=1400,s0=performance.now();
-  (function u(now){const p=Math.min((now-s0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=brl(val*e);if(p<1)requestAnimationFrame(u)})(s0);
+  (function u(now){const p=Math.min((now-s0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=(val*e).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});if(p<1)requestAnimationFrame(u)})(s0);
 }
 function animNum(id,val){
   const el=document.getElementById(id);if(!el)return;
