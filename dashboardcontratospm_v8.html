@@ -409,6 +409,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
     <!-- GOOGLE DRIVE AUTO-CARGA -->
     <div class="f-sec">
       <span class="f-lbl">☁️ Google Drive</span>
+      <input id="gdrive-filename" type="text" placeholder="Nome do arquivo no Drive..." style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:6px 8px;font-size:11px;margin-bottom:6px" value="Contratos_3CRPM" title="Parte do nome da planilha no Drive — carrega a mais recente que contenha este texto"/>
       <button class="btn-gdrive" id="btn-gapi-auth" onclick="gapiLogin(loadFromGDrive)" style="width:100%;justify-content:center;padding:9px;font-size:12px;border-radius:6px;margin-bottom:6px">🔑 Conectar ao Google</button>
       <div id="gdrive-status" style="font-size:10px;color:var(--lbl);margin-top:2px">Clique para autenticar e carregar planilha do Drive</div>
       <button class="btn-clr" onclick="autoReloadGDrive()" id="btn-gdrive-reload" style="display:none;margin:6px 0 0">🔄 Recarregar Planilha do Drive</button>
@@ -2431,7 +2432,7 @@ function renderImportHistory(){
 // ============================================================
 const GAPI_CLIENT_ID='305554324869-er8h1f7jbho3cdr4eamumlhgtlk72p05.apps.googleusercontent.com';
 const GAPI_SPREADSHEET_ID='1S-GzQFGwENXy_5e6jmqwnuQg6kRsgiqAnivNGYBbAP4';
-const GAPI_SCOPES='https://www.googleapis.com/auth/spreadsheets';
+const GAPI_SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly';
 
 let _gapiTokenClient=null;
 let _gapiAccessToken=null;
@@ -2481,25 +2482,61 @@ function gapiLogout(){
   updateAuthStatus(false);
 }
 
-function loadFromGDrive(){
+async function loadFromGDrive(){
   if(!_gapiAccessToken){gapiLogin(loadFromGDrive);return}
-  showSpinner('Buscando planilha do Google Drive...');
   const statusEl=document.getElementById('gdrive-status');
-  if(statusEl){statusEl.textContent='⏳ Buscando do Drive...';statusEl.style.color='var(--yel)'}
-  const exportUrl=`https://docs.google.com/spreadsheets/d/${GAPI_SPREADSHEET_ID}/export?format=xlsx`;
-  fetch(exportUrl,{headers:{Authorization:'Bearer '+_gapiAccessToken}})
-    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()})
-    .then(buf=>{
-      if(statusEl){statusEl.textContent='✓ Planilha carregada do Drive';statusEl.style.color='var(--green)'}
-      const reloadBtn=document.getElementById('btn-gdrive-reload');
-      if(reloadBtn)reloadBtn.style.display='';
-      parseWorkbook(buf,'planilha-drive.xlsx');
-    })
-    .catch(err=>{
+  const nameInput=document.getElementById('gdrive-filename');
+  const searchName=(nameInput&&nameInput.value.trim())||'Contratos_3CRPM';
+  showSpinner('Buscando planilha no Google Drive...');
+  if(statusEl){statusEl.textContent='⏳ Procurando arquivo...';statusEl.style.color='var(--yel)'}
+
+  try{
+    // Busca arquivo por nome no Drive (pega o mais recente)
+    const q=encodeURIComponent(`name contains '${searchName}' and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`);
+    const searchResp=await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime desc&pageSize=5&fields=files(id,name,modifiedTime)`,
+      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    if(!searchResp.ok)throw new Error('Erro na busca Drive: HTTP '+searchResp.status);
+    const searchData=await searchResp.json();
+    const files=searchData.files||[];
+
+    // Tenta também buscar Planilhas Google (sheets) com o mesmo nome
+    const q2=encodeURIComponent(`name contains '${searchName}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
+    const searchResp2=await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${q2}&orderBy=modifiedTime desc&pageSize=5&fields=files(id,name,modifiedTime)`,
+      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    const searchData2=searchResp2.ok?await searchResp2.json():{files:[]};
+    const allFiles=[...files,...(searchData2.files||[])].sort((a,b)=>new Date(b.modifiedTime)-new Date(a.modifiedTime));
+
+    if(!allFiles.length){
       hideSpinner();
-      if(statusEl){statusEl.textContent='✗ Erro: '+err.message;statusEl.style.color='var(--red)'}
-      toast('Erro ao buscar do Drive: '+err.message,'err');
-    });
+      if(statusEl){statusEl.textContent='✗ Arquivo não encontrado: "'+searchName+'"';statusEl.style.color='var(--red)'}
+      toast('Nenhum arquivo encontrado com o nome "'+searchName+'" no Drive.','err');
+      return;
+    }
+
+    const file=allFiles[0];
+    if(statusEl){statusEl.textContent=`⏳ Carregando: ${file.name}...`;statusEl.style.color='var(--yel)'}
+    toast(`Encontrado: ${file.name} (${new Date(file.modifiedTime).toLocaleDateString('pt-BR')})`,'ok');
+
+    // Exporta como xlsx
+    const isSheet=!file.name.includes('.xlsx');
+    const exportUrl=isSheet
+      ?`https://docs.google.com/spreadsheets/d/${file.id}/export?format=xlsx`
+      :`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+    const dlResp=await fetch(exportUrl,{headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    if(!dlResp.ok)throw new Error('HTTP '+dlResp.status);
+    const buf=await dlResp.arrayBuffer();
+    if(statusEl){statusEl.textContent=`✓ ${file.name} carregado`;statusEl.style.color='var(--green)'}
+    const reloadBtn=document.getElementById('btn-gdrive-reload');
+    if(reloadBtn)reloadBtn.style.display='';
+    parseWorkbook(buf,file.name);
+  }catch(err){
+    hideSpinner();
+    if(statusEl){statusEl.textContent='✗ Erro: '+err.message;statusEl.style.color='var(--red)'}
+    toast('Erro ao buscar do Drive: '+err.message,'err');
+    console.error(err);
+  }
 }
 
 function autoReloadGDrive(){loadFromGDrive()}
