@@ -598,6 +598,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
               <th class="sortable" onclick="sortTable('pctExecTotal')">% Exec.</th>
               <th class="sortable" onclick="sortTable('valorMensal')">Provisão/Mês</th>
               <th class="sortable" onclick="sortTable('mediaGastoMensal')">Gasto/Mês</th>
+              <th>% Exec. Mensal</th>
               <th class="sortable" onclick="sortTable('statusVigencia')">Status</th>
               <th class="sortable" onclick="sortTable('diasRestantes')">Fim Vigência</th>
               <th>Suplementação</th>
@@ -1469,7 +1470,11 @@ function renderTable(rows){
   document.getElementById('tbl-body').innerHTML=disp.map(r=>{
     const pe=pctV(r.pctExecTotal);
     const pcl=pe>100?'td-r':pe>=70?'td-g':'';
-    const diff=r.valorMensal-r.mediaGastoMensal;
+    // % execução mensal: gasto/mês vs provisão/mês
+    const pctMes=r.valorMensal>0?(r.mediaGastoMensal/r.valorMensal)*100:0;
+    const saldoMes=r.valorMensal-r.mediaGastoMensal;
+    const clMes=pctMes>100?'td-r':pctMes>=85?'td-g':pctMes>=60?'':'td-r';
+    const corMes=pctMes>100?'var(--red)':pctMes>=85?'var(--green)':pctMes>=50?'var(--yel)':'var(--orn)';
     return`<tr onclick="showContract('${escJS(r.gms)}','${escJS(r.empresa)}')">
       <td><div class="td-blue">${r.gms}</div></td>
       <td><div style="font-weight:600">${r.empresa}</div><div class="td-sub">${r.unidPrincipal}</div></td>
@@ -1480,6 +1485,11 @@ function renderTable(rows){
       <td class="${pcl}">${pct(r.pctExecTotal)}</td>
       <td>${brl(r.valorMensal)}</td>
       <td>${brl(r.mediaGastoMensal)}</td>
+      <td style="min-width:130px">
+        <div style="font-size:11px;font-weight:700;color:${corMes}">${pctMes.toFixed(1)}% da provisão</div>
+        <div class="mp" style="margin:3px 0"><div class="mp-f" style="width:${Math.min(pctMes,100)}%;background:${corMes}"></div></div>
+        <div style="font-size:10px;color:var(--txt2)">${saldoMes>=0?'pode gastar +'+brl(saldoMes):'excedeu '+brl(Math.abs(saldoMes))}</div>
+      </td>
       <td>${statusBadge(r.statusVigencia)}</td>
       <td>${fDate(r.dataFim)}</td>
       <td>${suplBadge(r.necessitaSupl)}</td>
