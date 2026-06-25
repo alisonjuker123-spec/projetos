@@ -8,7 +8,7 @@ export function SocketProvider({ children }) {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const s = io('http://localhost:3001', {
+    const s = io(window.location.origin, {
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
