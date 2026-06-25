@@ -1306,15 +1306,27 @@ function renderChPct(rows){
   STATE.pctPage=Math.min(STATE.pctPage,totalPages-1);
   const slice=sorted.slice(STATE.pctPage*pageSize,(STATE.pctPage+1)*pageSize);
   const labs=slice.map(r=>`${r.gms} ${r.empresa}`);
-  const data=slice.map(r=>+pctV(r.pctExecTotal).toFixed(1));
-  const cols=data.map(v=>v>100?'#ef4444':v>=70?'#22c55e':'#f59e0b');
+  // % exec vs valor global da vigência
+  const dataGlobal=slice.map(r=>+pctV(r.pctExecTotal).toFixed(1));
+  // % exec vs valor anual c/ reajuste
+  const dataAnual=slice.map(r=>{
+    const f=Math.abs(r.pctReajuste)>2?r.pctReajuste/100:r.pctReajuste;
+    const va=r.valorOriginal*(1+(f||0));
+    return va>0?+Math.min((r.executadoTotal/va)*100,999).toFixed(1):0;
+  });
   const wrap=document.getElementById('ch-pct-wrap');
-  if(wrap)wrap.style.height=Math.max(160,labs.length*26)+'px';
+  if(wrap)wrap.style.height=Math.max(160,labs.length*36)+'px';
   destroyC('pct');
   state_charts('pct',new Chart(document.getElementById('ch-pct'),{type:'bar',
-    data:{labels:labs,datasets:[{data,backgroundColor:cols,borderRadius:3}]},
+    data:{labels:labs,datasets:[
+      {label:'% s/ Valor Global (Vigência)',data:dataGlobal,backgroundColor:'rgba(245,158,11,0.85)',borderRadius:3},
+      {label:'% s/ Valor Anual c/ Reajuste',data:dataAnual,backgroundColor:'rgba(99,179,237,0.85)',borderRadius:3}
+    ]},
     options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.raw.toFixed(1)}%`}}},
+      plugins:{
+        legend:{display:true,labels:{color:TC,font:{size:10}}},
+        tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw.toFixed(1)}%`}}
+      },
       scales:{x:{grid:{color:GC},ticks:{color:TC,callback:v=>v+'%'}},y:{grid:{color:GC},ticks:{color:TC,font:{size:9}}}}}}));
   const pag=document.getElementById('pct-pag');
   if(pag){
