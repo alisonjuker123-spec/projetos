@@ -1260,12 +1260,24 @@ function renderDash(){
 // ============================================================
 function renderChForn(rows){
   destroyC('forn');
-  const map={};rows.forEach(r=>{const k=r.empresa||'—';map[k]=(map[k]||0)+r.valorGlobal});
-  const labs=Object.keys(map),data=labs.map(k=>map[k]);
+  const mapG={},mapA={};
+  rows.forEach(r=>{
+    const k=r.empresa||'—';
+    mapG[k]=(mapG[k]||0)+r.valorGlobal;
+    const f=Math.abs(r.pctReajuste)>2?r.pctReajuste/100:r.pctReajuste;
+    mapA[k]=(mapA[k]||0)+r.valorOriginal*(1+(f||0));
+  });
+  const labs=Object.keys(mapG).sort((a,b)=>mapG[b]-mapG[a]);
   state_charts('forn',new Chart(document.getElementById('ch-forn'),{type:'bar',
-    data:{labels:labs,datasets:[{data,backgroundColor:labs.map((_,i)=>gc(i)),borderRadius:4}]},
-    options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>' '+brl(c.raw)}}},
-      scales:{x:{grid:{color:GC},ticks:{color:TC,maxRotation:30,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}}));
+    data:{labels:labs,datasets:[
+      {label:'Valor Global (Vigência)',data:labs.map(k=>mapG[k]),backgroundColor:'rgba(99,179,237,0.85)',borderRadius:4},
+      {label:'Valor Anual c/ Reajuste',data:labs.map(k=>mapA[k]),backgroundColor:'rgba(104,211,145,0.85)',borderRadius:4}
+    ]},
+    options:{responsive:true,plugins:{
+      legend:{display:true,labels:{color:TC,font:{size:11}}},
+      tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${brl(c.raw)}`}}
+    },
+    scales:{x:{grid:{color:GC},ticks:{color:TC,maxRotation:30,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}}));
 }
 
 function renderChUni(rows){
