@@ -989,6 +989,8 @@ const B={
   pctEfetivo:o=>col(o,['% Efetivo no Contrato','% Efetivo']),
   valorGlobalContrato:o=>col(o,['Valor Global Contrato','Valor Global do Contrato']),
   executado:          o=>col(o,['Executado nesta Unidade']),
+  exec2025:           o=>col(o,['Executado 2025','Exec. 2025']),
+  exec2026:           o=>col(o,['Executado 2026','Exec. 2026']),
   saldoAlocado:       o=>col(o,['Saldo','Saldo Alocado']),
   pctExec:            o=>col(o,['% Execução','% Execução (alocado)']),
   dataFim:            o=>excelSerialToDate(col(o,['Data Fim Atual'])),
@@ -1139,7 +1141,10 @@ function mapBase(raw){
       gms:str(B.gms(o)),tipo:str(B.tipo(o)),empresa:str(B.empresa(o)),unidade:str(B.unidade(o)),
       efetivo:num(B.efetivo(o)),efetTotal:num(B.efetTotal(o)),pctEfetivo:pctEfet,
       valorGlobalContrato:valorGlobal,valorGlobalAlocado,
-      executado:num(B.executado(o)),saldoAlocado:num(B.saldoAlocado(o)),
+      executado:num(B.executado(o)),
+      exec2025:num(B.exec2025(o)),exec2026:num(B.exec2026(o)),
+      // Saldo calculado: valorGlobalAlocado - executado (mais confiável que o da planilha)
+      saldoAlocado:Math.max(0,valorGlobalAlocado-num(B.executado(o))),
       pctExec:num(B.pctExec(o)),dataFim:B.dataFim(o),status:str(B.status(o))
     };
   }).filter(r=>r.gms&&r.unidade);
@@ -1690,19 +1695,30 @@ function renderDetail(row){
   <!-- TABELA UNIDADES -->
   <div class="tbl-wrap">
     <div class="tbl-hdr"><span class="tbl-ttl">Detalhamento por Unidade</span><span class="tbl-badge">${baseRows.length}</span></div>
-    <div class="tbl-cont"><table class="dt"><thead><tr>
-      <th>Unidade</th><th>Efetivo</th><th>Val. Global Alocado</th><th>Executado</th><th>Saldo</th><th>% Execução</th><th>Custo/Policial</th><th>Status</th>
+    <div class="tbl-cont" style="overflow-x:auto"><table class="dt"><thead><tr>
+      <th>Unidade</th><th>Efetivo</th><th>Val. Global Alocado</th><th>Val. Anual (Unidade)</th><th>Executado Total</th><th>Exec. 2025</th><th>Exec. 2026</th><th>Saldo</th><th>% Execução</th><th>Custo/Policial</th><th>Status</th>
     </tr></thead><tbody>
-    ${baseRows.map(u=>{const pu=pctV(u.pctExec);const bc=pu>100?'var(--red)':pu>=70?'var(--green)':'var(--yel)';
-      const custoPol=u.efetivo>0?u.executado/u.efetivo:0;
-      return`<tr><td style="font-weight:600">${u.unidade}</td><td>${u.efetivo}</td>
-        <td>${brl(u.valorGlobalAlocado)}</td><td class="td-g">${brl(u.executado)}</td>
-        <td>${brl(u.saldoAlocado)}</td>
-        <td><div style="font-size:11px;font-weight:700;color:${bc}">${pct(u.pctExec)}</div>
-          <div class="mp"><div class="mp-f" style="width:${Math.min(pu,100)}%;background:${bc}"></div></div></td>
-        <td style="color:var(--cyn);font-weight:600">${brl(custoPol)}</td>
-        <td>${statusBadge(u.status)}</td></tr>`;
-    }).join('')}
+    ${(()=>{
+      // meses totais do contrato pai para calcular valor anual por unidade
+      let mesesTotal=0;
+      if(row.dataInicio&&row.dataFim){const ini=new Date(row.dataInicio),fim=new Date(row.dataFim);mesesTotal=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());}
+      return baseRows.map(u=>{
+        const pu=pctV(u.pctExec);const bc=pu>100?'var(--red)':pu>=70?'var(--green)':'var(--yel)';
+        const custoPol=u.efetivo>0?u.executado/u.efetivo:0;
+        const valAnualUni=mesesTotal>0?(u.valorGlobalAlocado/mesesTotal)*12:0;
+        return`<tr><td style="font-weight:600">${u.unidade}</td><td>${u.efetivo}</td>
+          <td>${brl(u.valorGlobalAlocado)}</td>
+          <td style="color:var(--lm);font-weight:600">${brl(valAnualUni)}</td>
+          <td class="td-g">${brl(u.executado)}</td>
+          <td style="color:var(--blue)">${brl(u.exec2025||0)}</td>
+          <td style="color:var(--green)">${brl(u.exec2026||0)}</td>
+          <td>${brl(u.saldoAlocado)}</td>
+          <td><div style="font-size:11px;font-weight:700;color:${bc}">${pct(u.pctExec)}</div>
+            <div class="mp"><div class="mp-f" style="width:${Math.min(pu,100)}%;background:${bc}"></div></div></td>
+          <td style="color:var(--cyn);font-weight:600">${brl(custoPol)}</td>
+          <td>${statusBadge(u.status)}</td></tr>`;
+      }).join('');
+    })()}
     </tbody></table></div>
   </div>
   <!-- GRÁFICOS UNIDADES -->
