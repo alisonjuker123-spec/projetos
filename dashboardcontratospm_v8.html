@@ -409,7 +409,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
     <!-- GOOGLE DRIVE AUTO-CARGA -->
     <div class="f-sec">
       <span class="f-lbl">☁️ Google Drive</span>
-      <input id="gdrive-filename" type="text" placeholder="Nome do arquivo no Drive..." style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:6px 8px;font-size:11px;margin-bottom:6px" value="contratos 3" title="Parte do nome da planilha no Drive — carrega a mais recente que contenha este texto"/>
+      <input id="gdrive-url" type="text" placeholder="Cole aqui o link da planilha do Drive..." style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:6px 8px;font-size:11px;margin-bottom:6px" title="Cole o link completo da planilha Google Sheets ou o ID dela"/>
       <button class="btn-gdrive" id="btn-gapi-auth" onclick="gapiLogin(loadFromGDrive)" style="width:100%;justify-content:center;padding:9px;font-size:12px;border-radius:6px;margin-bottom:6px">🔑 Conectar ao Google</button>
       <div id="gdrive-status" style="font-size:10px;color:var(--lbl);margin-top:2px">Clique para autenticar e carregar planilha do Drive</div>
       <button class="btn-clr" onclick="autoReloadGDrive()" id="btn-gdrive-reload" style="display:none;margin:6px 0 0">🔄 Recarregar Planilha do Drive</button>
@@ -2432,7 +2432,7 @@ function renderImportHistory(){
 // ============================================================
 const GAPI_CLIENT_ID='305554324869-er8h1f7jbho3cdr4eamumlhgtlk72p05.apps.googleusercontent.com';
 const GAPI_SPREADSHEET_ID='1S-GzQFGwENXy_5e6jmqwnuQg6kRsgiqAnivNGYBbAP4';
-const GAPI_SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly';
+const GAPI_SCOPES='https://www.googleapis.com/auth/spreadsheets';
 
 let _gapiTokenClient=null;
 let _gapiAccessToken=null;
@@ -2485,56 +2485,40 @@ function gapiLogout(){
 async function loadFromGDrive(){
   if(!_gapiAccessToken){gapiLogin(loadFromGDrive);return}
   const statusEl=document.getElementById('gdrive-status');
-  const nameInput=document.getElementById('gdrive-filename');
-  const searchName=(nameInput&&nameInput.value.trim())||'Contratos_3CRPM';
-  showSpinner('Buscando planilha no Google Drive...');
-  if(statusEl){statusEl.textContent='⏳ Procurando arquivo...';statusEl.style.color='var(--yel)'}
+  const urlInput=document.getElementById('gdrive-url');
+  const urlVal=(urlInput&&urlInput.value.trim())||'';
 
-  try{
-    // Busca arquivo por nome no Drive (pega o mais recente)
-    const q=encodeURIComponent(`name contains '${searchName}' and mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' and trashed=false`);
-    const searchResp=await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${q}&orderBy=modifiedTime desc&pageSize=5&fields=files(id,name,modifiedTime)`,
-      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
-    if(!searchResp.ok)throw new Error('Erro na busca Drive: HTTP '+searchResp.status);
-    const searchData=await searchResp.json();
-    const files=searchData.files||[];
-
-    // Tenta também buscar Planilhas Google (sheets) com o mesmo nome
-    const q2=encodeURIComponent(`name contains '${searchName}' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`);
-    const searchResp2=await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=${q2}&orderBy=modifiedTime desc&pageSize=5&fields=files(id,name,modifiedTime)`,
-      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
-    const searchData2=searchResp2.ok?await searchResp2.json():{files:[]};
-    const allFiles=[...files,...(searchData2.files||[])].sort((a,b)=>new Date(b.modifiedTime)-new Date(a.modifiedTime));
-
-    if(!allFiles.length){
-      hideSpinner();
-      if(statusEl){statusEl.textContent='✗ Arquivo não encontrado: "'+searchName+'"';statusEl.style.color='var(--red)'}
-      toast('Nenhum arquivo encontrado com o nome "'+searchName+'" no Drive.','err');
+  // Extrai o ID da planilha do link colado
+  let sheetId=GAPI_SPREADSHEET_ID; // fallback para o ID padrão
+  let sheetLabel='planilha do Drive';
+  if(urlVal){
+    // Aceita: link completo do Sheets, link de compartilhamento, ou ID direto
+    const m=urlVal.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)||urlVal.match(/id=([a-zA-Z0-9_-]+)/)||urlVal.match(/^([a-zA-Z0-9_-]{20,})$/);
+    if(m){sheetId=m[1];sheetLabel=urlVal.length>50?urlVal.substring(0,50)+'…':urlVal;}
+    else{
+      toast('Link inválido. Cole o link completo da planilha Google Sheets.','err');
       return;
     }
+  }
 
-    const file=allFiles[0];
-    if(statusEl){statusEl.textContent=`⏳ Carregando: ${file.name}...`;statusEl.style.color='var(--yel)'}
-    toast(`Encontrado: ${file.name} (${new Date(file.modifiedTime).toLocaleDateString('pt-BR')})`,'ok');
+  showSpinner('Carregando planilha do Google Drive...');
+  if(statusEl){statusEl.textContent='⏳ Carregando...';statusEl.style.color='var(--yel)'}
 
-    // Exporta como xlsx
-    const isSheet=!file.name.includes('.xlsx');
-    const exportUrl=isSheet
-      ?`https://docs.google.com/spreadsheets/d/${file.id}/export?format=xlsx`
-      :`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;
+  try{
+    const exportUrl=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
     const dlResp=await fetch(exportUrl,{headers:{Authorization:'Bearer '+_gapiAccessToken}});
-    if(!dlResp.ok)throw new Error('HTTP '+dlResp.status);
+    if(!dlResp.ok)throw new Error('HTTP '+dlResp.status+(dlResp.status===403?' — verifique se o link está correto e você tem acesso':''));
     const buf=await dlResp.arrayBuffer();
-    if(statusEl){statusEl.textContent=`✓ ${file.name} carregado`;statusEl.style.color='var(--green)'}
+    if(statusEl){statusEl.textContent='✓ Planilha carregada do Drive';statusEl.style.color='var(--green)'}
     const reloadBtn=document.getElementById('btn-gdrive-reload');
     if(reloadBtn)reloadBtn.style.display='';
-    parseWorkbook(buf,file.name);
+    // Salva o ID para recarregar
+    STATE._driveSheetId=sheetId;
+    parseWorkbook(buf,'planilha-drive.xlsx');
   }catch(err){
     hideSpinner();
     if(statusEl){statusEl.textContent='✗ Erro: '+err.message;statusEl.style.color='var(--red)'}
-    toast('Erro ao buscar do Drive: '+err.message,'err');
+    toast('Erro ao carregar do Drive: '+err.message,'err');
     console.error(err);
   }
 }
