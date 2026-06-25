@@ -7,4 +7,4 @@ backend/db/*.db-wal
 backend/.env
 dist/
 .DS_Store
-saiescola/backend/public/
+backend/public/
