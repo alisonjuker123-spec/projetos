@@ -847,8 +847,6 @@ function parseWorkbook(buffer,fileName){
   document.getElementById('btn-export-xlsx').style.display='';
   document.getElementById('btn-export-pdf').style.display='';
   document.getElementById('dash-sub').textContent=`Importado: ${fileName}`;
-  // Show mode toggle only if PRODUSERV data exists
-  if(STATE.serv_painel.length>0)document.getElementById('mode-toggle').classList.add('show');
 
   // Import validation modal
   const checkSheets=[
@@ -870,13 +868,9 @@ function parseWorkbook(buffer,fileName){
   // Import history
   saveImportHistory(fileName);
 
-  // Boot dashboard
-  STATE.filtered=[...STATE.painel];
-  populateFilters();
-  applyFilters();
-  buildTabs();
-  showOverview();
-  toast(`✓ Planilha carregada: ${STATE.painel.length} contratos, ${STATE.base.length} unidades.`,'ok');
+  // Boot dashboard — rendering is done by the init wrapper after column mapping
+  // (do not call populateFilters/applyFilters/buildTabs/showOverview here to avoid double-call with unmapped data)
+  STATE._pendingFileName=fileName;
 }
 
 // Convert sheet to array of objects using first row as header
@@ -2545,13 +2539,19 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada){
   const _origParseWB=parseWorkbook;
   window.parseWorkbook=function(buffer,fileName){
     _origParseWB(buffer,fileName);
+    // Map raw rows to normalized fields
     STATE.painel=mapPainel(STATE.painel);
     STATE.base=mapBase(STATE.base);
     STATE.filtered=[...STATE.painel];
     STATE.serv_painel=mapPainelServ(STATE.serv_painel);
     STATE.serv_base=mapBaseServ(STATE.serv_base);
     STATE.serv_filtered=[...STATE.serv_painel];
+    // Show mode toggle only if PRODUSERV data exists
+    if(STATE.serv_painel.length>0)document.getElementById('mode-toggle').classList.add('show');
+    // Render with properly mapped data
     populateFilters();applyFilters();buildTabs();showOverview();
+    const fn=STATE._pendingFileName||fileName;
+    toast(`✓ Planilha carregada: ${STATE.painel.length} contratos, ${STATE.base.length} unidades.`,'ok');
     const btnNF=document.getElementById('btn-lancar-nf');
     if(btnNF)btnNF.style.display='';
   };
