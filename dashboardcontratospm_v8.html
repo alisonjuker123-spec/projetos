@@ -409,7 +409,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
     <!-- GOOGLE DRIVE AUTO-CARGA -->
     <div class="f-sec">
       <span class="f-lbl">☁️ Google Drive</span>
-      <input id="gdrive-filename" type="text" placeholder="Nome do arquivo no Drive..." style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:6px 8px;font-size:11px;margin-bottom:6px" value="Contratos_3CRPM" title="Parte do nome da planilha no Drive — carrega a mais recente que contenha este texto"/>
+      <input id="gdrive-filename" type="text" placeholder="Nome do arquivo no Drive..." style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:6px 8px;font-size:11px;margin-bottom:6px" value="contratos 3" title="Parte do nome da planilha no Drive — carrega a mais recente que contenha este texto"/>
       <button class="btn-gdrive" id="btn-gapi-auth" onclick="gapiLogin(loadFromGDrive)" style="width:100%;justify-content:center;padding:9px;font-size:12px;border-radius:6px;margin-bottom:6px">🔑 Conectar ao Google</button>
       <div id="gdrive-status" style="font-size:10px;color:var(--lbl);margin-top:2px">Clique para autenticar e carregar planilha do Drive</div>
       <button class="btn-clr" onclick="autoReloadGDrive()" id="btn-gdrive-reload" style="display:none;margin:6px 0 0">🔄 Recarregar Planilha do Drive</button>
