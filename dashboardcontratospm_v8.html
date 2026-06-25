@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="gapiInit()"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -297,6 +298,23 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
 .modal-sheet .ms-ok{color:var(--green);font-size:13px}
 .modal-sheet .ms-no{color:var(--red);font-size:13px}
 .modal-sheet .ms-cnt{margin-left:auto;font-size:10px;color:var(--txt2)}
+/* MODAL LANÇAR NF */
+.modal-nf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;justify-content:center;align-items:center}
+.modal-nf-overlay.show{display:flex}
+.modal-nf{background:var(--sb);border:1px solid var(--bdr);border-radius:12px;padding:24px 28px;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.modal-nf h3{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--txt)}
+.modal-nf .modal-sub{font-size:11px;color:var(--txt2);margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--bdr)}
+.nf-field{margin-bottom:14px}
+.nf-field label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--lbl);margin-bottom:5px}
+.nf-field select,.nf-field input{width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none}
+.nf-field select:focus,.nf-field input:focus{border-color:var(--blue)}
+.nf-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-nf-footer{display:flex;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--bdr)}
+.btn-success{background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex:1;transition:background .2s}
+.btn-success:hover{background:#16a34a}
+/* GOOGLE DRIVE */
+.btn-gdrive{background:#1a73e8;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:background .2s}
+.btn-gdrive:hover{background:#1557b0}
 /* PRINT PDF */
 @media print{
   .sidebar,.top-bar,.tabs-bar,.btn-theme,.btn-sec,.btn-pri,.btn-clr,.nf-filters,.tbl-search,.file-name-tag,.spinner-ov,.toast,.hamburger,.sb-overlay,.modal-ov{display:none!important}
@@ -314,6 +332,44 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
 
 <!-- SIDEBAR OVERLAY (mobile) -->
 <div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
+<!-- MODAL LANÇAR NOTA FISCAL -->
+<div class="modal-nf-overlay" id="modal-nf-overlay" onclick="if(event.target===this)fecharModalNF()">
+  <div class="modal-nf">
+    <h3>🧾 Lançar Nota Fiscal</h3>
+    <div class="modal-sub" id="modal-nf-sub">Preencha os dados da nota fiscal para registrar o pagamento</div>
+    <div class="nf-field">
+      <label>Contrato (GMS / Fornecedor)</label>
+      <select id="nf-modal-contrato" onchange="onContratoChange()">
+        <option value="">— Selecione o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-field">
+      <label>Unidade OPM</label>
+      <select id="nf-modal-unidade">
+        <option value="">— Selecione a unidade —</option>
+      </select>
+    </div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Número da NF</label>
+        <input type="text" id="nf-modal-numero" placeholder="Ex: 000123">
+      </div>
+      <div class="nf-field">
+        <label>Valor (R$)</label>
+        <input type="text" id="nf-modal-valor" placeholder="Ex: 15.500,00">
+      </div>
+    </div>
+    <div class="nf-field">
+      <label>Data de Emissão</label>
+      <input type="date" id="nf-modal-data">
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalNF()" style="flex:0;padding:9px 18px">Cancelar</button>
+      <button class="btn-success" onclick="salvarNF()">✓ Registrar NF na Planilha do Drive</button>
+    </div>
+  </div>
+</div>
 
 <!-- IMPORT VALIDATION MODAL -->
 <div class="modal-ov" id="modal-val" onclick="if(event.target===this)this.classList.remove('show')">
@@ -350,6 +406,14 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
     <div class="f-sec"><label class="f-lbl">Objeto / Tipo</label><select class="f-sel" id="f-tipo" onchange="applyFilters()"><option value="">Todos</option></select></div>
     <div class="f-sec"><label class="f-lbl">Status Vigência</label><select class="f-sel" id="f-status" onchange="applyFilters()"><option value="">Todos</option></select></div>
     <button class="btn-clr" onclick="clearFilters()">✕ Limpar Filtros</button>
+    <!-- GOOGLE DRIVE AUTO-CARGA -->
+    <div class="f-sec">
+      <span class="f-lbl">☁️ Google Drive</span>
+      <button class="btn-gdrive" id="btn-gapi-auth" onclick="gapiLogin(loadFromGDrive)" style="width:100%;justify-content:center;padding:9px;font-size:12px;border-radius:6px;margin-bottom:6px">🔑 Conectar ao Google</button>
+      <div id="gdrive-status" style="font-size:10px;color:var(--lbl);margin-top:2px">Clique para autenticar e carregar planilha do Drive</div>
+      <button class="btn-clr" onclick="autoReloadGDrive()" id="btn-gdrive-reload" style="display:none;margin:6px 0 0">🔄 Recarregar Planilha do Drive</button>
+      <button class="btn-clr" onclick="gapiLogout()" style="margin:4px 0 0;font-size:10px">Desconectar</button>
+    </div>
     <!-- HISTÓRICO DE IMPORTAÇÕES -->
     <div class="f-sec" id="hist-sec" style="display:none">
       <label class="f-lbl">Histórico de Importações</label>
@@ -375,6 +439,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <span class="file-name-tag" id="file-name-tag">📄 —</span>
       <button class="btn-sec" id="btn-export-xlsx" onclick="exportExcel()" style="display:none" title="Exportar tabela atual para Excel">📥 Excel</button>
       <button class="btn-sec" id="btn-export-pdf" onclick="exportPDF()" style="display:none" title="Imprimir / exportar como PDF">🖨 PDF</button>
+      <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-nf" onclick="abrirModalNF()" title="Lançar nova Nota Fiscal">🧾 Lançar NF</button>
       <button class="btn-pri" onclick="document.getElementById('file-input').click()">📂 Importar Planilha</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
@@ -2286,12 +2351,197 @@ function renderImportHistory(){
 }
 
 // ============================================================
+// GOOGLE DRIVE / SHEETS API (GIS + Sheets v4)
+// ============================================================
+const GAPI_CLIENT_ID='305554324869-er8h1f7jbho3cdr4eamumlhgtlk72p05.apps.googleusercontent.com';
+const GAPI_SPREADSHEET_ID='1S-GzQFGwENXy_5e6jmqwnuQg6kRsgiqAnivNGYBbAP4';
+const GAPI_SCOPES='https://www.googleapis.com/auth/spreadsheets';
+
+let _gapiTokenClient=null;
+let _gapiAccessToken=null;
+let _pendingAfterAuth=null;
+
+function gapiInit(){
+  if(typeof google==='undefined'||!google.accounts)return;
+  _gapiTokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:GAPI_CLIENT_ID,
+    scope:GAPI_SCOPES,
+    callback:(resp)=>{
+      if(resp.error){toast('Erro de autenticação: '+resp.error,'err');return}
+      _gapiAccessToken=resp.access_token;
+      updateAuthStatus(true);
+      if(_pendingAfterAuth){_pendingAfterAuth();_pendingAfterAuth=null}
+    }
+  });
+  updateAuthStatus(false);
+}
+
+function updateAuthStatus(loggedIn){
+  const btnAuth=document.getElementById('btn-gapi-auth');
+  const statusEl=document.getElementById('gdrive-status');
+  if(loggedIn){
+    if(btnAuth){btnAuth.textContent='✓ Conectado ao Google';btnAuth.style.background='var(--green)'}
+    if(statusEl){statusEl.textContent='✓ Autenticado — pronto para gravar NFs';statusEl.style.color='var(--green)'}
+    const btnReload=document.getElementById('btn-gdrive-reload');
+    if(btnReload)btnReload.style.display='';
+  } else {
+    if(btnAuth){btnAuth.textContent='🔑 Conectar ao Google';btnAuth.style.background='#1a73e8'}
+    if(statusEl){statusEl.textContent='Clique em "Conectar ao Google" para autenticar';statusEl.style.color='var(--lbl)'}
+  }
+}
+
+function gapiLogin(afterAuth){
+  if(!_gapiTokenClient){toast('API Google ainda carregando, aguarde...','err');return}
+  _pendingAfterAuth=afterAuth||null;
+  if(_gapiAccessToken){updateAuthStatus(true);if(afterAuth)afterAuth();return}
+  _gapiTokenClient.requestAccessToken({prompt:'consent'});
+}
+
+function gapiLogout(){
+  if(_gapiAccessToken){
+    try{google.accounts.oauth2.revoke(_gapiAccessToken,()=>{})}catch(e){}
+    _gapiAccessToken=null;
+  }
+  updateAuthStatus(false);
+}
+
+function loadFromGDrive(){
+  if(!_gapiAccessToken){gapiLogin(loadFromGDrive);return}
+  showSpinner('Buscando planilha do Google Drive...');
+  const statusEl=document.getElementById('gdrive-status');
+  if(statusEl){statusEl.textContent='⏳ Buscando do Drive...';statusEl.style.color='var(--yel)'}
+  const exportUrl=`https://docs.google.com/spreadsheets/d/${GAPI_SPREADSHEET_ID}/export?format=xlsx`;
+  fetch(exportUrl,{headers:{Authorization:'Bearer '+_gapiAccessToken}})
+    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()})
+    .then(buf=>{
+      if(statusEl){statusEl.textContent='✓ Planilha carregada do Drive';statusEl.style.color='var(--green)'}
+      const reloadBtn=document.getElementById('btn-gdrive-reload');
+      if(reloadBtn)reloadBtn.style.display='';
+      parseWorkbook(buf,'planilha-drive.xlsx');
+    })
+    .catch(err=>{
+      hideSpinner();
+      if(statusEl){statusEl.textContent='✗ Erro: '+err.message;statusEl.style.color='var(--red)'}
+      toast('Erro ao buscar do Drive: '+err.message,'err');
+    });
+}
+
+function autoReloadGDrive(){loadFromGDrive()}
+
+// ============================================================
+// LANÇAR NOTA FISCAL
+// ============================================================
+function abrirModalNF(){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de lançar NFs.','err');return}
+  const sel=document.getElementById('nf-modal-contrato');
+  const pool=[...STATE.painel,...STATE.serv_painel];
+  sel.innerHTML='<option value="">— Selecione o contrato —</option>';
+  pool.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.gms+'|'+r.empresa;
+    opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
+    sel.appendChild(opt);
+  });
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('nf-modal-data').value=today;
+  document.getElementById('nf-modal-numero').value='';
+  document.getElementById('nf-modal-valor').value='';
+  document.getElementById('nf-modal-unidade').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
+  document.getElementById('modal-nf-overlay').classList.add('show');
+}
+
+function fecharModalNF(){document.getElementById('modal-nf-overlay').classList.remove('show')}
+
+function onContratoChange(){
+  const val=document.getElementById('nf-modal-contrato').value;
+  const selUni=document.getElementById('nf-modal-unidade');
+  selUni.innerHTML='<option value="">— Selecione a unidade —</option>';
+  if(!val)return;
+  const [gms,empresa]=val.split('|');
+  const baseRows=[...STATE.base,...STATE.serv_base].filter(b=>b.gms===gms);
+  if(baseRows.length){
+    const unis=[...new Set(baseRows.map(b=>b.unidade).filter(Boolean))].sort();
+    unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+  } else {
+    const sheetKey=findNFSheet(gms,empresa);
+    if(sheetKey){
+      const nfs=STATE.nfs[sheetKey]||[];
+      const unis=[...new Set(nfs.map(n=>n.unidade).filter(Boolean))].sort();
+      unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+    }
+  }
+  const row=[...STATE.painel,...STATE.serv_painel].find(r=>r.gms===gms&&r.empresa===empresa);
+  if(row){
+    document.getElementById('modal-nf-sub').textContent=
+      `Saldo disponível: R$ ${row.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2})} · Executado: R$ ${row.executadoTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
+  }
+}
+
+function salvarNF(){
+  const contratoVal=document.getElementById('nf-modal-contrato').value;
+  const unidade=document.getElementById('nf-modal-unidade').value;
+  const numeroNF=document.getElementById('nf-modal-numero').value.trim();
+  const valorStr=document.getElementById('nf-modal-valor').value.trim();
+  const dataVal=document.getElementById('nf-modal-data').value;
+  if(!contratoVal){toast('Selecione o contrato.','err');return}
+  if(!unidade){toast('Selecione a unidade.','err');return}
+  if(!numeroNF){toast('Informe o número da NF.','err');return}
+  if(!valorStr){toast('Informe o valor da NF.','err');return}
+  if(!dataVal){toast('Informe a data de emissão.','err');return}
+  let valor=num(valorStr);
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 15.500,00','err');return}
+  const dataObj=new Date(dataVal+'T12:00:00');
+  const dataFormatada=dataObj.toLocaleDateString('pt-BR');
+  const ano=dataObj.getFullYear();
+  const [gms,empresa]=contratoVal.split('|');
+  const novaEntrada={unidade,valor,numeroNF,data:dataFormatada,ano};
+  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarNFnoSheets(gms,empresa,novaEntrada);gapiLogin();return}
+  _gravarNFnoSheets(gms,empresa,novaEntrada);
+}
+
+async function _gravarNFnoSheets(gms,empresa,novaEntrada){
+  fecharModalNF();
+  showSpinner('Gravando NF na planilha do Drive...');
+  const sheetKey=findNFSheet(gms,empresa);
+  try{
+    const metaResp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${GAPI_SPREADSHEET_ID}?fields=sheets.properties`,
+      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    if(!metaResp.ok)throw new Error('Erro ao ler abas: HTTP '+metaResp.status);
+    const meta=await metaResp.json();
+    const sheets=meta.sheets||[];
+    let targetSheet=null;
+    if(sheetKey)targetSheet=sheets.find(s=>s.properties.title===sheetKey);
+    if(!targetSheet)targetSheet=sheets.find(s=>s.properties.title.includes(gms));
+    if(!targetSheet){
+      hideSpinner();
+      toast(`Aba do contrato GMS ${gms} não encontrada na planilha.`,'err');
+      return;
+    }
+    const sheetTitle=targetSheet.properties.title;
+    const appendResp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${GAPI_SPREADSHEET_ID}/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
+       body:JSON.stringify({values:[[novaEntrada.unidade,novaEntrada.valor,novaEntrada.numeroNF,novaEntrada.data,novaEntrada.ano]]})});
+    if(!appendResp.ok){const e=await appendResp.json();throw new Error(e.error?.message||'HTTP '+appendResp.status)}
+    hideSpinner();
+    if(sheetKey&&STATE.nfs[sheetKey])STATE.nfs[sheetKey].push(novaEntrada);
+    else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
+    toast(`✓ NF ${novaEntrada.numeroNF} gravada na planilha do Drive! Aba: "${sheetTitle}"`,'ok');
+    if(STATE.currentGMS===gms)showContract(gms,empresa);
+  }catch(err){
+    hideSpinner();
+    toast('Erro ao gravar no Drive: '+err.message,'err');
+    console.error(err);
+  }
+}
+
+// ============================================================
 // BOOT — aguarda o usuário importar o arquivo
 // ============================================================
 (function init(){
   initTheme();
   renderImportHistory();
-  // Remap state.painel after parsing (called after processFile)
   const _origParseWB=parseWorkbook;
   window.parseWorkbook=function(buffer,fileName){
     _origParseWB(buffer,fileName);
@@ -2302,6 +2552,8 @@ function renderImportHistory(){
     STATE.serv_base=mapBaseServ(STATE.serv_base);
     STATE.serv_filtered=[...STATE.serv_painel];
     populateFilters();applyFilters();buildTabs();showOverview();
+    const btnNF=document.getElementById('btn-lancar-nf');
+    if(btnNF)btnNF.style.display='';
   };
 })();
 </script>
