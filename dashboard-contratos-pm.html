@@ -1651,9 +1651,12 @@ function renderDetail(row){
     <div class="info-item"><div class="il">Efetivo Total</div><div class="iv">${row.efetTotal} policiais</div></div>
     <div class="info-item"><div class="il">Valor Original Anual</div><div class="iv">${brl(row.valorOriginal)}</div></div>
     <div class="info-item"><div class="il">% Reajuste</div><div class="iv">${row.pctReajuste??0}%</div></div>
+    <div class="info-item"><div class="il">Valor Anual Atualizado</div><div class="iv" style="color:var(--lm);font-weight:700">${(()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;return brl(row.valorOriginal*(1+(f||0)));})()}</div></div>
     <div class="info-item"><div class="il">Próx. Reajuste</div><div class="iv">${fDate(row.proxReajuste)}</div></div>
     <div class="info-item"><div class="il">Executado 2025</div><div class="iv" style="color:var(--blue)">${brl(row.executado2025)}</div></div>
+    <div class="info-item"><div class="il">% Exec. 2025</div><div class="iv" style="color:var(--blue)">${(()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;const va=row.valorOriginal*(1+(f||0));return va>0?((row.executado2025/va)*100).toFixed(1)+'%':'—';})()}</div></div>
     <div class="info-item"><div class="il">Executado 2026</div><div class="iv" style="color:var(--green)">${brl(row.executado2026)}</div></div>
+    <div class="info-item"><div class="il">% Exec. 2026</div><div class="iv" style="color:var(--green)">${(()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;const va=row.valorOriginal*(1+(f||0));return va>0?((row.executado2026/va)*100).toFixed(1)+'%':'—';})()}</div></div>
     <div class="info-item"><div class="il">Total NFs Liquidadas</div><div class="iv" style="color:var(--green)">${brl(nfTotal)}</div></div>
   </div>
 
