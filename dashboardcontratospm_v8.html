@@ -1697,23 +1697,44 @@ function renderDetail(row){
   <div class="tbl-wrap">
     <div class="tbl-hdr"><span class="tbl-ttl">Detalhamento por Unidade</span><span class="tbl-badge">${baseRows.length}</span></div>
     <div class="tbl-cont" style="overflow-x:auto"><table class="dt"><thead><tr>
-      <th>Unidade</th><th>Efetivo</th><th>Val. Global Alocado</th><th>Val. Anual (Unidade)</th><th>Executado Total</th><th>Exec. 2025</th><th>Exec. 2026</th><th>Saldo</th><th>% Execução</th><th>Custo/Policial</th><th>Status</th>
+      <th>Unidade</th><th>Efetivo</th><th>% do Contrato</th><th>Val. Global Alocado</th><th>Val. Anual (Unidade)</th><th>Executado Total</th><th>Exec. 2025</th><th>Exec. 2026</th><th>Saldo</th><th>% Execução</th><th>Custo/Policial</th><th>Status</th>
     </tr></thead><tbody>
     ${(()=>{
-      // meses totais do contrato pai para calcular valor anual por unidade
       let mesesTotal=0;
       if(row.dataInicio&&row.dataFim){const ini=new Date(row.dataInicio),fim=new Date(row.dataFim);mesesTotal=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());}
+      // NFs deste contrato agrupadas por unidade e ano
+      const nfSheet=nfSheetKey?STATE.nfs[nfSheetKey]||[]:[];
+      const nfByUniYear={};
+      nfSheet.forEach(n=>{
+        const uni=str(n.unidade).toUpperCase().trim();
+        const yr=n.ano||0;
+        if(!nfByUniYear[uni])nfByUniYear[uni]={};
+        nfByUniYear[uni][yr]=(nfByUniYear[uni][yr]||0)+n.valor;
+      });
+      const totalGlobal=row.valorGlobal||1;
       return baseRows.map(u=>{
         const pu=pctV(u.pctExec);const bc=pu>100?'var(--red)':pu>=70?'var(--green)':'var(--yel)';
         const custoPol=u.efetivo>0?u.executado/u.efetivo:0;
         const valAnualUni=mesesTotal>0?(u.valorGlobalAlocado/mesesTotal)*12:0;
+        const pctContrato=totalGlobal>0?((u.valorGlobalAlocado/totalGlobal)*100).toFixed(1)+'%':'—';
+        // exec por ano das NFs (unidade normalizada para comparação)
+        const uKey=u.unidade.toUpperCase().trim();
+        const nfUni=nfByUniYear[uKey]||{};
+        const e25=nfUni[2025]||0;
+        const e26=nfUni[2026]||0;
+        // executado total das NFs (soma de todos os anos)
+        const execNF=Object.values(nfUni).reduce((a,v)=>a+v,0);
+        // usa exec da planilha se NFs não disponíveis, mas prefere soma das NFs
+        const execMostrado=execNF>0?execNF:u.executado;
+        const saldo=Math.max(0,u.valorGlobalAlocado-execMostrado);
         return`<tr><td style="font-weight:600">${u.unidade}</td><td>${u.efetivo}</td>
+          <td style="color:var(--pur);font-weight:600">${pctContrato}</td>
           <td>${brl(u.valorGlobalAlocado)}</td>
           <td style="color:var(--lm);font-weight:600">${brl(valAnualUni)}</td>
-          <td class="td-g">${brl(u.executado)}</td>
-          <td style="color:var(--blue)">${brl(u.exec2025||0)}</td>
-          <td style="color:var(--green)">${brl(u.exec2026||0)}</td>
-          <td>${brl(u.saldoAlocado)}</td>
+          <td class="td-g">${brl(execMostrado)}</td>
+          <td style="color:var(--blue)">${brl(e25)}</td>
+          <td style="color:var(--green)">${brl(e26)}</td>
+          <td>${brl(saldo)}</td>
           <td><div style="font-size:11px;font-weight:700;color:${bc}">${pct(u.pctExec)}</div>
             <div class="mp"><div class="mp-f" style="width:${Math.min(pu,100)}%;background:${bc}"></div></div></td>
           <td style="color:var(--cyn);font-weight:600">${brl(custoPol)}</td>
