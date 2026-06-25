@@ -523,7 +523,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
         <!-- EXEC BAR -->
         <div class="exec-wrap">
           <div class="exec-top">
-            <span class="exec-title">Execução Orçamentária Comparativa</span>
+            <span class="exec-title">Execução Orçamentária Comparativa (Vigência Total)</span>
             <div class="exec-leg">
               <span><span class="exec-dot" style="background:var(--green)"></span><span id="lbl-exec">Executado (0%)</span></span>
               <span><span class="exec-dot" style="background:var(--blue)"></span><span id="lbl-saldo">Saldo (0%)</span></span>
@@ -532,6 +532,17 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
           <div class="exec-track">
             <div class="exec-fill" id="ef-exec" style="width:0%;background:var(--green)"></div>
             <div class="exec-fill" id="ef-saldo" style="width:0%;background:var(--blue)"></div>
+          </div>
+          <div class="exec-top" style="margin-top:10px">
+            <span class="exec-title">Execução Anual 2026 vs Valor Anual c/ Reajuste</span>
+            <div class="exec-leg">
+              <span><span class="exec-dot" style="background:var(--orn)"></span><span id="lbl-exec26">Executado 2026 (0%)</span></span>
+              <span><span class="exec-dot" style="background:#555"></span><span id="lbl-rest26">Restante (0%)</span></span>
+            </div>
+          </div>
+          <div class="exec-track">
+            <div class="exec-fill" id="ef-exec26" style="width:0%;background:var(--orn)"></div>
+            <div class="exec-fill" id="ef-rest26" style="width:0%;background:#555"></div>
           </div>
         </div>
         <!-- CHARTS ROW 1 -->
@@ -1225,14 +1236,20 @@ function renderDash(){
   animMoney('k-pago',se);animMoney('k-exec2026',se26);animMoney('k-saldo',ss);animMoney('k-mensal',sm);
   animNum('k-efetivo',sef);animMoney('k-custo-pol',scp);
   animNum('k-ct-gen',ctGen);animNum('k-ct-hort',ctHort);animNum('k-ct-coffee',ctCoffee);
-  // Exec bar
+  // Barra 1: execução total vs valor global da vigência
   const tot=sg||1,pp=(se/tot)*100,ps=(ss/tot)*100;
+  // Barra 2: executado 2026 vs valor anual c/ reajuste
+  const p26=sr>0?(se26/sr)*100:0,pr26=Math.max(0,100-p26);
   setTimeout(()=>{
     document.getElementById('ef-exec').style.width=Math.min(pp,100)+'%';
     document.getElementById('ef-saldo').style.width=Math.min(ps,100-Math.min(pp,100))+'%';
+    document.getElementById('ef-exec26').style.width=Math.min(p26,100)+'%';
+    document.getElementById('ef-rest26').style.width=Math.min(pr26,100-Math.min(p26,100))+'%';
   },100);
   document.getElementById('lbl-exec').textContent=`Executado (${pp.toFixed(1)}%)`;
   document.getElementById('lbl-saldo').textContent=`Saldo (${ps.toFixed(1)}%)`;
+  document.getElementById('lbl-exec26').textContent=`Executado 2026 — ${brl(se26)} (${p26.toFixed(1)}%)`;
+  document.getElementById('lbl-rest26').textContent=`Restante — ${brl(Math.max(0,sr-se26))} (${pr26.toFixed(1)}%)`;
   // Charts
   renderChForn(rows);renderChUni(rows);renderChPct(rows);renderChAnos(rows);renderChMonthly();
   renderAlertas(rows);renderResTab(STATE.resTab);renderTable(rows);
