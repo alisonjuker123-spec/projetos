@@ -1208,7 +1208,8 @@ function renderDash(){
   const se=rows.reduce((a,r)=>a+r.executadoTotal,0);
   const se26=rows.reduce((a,r)=>a+r.executado2026,0);
   const ss=rows.reduce((a,r)=>a+r.saldo,0);
-  const sm=rows.reduce((a,r)=>a+r.valorMensal,0);
+  // Provisão mensal = Valor Anual c/ Reajuste ÷ 12 (quanto precisa ser provisionado por mês para 100% execução)
+  const sm=sr/12;
   // Efetivo: soma uma vez por unidade (Base Detalhada), evita duplicar unidades presentes em vários contratos
   const gmsSet=new Set(rows.map(r=>r.gms));
   const uniEfet={};
@@ -1818,7 +1819,10 @@ function renderServDash(){
   const se=rows.reduce((a,r)=>a+r.executadoTotal,0);
   const se26=rows.reduce((a,r)=>a+r.executado2026,0);
   const ss=rows.reduce((a,r)=>a+r.saldo,0);
-  const sm=rows.reduce((a,r)=>a+r.valorMensal,0);
+  // Provisão mensal PRODUSERV: soma valorMensalPosto × qtdPostos da base detalhada (contratos filtrados)
+  const gmsSetP=new Set(rows.map(r=>r.gms));
+  const smServ=STATE.serv_base.filter(b=>gmsSetP.has(b.gms)).reduce((a,b)=>a+(b.valorMensalPosto||0)*(b.qtdPostos||1),0);
+  const sm=smServ||rows.reduce((a,r)=>a+r.valorMensal,0);
   const postos=rows.reduce((a,r)=>a+r.qtdPostos,0);
   const tot=sg||1; const pp=(se/tot)*100; const ps=(ss/tot)*100;
 
