@@ -1053,7 +1053,7 @@ function mapPainelServ(raw){
     dataInicio:CP.dataInicio(o),dataFim:CP.dataFim(o),
     diasRestantes:num(CP.diasRest(o)),statusVigencia:str(CP.status(o)),
     prorrogado:str(CP.prorrogado(o)),
-    valorGlobal:num(CP.valorGlobal(o)),valorMensal:num(CP.valorMensal(o)),
+    valorGlobal:num(CP.valorGlobal(o)),
     executadoTotal:num(CP.execTotal(o)),executado2025:num(CP.exec2025(o)),executado2026:num(CP.exec2026(o)),
     saldo:num(CP.saldo(o)),pctExecTotal:num(CP.pctExecTotal(o)),
     mediaGastoMensal:num(CP.mediaGasto(o)),
@@ -1063,8 +1063,16 @@ function mapPainelServ(raw){
     // compat fields para renderização compartilhada
     valorOriginal:0,pctReajuste:0,efetTotal:0,reajustePendente:'',
     prorrogacaoIniciar:'',proxReajuste:null,iniciarProrx:null,
-    gastoMensalPol:0,valorMensalPol:0,valorSupl:num(CP.valorSupl(o))
-  })).filter(r=>r.gms);
+    gastoMensalPol:0,valorMensalPol:0
+  })).filter(r=>r.gms).map(r=>{
+    let meses=0;
+    if(r.dataInicio&&r.dataFim){
+      const ini=new Date(r.dataInicio),fim=new Date(r.dataFim);
+      meses=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());
+    }
+    r.valorMensal=meses>0?r.valorGlobal/meses:0;
+    return r;
+  });
 }
 
 function mapBaseServ(raw){
@@ -1096,7 +1104,7 @@ function mapPainel(raw){
     unidPrincipal:str(C.unidsAtendidas(o)).split(/\s*\+\s*/)[0]||'',
     qtdeUnidades:num(C.qtdeUnidades(o)),efetTotal:num(C.efetTotal(o)),efetAtual:num(C.efetAtual(o)),
     valorOriginal:num(C.valorOriginal(o)),pctReajuste:num(C.pctReajuste(o)),
-    valorGlobal:num(C.valorGlobal(o)),valorMensal:num(C.valorMensal(o)),
+    valorGlobal:num(C.valorGlobal(o)),
     valorMensalPol:num(C.valorMensalPol(o)),
     dataInicio:C.dataInicio(o),dataFim:C.dataFim(o),
     diasRestantes:num(C.diasRest(o)),statusVigencia:str(C.status(o)),
@@ -1109,7 +1117,16 @@ function mapPainel(raw){
     mesesRestantes:C.mesesRest(o),mesesSaldo:C.mesesSaldo(o),
     acimaDoTeto:str(C.acimaDoTeto(o)),necessitaSupl:str(C.necessitaSupl(o)),
     valorSupl:num(C.valorSupl(o))
-  })).filter(r=>r.gms);
+  })).filter(r=>r.gms).map(r=>{
+    // Provisão/Mês = valorGlobal ÷ total de meses do contrato (dataInicio → dataFim)
+    let meses=0;
+    if(r.dataInicio&&r.dataFim){
+      const ini=new Date(r.dataInicio),fim=new Date(r.dataFim);
+      meses=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());
+    }
+    r.valorMensal=meses>0?r.valorGlobal/meses:0;
+    return r;
+  });
 }
 
 function mapBase(raw){
