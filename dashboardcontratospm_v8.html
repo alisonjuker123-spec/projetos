@@ -1633,8 +1633,9 @@ function renderDetail(row){
 
   <!-- KPI 8 -->
   <div class="sec-lbl">Indicadores do Contrato</div>
-  <div class="kpi-g8">
+  <div class="kpi-g8" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
     <div class="kc" style="border-top-color:var(--blue)"><div class="kl">Valor Global</div><div class="kv" style="font-size:15px">${brl(row.valorGlobal)}</div></div>
+    <div class="kc" style="border-top-color:var(--lm)"><div class="kl">Valor Anual c/ Reajuste</div><div class="kv" style="font-size:15px">${brl((()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;return row.valorOriginal*(1+(f||0));})())}</div></div>
     <div class="kc" style="border-top-color:var(--green)"><div class="kl">Total Executado</div><div class="kv" style="font-size:15px">${brl(row.executadoTotal)}</div></div>
     <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Saldo Restante</div><div class="kv" style="font-size:15px">${brl(row.saldo)}</div></div>
     <div class="kc" style="border-top-color:${barColor}"><div class="kl">% Execução Total</div><div class="kv" style="font-size:20px;color:${barColor}">${pct(row.pctExecTotal)}</div></div>
