@@ -2645,9 +2645,10 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada){
   fecharModalNF();
   showSpinner('Gravando NF na planilha do Drive...');
   const sheetKey=findNFSheet(gms,empresa);
+  const spreadsheetId=STATE._driveSheetId||GAPI_SPREADSHEET_ID;
   try{
     const metaResp=await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${GAPI_SPREADSHEET_ID}?fields=sheets.properties`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
       {headers:{Authorization:'Bearer '+_gapiAccessToken}});
     if(!metaResp.ok)throw new Error('Erro ao ler abas: HTTP '+metaResp.status);
     const meta=await metaResp.json();
@@ -2662,7 +2663,7 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada){
     }
     const sheetTitle=targetSheet.properties.title;
     const appendResp=await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${GAPI_SPREADSHEET_ID}/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
       {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
        body:JSON.stringify({values:[[novaEntrada.unidade,novaEntrada.valor,novaEntrada.numeroNF,novaEntrada.data,novaEntrada.ano]]})});
     if(!appendResp.ok){const e=await appendResp.json();throw new Error(e.error?.message||'HTTP '+appendResp.status)}
