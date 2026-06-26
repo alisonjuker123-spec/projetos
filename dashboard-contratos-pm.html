@@ -118,6 +118,15 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 /* KPI GRIDS */
 .kpi-g7{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:18px}
 .kpi-g5{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.kpi-g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+@media(max-width:900px){.kpi-g4{grid-template-columns:repeat(2,1fr)}}
+.emp-venc-alert{background:#1c0a0a;border:1px solid var(--red);border-radius:8px;padding:14px 18px;margin-bottom:14px}
+.emp-venc-alert .alrt-title{color:var(--red)}
+.emp-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+.emp-badge-ab{background:rgba(34,197,94,.15);color:var(--green)}
+.emp-badge-pa{background:rgba(79,142,247,.15);color:var(--blue)}
+.emp-badge-pr{background:rgba(245,158,11,.15);color:var(--yel)}
+.emp-badge-ex{background:rgba(100,116,139,.15);color:var(--lbl)}
 .kpi-g8{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 @media(max-width:1100px){.kpi-g8{grid-template-columns:repeat(2,1fr)}}
 
@@ -350,6 +359,13 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
         <option value="">— Selecione a unidade —</option>
       </select>
     </div>
+    <div class="nf-field" id="nf-empenho-field" style="display:none">
+      <label>Empenho Vinculado</label>
+      <select id="nf-modal-empenho" onchange="onEmpenhoChange()">
+        <option value="">— Sem empenho (lançamento avulso) —</option>
+      </select>
+      <div id="nf-empenho-info" style="display:none;font-size:11px;color:var(--txt2);margin-top:5px;padding:6px 8px;background:var(--inp);border-radius:5px"></div>
+    </div>
     <div class="nf-row">
       <div class="nf-field">
         <label>Número da NF</label>
@@ -566,11 +582,48 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
         </div>
         <!-- CHART MENSAL -->
         <div class="cc" id="cc-monthly" style="margin-bottom:14px"><h3>Evolução Mensal de Pagamentos (NFs)</h3><canvas id="ch-monthly" height="140"></canvas></div>
+        <!-- KPI EMPENHOS -->
+        <div id="sec-empenhos-wrap" style="display:none">
+          <div class="sec-lbl" style="margin-top:2px">Empenhos</div>
+          <div class="kpi-g4">
+            <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Empenhos em Aberto</div><div class="kv" id="k-emp-qt">0</div><div class="ks">quantidade</div></div>
+            <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Valor Total Empenhado</div><div class="kv" id="k-emp-val">0,00</div><div class="ks">valor original</div></div>
+            <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Saldo a Liquidar</div><div class="kv" id="k-emp-saldo">0,00</div><div class="ks">ainda não pago</div></div>
+            <div class="kc big" style="border-top-color:var(--red)"><div class="kl">⚡ Vencendo em 15 dias</div><div class="kv" id="k-emp-venc">0</div><div class="ks" id="k-emp-venc-val">R$ 0,00 em risco</div></div>
+          </div>
+        </div>
         <!-- ALERTAS -->
         <div class="alrt-panel">
           <div class="alrt-title">⚠ PROSPECÇÃO DE SUPLEMENTAÇÃO NECESSÁRIA</div>
           <div class="alrt-sub">Contratos com indicação de necessidade de suplementação orçamentária</div>
           <div id="alrt-content"></div>
+        </div>
+        <!-- ALERTA EMPENHOS VENCENDO -->
+        <div class="emp-venc-alert" id="emp-venc-alert" style="display:none">
+          <div class="alrt-title">🔴 EMPENHOS VENCENDO NOS PRÓXIMOS 15 DIAS</div>
+          <div class="alrt-sub">Empenhos com saldo em aberto próximos do vencimento — providencie o pagamento ou extorno</div>
+          <div id="emp-venc-content"></div>
+        </div>
+        <!-- TABELA DE EMPENHOS ABERTOS -->
+        <div class="tbl-wrap" id="emp-table-wrap" style="display:none;margin-bottom:14px">
+          <div class="tbl-hdr">
+            <div><span class="tbl-ttl">📋 Empenhos em Aberto</span><span class="tbl-badge" id="emp-tbl-cnt">0</span></div>
+            <input type="text" class="tbl-search" id="emp-search" placeholder="🔍 Nº empenho, contrato ou empresa..." oninput="filterEmpTable(this.value)">
+          </div>
+          <div class="tbl-cont">
+            <table class="dt"><thead><tr>
+              <th>Nº Empenho</th>
+              <th>Contrato</th>
+              <th>Empresa</th>
+              <th>Unidade</th>
+              <th style="text-align:right">Valor Empenho</th>
+              <th style="text-align:right">Valor Pago</th>
+              <th style="text-align:right">Saldo</th>
+              <th>Emissão</th>
+              <th>Vencimento</th>
+              <th>Status</th>
+            </tr></thead><tbody id="emp-tbl-body"></tbody></table>
+          </div>
         </div>
         <!-- RESUMO TABS -->
         <div class="cc" style="margin-bottom:14px">
@@ -651,7 +704,8 @@ const SHEET_SERV_TIPO='Resumo Tipo PRODUSERV';
 // Abas que NÃO são individuais de contratos
 const SUMMARY_SHEETS=new Set([
   SHEET_PAINEL,SHEET_BASE,SHEET_EMP,SHEET_UNI,SHEET_TIPO,
-  SHEET_SERV_PAINEL,SHEET_SERV_BASE,SHEET_SERV_EMP,SHEET_SERV_TIPO
+  SHEET_SERV_PAINEL,SHEET_SERV_BASE,SHEET_SERV_EMP,SHEET_SERV_TIPO,
+  'EMPENHOS'
 ]);
 
 // ============================================================
@@ -664,6 +718,8 @@ let STATE={
   // Serviços PRODUSERV
   serv_painel:[],serv_base:[],serv_res_emp:[],serv_res_tipo:[],
   serv_filtered:[],
+  // Empenhos
+  empenhos:[],
   // Shared
   nfs:{},nfsIndex:{},
   charts:{},currentGMS:null,currentEmp:null,
@@ -822,6 +878,9 @@ function parseWorkbook(buffer,fileName){
   STATE.serv_res_emp = sheetToObjs(wb,SHEET_SERV_EMP);
   STATE.serv_res_tipo= sheetToObjs(wb,SHEET_SERV_TIPO);
 
+  // Parse EMPENHOS sheet
+  STATE.empenhos=parseEmpenhos(wb);
+
   // Individual contract sheets → NF records
   // Build index by reading GMS+empresa from inside each sheet (row 1, cols 0 and 2)
   STATE.nfs={};
@@ -901,6 +960,39 @@ function sheetToObjs(wb,name){
 }
 
 // Parse NF sheet: find header row "Unidade | Valor NF | ..." then collect rows
+function parseEmpenhos(wb){
+  const name=wb.SheetNames.find(n=>n.toUpperCase()==='EMPENHOS');
+  if(!name)return[];
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false,cellDates:true,defval:null});
+  return rows.slice(1).map((r,i)=>{
+    if(!r||!r[3])return null;
+    const toDate=v=>{
+      if(!v)return null;
+      if(v instanceof Date)return v;
+      const d=new Date(v);
+      return isNaN(d)?null:d;
+    };
+    const valor=num(r[4]);
+    const valorPago=num(r[7])||0;
+    const saldoRaw=num(r[8]);
+    const saldo=saldoRaw>0?saldoRaw:Math.max(0,valor-valorPago);
+    return {
+      contrato:str(r[0]),
+      empresa:str(r[1]).toUpperCase().trim(),
+      unidade:str(r[2]),
+      numero:str(r[3]),
+      valor,
+      dataEmissao:toDate(r[5]),
+      vencimento:toDate(r[6]),
+      valorPago,
+      saldo,
+      status:str(r[9])||'Aberto',
+      extornado:str(r[10]).toUpperCase()==='S',
+      rowIdx:i+2, // 1-based sheet row (header=1, data starts at 2)
+    };
+  }).filter(r=>r&&r.numero);
+}
+
 function parseNFSheet(wb,name){
   const ws=wb.Sheets[name];
   if(!ws)return[];
@@ -929,7 +1021,7 @@ function parseNFSheet(wb,name){
     else if(r[4] instanceof Date)ano=r[4].getFullYear();
     else if(r[3] instanceof Date)ano=r[3].getFullYear();
     else if(r[4])ano=parseInt(r[4]);
-    nfs.push({unidade,valor,numeroNF:str(r[2]),data:dataStr,ano});
+    nfs.push({unidade,valor,numeroNF:str(r[2]),data:dataStr,ano,empenho:str(r[5])||null});
   }
   return nfs;
 }
@@ -1288,6 +1380,8 @@ function renderDash(){
   const statusAnual=p26>=metaAnual?'✅ acima da meta':'⚠️ abaixo da meta';
   document.getElementById('lbl-exec26').textContent=`Executado 2026 — ${brl(se26)} (${p26.toFixed(1)}% | meta: ${metaAnual.toFixed(0)}% ${statusAnual})`;
   document.getElementById('lbl-rest26').textContent=`A executar — ${brl(Math.max(0,sr-se26))} (${pr26.toFixed(1)}%)`;
+  // KPIs Empenhos
+  renderEmpKPIs();
   // Charts
   renderChForn(rows);renderChUni(rows);renderChPct(rows);renderChAnos(rows);renderChMonthly();
   renderAlertas(rows);renderResTab(STATE.resTab);renderTable(rows);
@@ -1397,6 +1491,84 @@ function state_charts(k,c){STATE.charts[k]=c;return c}
 // ============================================================
 // ALERTAS
 // ============================================================
+// ============================================================
+// EMPENHOS — KPIs, tabela, alerta de vencimento
+// ============================================================
+function renderEmpKPIs(){
+  const emps=STATE.empenhos||[];
+  const wrap=document.getElementById('sec-empenhos-wrap');
+  if(!emps.length){if(wrap)wrap.style.display='none';return}
+  if(wrap)wrap.style.display='';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+  const abertos=emps.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
+  const qtEmp=abertos.length;
+  const valEmp=abertos.reduce((a,e)=>a+e.valor,0);
+  const saldoEmp=abertos.reduce((a,e)=>a+e.saldo,0);
+  const vencendo=abertos.filter(e=>e.vencimento&&e.vencimento<=em15);
+  const qtVenc=vencendo.length;
+  const valVenc=vencendo.reduce((a,e)=>a+e.saldo,0);
+  document.getElementById('k-emp-qt').textContent=qtEmp;
+  document.getElementById('k-emp-val').textContent=brl(valEmp);
+  document.getElementById('k-emp-saldo').textContent=brl(saldoEmp);
+  document.getElementById('k-emp-venc').textContent=qtVenc;
+  document.getElementById('k-emp-venc-val').textContent=brl(valVenc)+' em risco';
+  // Alert panel para vencendo
+  const alertWrap=document.getElementById('emp-venc-alert');
+  if(alertWrap){
+    if(qtVenc>0){
+      alertWrap.style.display='';
+      document.getElementById('emp-venc-content').innerHTML=vencendo.map(e=>{
+        const venc=e.vencimento;
+        const vencida=venc<hoje;
+        const dias=Math.round((venc-hoje)/(86400000));
+        return `<div class="alrt-item"><strong>${e.numero}</strong> — ${e.contrato} / ${e.empresa} / ${e.unidade||'—'} — Saldo: ${brl(e.saldo)} — Vencimento: ${venc.toLocaleDateString('pt-BR')} <span style="color:${vencida?'var(--red)':'var(--yel)'}">(${vencida?'VENCIDO há '+Math.abs(dias)+' dias':dias===0?'VENCE HOJE':'em '+dias+' dia(s)'})</span></div>`;
+      }).join('');
+    } else {
+      alertWrap.style.display='none';
+    }
+  }
+  renderEmpTable(abertos,'');
+}
+
+function renderEmpTable(emps,filtro){
+  const wrap=document.getElementById('emp-table-wrap');
+  if(!wrap)return;
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+  const f=(filtro||'').toLowerCase();
+  const lista=f?emps.filter(e=>
+    e.numero.toLowerCase().includes(f)||e.contrato.toLowerCase().includes(f)||
+    e.empresa.toLowerCase().includes(f)||(e.unidade||'').toLowerCase().includes(f)):emps;
+  if(!lista.length){wrap.style.display='none';return}
+  wrap.style.display='';
+  document.getElementById('emp-tbl-cnt').textContent=lista.length;
+  document.getElementById('emp-tbl-body').innerHTML=lista.map(e=>{
+    const venc=e.vencimento;
+    const vencida=venc&&venc<hoje;
+    const proxVenc=venc&&venc<=em15&&!vencida;
+    const pct=e.valor>0?Math.min((e.valorPago/e.valor)*100,100):0;
+    const stBadge=e.status==='Pago'?'emp-badge-pa':e.status==='Parcial'?'emp-badge-pr':e.extornado?'emp-badge-ex':'emp-badge-ab';
+    return `<tr>
+      <td style="font-weight:700;white-space:nowrap">${e.numero}</td>
+      <td>${e.contrato}</td>
+      <td>${e.empresa}</td>
+      <td>${e.unidade||'—'}</td>
+      <td style="text-align:right">${brl(e.valor)}</td>
+      <td style="text-align:right">${brl(e.valorPago)}</td>
+      <td style="text-align:right;font-weight:700;color:${e.saldo<0.01?'var(--green)':'var(--txt)'}">${brl(e.saldo)}</td>
+      <td style="white-space:nowrap">${e.dataEmissao?e.dataEmissao.toLocaleDateString('pt-BR'):'—'}</td>
+      <td style="white-space:nowrap;${vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':''}">${venc?venc.toLocaleDateString('pt-BR'):'—'}${vencida?' ⚠️':proxVenc?' ⚡':''}</td>
+      <td><span class="emp-badge ${stBadge}">${e.status||'Aberto'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterEmpTable(q){
+  const abertos=(STATE.empenhos||[]).filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
+  renderEmpTable(abertos,q);
+}
+
 function renderAlertas(rows){
   const needs=rows.filter(r=>str(r.necessitaSupl).toLowerCase().includes('sim')||str(r.necessitaSupl).toLowerCase().includes('urgente'));
   const sorted=[...needs].sort((a,b)=>b.valorSupl-a.valorSupl);
@@ -1772,6 +1944,53 @@ function renderDetail(row){
     <div class="cc"><h3>Executado por Unidade</h3><div style="max-width:320px;margin:0 auto"><canvas id="ch-d-rosca" height="220"></canvas></div><div class="leg" id="leg-d-rosca"></div></div>
     <div class="cc"><h3>Saldo por Unidade</h3><canvas id="ch-d-saldo" height="220"></canvas></div>
   </div>`:''}
+
+  ${(()=>{
+    const empContrato=(STATE.empenhos||[]).filter(e=>{
+      const ec=e.contrato.replace(/[\/\s]/g,'').toUpperCase();
+      const gc=(row.gms||'').replace(/[\/\s]/g,'').toUpperCase();
+      return ec===gc||e.contrato===row.gms||ec.includes(gc)||gc.includes(ec);
+    });
+    if(!empContrato.length)return '';
+    const hoje=new Date();hoje.setHours(0,0,0,0);
+    const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+    const abertos=empContrato.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
+    const pagos=empContrato.filter(e=>e.status==='Pago'||e.saldo<0.01);
+    return `
+  <!-- EMPENHOS DO CONTRATO -->
+  <div class="nf-wrap">
+    <div class="tbl-hdr" style="margin-bottom:8px">
+      <div>
+        <span class="tbl-ttl">📋 Empenhos do Contrato</span>
+        <span class="tbl-badge">${empContrato.length}</span>
+        <span style="font-size:11px;color:var(--yel);margin-left:10px;font-weight:600">Em aberto: ${brl(abertos.reduce((a,e)=>a+e.saldo,0))}</span>
+        <span style="font-size:11px;color:var(--green);margin-left:8px;font-weight:600">Pagos: ${brl(pagos.reduce((a,e)=>a+e.valor,0))}</span>
+      </div>
+    </div>
+    <div class="tbl-cont" style="max-height:260px">
+      <table class="dt"><thead><tr>
+        <th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th><th>Emissão</th><th>Vencimento</th><th>Status</th>
+      </tr></thead><tbody>
+      ${empContrato.map(e=>{
+        const venc=e.vencimento;
+        const vencida=venc&&venc<hoje;
+        const proxVenc=venc&&venc<=em15&&!vencida;
+        const stBadge=e.status==='Pago'?'emp-badge-pa':e.status==='Parcial'?'emp-badge-pr':e.extornado?'emp-badge-ex':'emp-badge-ab';
+        return `<tr>
+          <td style="font-weight:700">${e.numero}</td>
+          <td>${e.unidade||'—'}</td>
+          <td style="text-align:right">${brl(e.valor)}</td>
+          <td style="text-align:right">${brl(e.valorPago)}</td>
+          <td style="text-align:right;font-weight:700;color:${e.saldo<0.01?'var(--green)':'var(--txt)'}">${brl(e.saldo)}</td>
+          <td style="white-space:nowrap">${e.dataEmissao?e.dataEmissao.toLocaleDateString('pt-BR'):'—'}</td>
+          <td style="white-space:nowrap;${vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':''}">${venc?venc.toLocaleDateString('pt-BR'):'—'}${vencida?' ⚠️':proxVenc?' ⚡':''}</td>
+          <td><span class="emp-badge ${stBadge}">${e.status||'Aberto'}</span></td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>
+    </div>
+  </div>`;
+  })()}
 
   ${nfs.length>0?`
   <!-- NOTAS FISCAIS -->
@@ -2592,7 +2811,13 @@ function abrirModalNF(){
   document.getElementById('modal-nf-overlay').classList.add('show');
 }
 
-function fecharModalNF(){document.getElementById('modal-nf-overlay').classList.remove('show')}
+function fecharModalNF(){
+  document.getElementById('modal-nf-overlay').classList.remove('show');
+  const ef=document.getElementById('nf-empenho-field');
+  if(ef)ef.style.display='none';
+  const ei=document.getElementById('nf-empenho-info');
+  if(ei)ei.style.display='none';
+}
 
 function onContratoChange(){
   const val=document.getElementById('nf-modal-contrato').value;
@@ -2617,6 +2842,57 @@ function onContratoChange(){
     document.getElementById('modal-nf-sub').textContent=
       `Saldo disponível: R$ ${row.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2})} · Executado: R$ ${row.executadoTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
   }
+  // Preencher empenhos abertos do contrato
+  const empField=document.getElementById('nf-empenho-field');
+  const empSel=document.getElementById('nf-modal-empenho');
+  if(empField&&empSel){
+    const hoje=new Date();hoje.setHours(0,0,0,0);
+    const gmsPure=(gms||'').replace(/[\/\s]/g,'').toUpperCase();
+    const empsAbertos=(STATE.empenhos||[]).filter(e=>{
+      const ec=e.contrato.replace(/[\/\s]/g,'').toUpperCase();
+      return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado';
+    });
+    empSel.innerHTML='<option value="">— Sem empenho (lançamento avulso) —</option>';
+    if(empsAbertos.length){
+      empsAbertos.forEach(e=>{
+        const opt=document.createElement('option');
+        opt.value=e.numero;
+        const vencInfo=e.vencimento?` | Venc: ${e.vencimento.toLocaleDateString('pt-BR')}`:'';
+        const vencida=e.vencimento&&e.vencimento<hoje;
+        opt.textContent=`${e.numero} | Saldo: ${brl(e.saldo)}${vencInfo}${vencida?' ⚠️ VENCIDO':''}`;
+        opt.dataset.saldo=e.saldo;
+        opt.dataset.rowIdx=e.rowIdx;
+        empSel.appendChild(opt);
+      });
+      empField.style.display='';
+    } else {
+      empField.style.display='none';
+    }
+  }
+}
+
+function onEmpenhoChange(){
+  const empSel=document.getElementById('nf-modal-empenho');
+  const info=document.getElementById('nf-empenho-info');
+  if(!empSel||!info)return;
+  const empNum=empSel.value;
+  if(!empNum){info.style.display='none';return}
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
+  if(!emp){info.style.display='none';return}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const vencida=emp.vencimento&&emp.vencimento<hoje;
+  info.style.display='';
+  info.innerHTML=`💰 Saldo do empenho: <strong>${brl(emp.saldo)}</strong> de ${brl(emp.valor)} empenhado`+
+    (emp.vencimento?` · Vencimento: <strong style="color:${vencida?'var(--red)':'var(--yel)'}">${emp.vencimento.toLocaleDateString('pt-BR')}${vencida?' ⚠️ VENCIDO':''}</strong>`:'')+
+    (emp.unidade?` · Unidade: <strong>${emp.unidade}</strong>`:'');
+  // Pre-preenche unidade se o empenho tiver unidade e não estiver selecionada
+  if(emp.unidade){
+    const selUni=document.getElementById('nf-modal-unidade');
+    if(selUni){
+      const optMatch=[...selUni.options].find(o=>o.value.toUpperCase()===emp.unidade.toUpperCase());
+      if(optMatch)selUni.value=optMatch.value;
+    }
+  }
 }
 
 function salvarNF(){
@@ -2636,7 +2912,15 @@ function salvarNF(){
   const dataFormatada=dataObj.toLocaleDateString('pt-BR');
   const ano=dataObj.getFullYear();
   const [gms,empresa]=contratoVal.split('|');
-  const novaEntrada={unidade,valor,numeroNF,data:dataFormatada,ano};
+  const empNumero=document.getElementById('nf-modal-empenho')?.value||'';
+  // Validar saldo do empenho
+  if(empNumero){
+    const emp=(STATE.empenhos||[]).find(e=>e.numero===empNumero);
+    if(emp&&valor>emp.saldo+0.01){
+      toast(`Valor da NF (${brl(valor)}) excede o saldo do empenho ${empNumero} (${brl(emp.saldo)}). Corrija o valor.`,'err');return;
+    }
+  }
+  const novaEntrada={unidade,valor,numeroNF,data:dataFormatada,ano,empenho:empNumero||null};
   if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarNFnoSheets(gms,empresa,novaEntrada);gapiLogin();return}
   _gravarNFnoSheets(gms,empresa,novaEntrada);
 }
@@ -2665,18 +2949,45 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada){
     const appendResp=await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
       {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
-       body:JSON.stringify({values:[[novaEntrada.unidade,novaEntrada.valor,novaEntrada.numeroNF,novaEntrada.data,novaEntrada.ano]]})});
+       body:JSON.stringify({values:[[novaEntrada.unidade,novaEntrada.valor,novaEntrada.numeroNF,novaEntrada.data,novaEntrada.ano,novaEntrada.empenho||'']]})});
     if(!appendResp.ok){const e=await appendResp.json();throw new Error(e.error?.message||'HTTP '+appendResp.status)}
+    // Atualiza empenho na aba EMPENHOS se vinculado
+    if(novaEntrada.empenho){
+      try{await _atualizarEmpenhoNaPlanilha(novaEntrada.empenho,novaEntrada.valor,novaEntrada.numeroNF,spreadsheetId);}
+      catch(e){console.warn('Aviso: não foi possível atualizar o empenho:',e.message)}
+    }
     hideSpinner();
     if(sheetKey&&STATE.nfs[sheetKey])STATE.nfs[sheetKey].push(novaEntrada);
     else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
-    toast(`✓ NF ${novaEntrada.numeroNF} gravada na planilha do Drive! Aba: "${sheetTitle}"`,'ok');
+    toast(`✓ NF ${novaEntrada.numeroNF} gravada! Aba: "${sheetTitle}"${novaEntrada.empenho?' · Empenho '+novaEntrada.empenho+' atualizado':''}`,'ok');
     if(STATE.currentGMS===gms)showContract(gms,empresa);
   }catch(err){
     hideSpinner();
     toast('Erro ao gravar no Drive: '+err.message,'err');
     console.error(err);
   }
+}
+
+// ============================================================
+// ATUALIZAR EMPENHO NA PLANILHA APÓS PAGAMENTO DE NF
+// ============================================================
+async function _atualizarEmpenhoNaPlanilha(empNumero,valorNF,numeroNF,spreadsheetId){
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNumero);
+  if(!emp)return;
+  // Atualiza em memória
+  emp.valorPago=(emp.valorPago||0)+valorNF;
+  emp.saldo=Math.max(0,emp.valor-emp.valorPago);
+  emp.status=emp.saldo<0.01?'Pago':emp.valorPago>0?'Parcial':'Aberto';
+  const nfsAnts=emp._nfsVinculadas||[];
+  nfsAnts.push(numeroNF);
+  emp._nfsVinculadas=nfsAnts;
+  // Atualiza colunas H (Valor Pago), I (Saldo), J (Status), L (NFs Vinculadas) na planilha
+  const range=`EMPENHOS!H${emp.rowIdx}:L${emp.rowIdx}`;
+  const resp=await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+    {method:'PUT',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
+     body:JSON.stringify({range,majorDimension:'ROWS',values:[[emp.valorPago,emp.saldo,emp.status,'N',nfsAnts.join(', ')]]})});
+  if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'HTTP '+resp.status)}
 }
 
 // ============================================================
