@@ -541,7 +541,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
               <span><span class="exec-dot" style="background:#555"></span><span id="lbl-rest26">Restante (0%)</span></span>
             </div>
           </div>
-          <div class="exec-track">
+          <div class="exec-track" id="track-exec26">
             <div class="exec-fill" id="ef-exec26" style="width:0%;background:var(--orn)"></div>
             <div class="exec-fill" id="ef-rest26" style="width:0%;background:#555"></div>
           </div>
@@ -1264,16 +1264,30 @@ function renderDash(){
   const tot=sg||1,pp=(se/tot)*100,ps=(ss/tot)*100;
   // Barra 2: executado 2026 vs valor anual c/ reajuste
   const p26=sr>0?(se26/sr)*100:0,pr26=Math.max(0,100-p26);
+  // Meta proporcional: % do ano já decorrido (jan=1 a dez=12)
+  const mesAtual=new Date().getMonth()+1; // 1-12
+  const metaAnual=(mesAtual/12)*100;
   setTimeout(()=>{
     document.getElementById('ef-exec').style.width=Math.min(pp,100)+'%';
     document.getElementById('ef-saldo').style.width=Math.min(ps,100-Math.min(pp,100))+'%';
     document.getElementById('ef-exec26').style.width=Math.min(p26,100)+'%';
     document.getElementById('ef-rest26').style.width=Math.min(pr26,100-Math.min(p26,100))+'%';
+    // Linha de meta (marcador vertical)
+    const trackEl=document.getElementById('track-exec26');
+    if(trackEl){
+      let marker=trackEl.querySelector('.exec-meta-marker');
+      if(!marker){marker=document.createElement('div');marker.className='exec-meta-marker';
+        marker.style.cssText='position:absolute;top:-4px;bottom:-4px;width:2px;background:rgba(255,255,255,0.5);border-radius:2px;pointer-events:none';
+        trackEl.style.position='relative';trackEl.appendChild(marker);}
+      marker.style.left=Math.min(metaAnual,100)+'%';
+      marker.title=`Meta: ${metaAnual.toFixed(0)}% do ano decorrido (mês ${mesAtual}/12)`;
+    }
   },100);
   document.getElementById('lbl-exec').textContent=`Executado (${pp.toFixed(1)}%)`;
   document.getElementById('lbl-saldo').textContent=`Saldo (${ps.toFixed(1)}%)`;
-  document.getElementById('lbl-exec26').textContent=`Executado 2026 — ${brl(se26)} (${p26.toFixed(1)}%)`;
-  document.getElementById('lbl-rest26').textContent=`Restante — ${brl(Math.max(0,sr-se26))} (${pr26.toFixed(1)}%)`;
+  const statusAnual=p26>=metaAnual?'✅ acima da meta':'⚠️ abaixo da meta';
+  document.getElementById('lbl-exec26').textContent=`Executado 2026 — ${brl(se26)} (${p26.toFixed(1)}% | meta: ${metaAnual.toFixed(0)}% ${statusAnual})`;
+  document.getElementById('lbl-rest26').textContent=`A executar — ${brl(Math.max(0,sr-se26))} (${pr26.toFixed(1)}%)`;
   // Charts
   renderChForn(rows);renderChUni(rows);renderChPct(rows);renderChAnos(rows);renderChMonthly();
   renderAlertas(rows);renderResTab(STATE.resTab);renderTable(rows);
