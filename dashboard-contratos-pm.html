@@ -961,36 +961,41 @@ function sheetToObjs(wb,name){
 
 // Parse NF sheet: find header row "Unidade | Valor NF | ..." then collect rows
 function parseEmpenhos(wb){
-  const name=wb.SheetNames.find(n=>n.toUpperCase()==='EMPENHOS');
-  if(!name)return[];
-  const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:false,cellDates:true,defval:null});
-  return rows.slice(1).map((r,i)=>{
-    if(!r||!r[3])return null;
+  try{
+    const name=wb.SheetNames.find(n=>n.toUpperCase()==='EMPENHOS');
+    if(!name)return[];
+    // raw:true + cellDates:true para receber Date objects e números reais
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,cellDates:true,defval:null});
     const toDate=v=>{
       if(!v)return null;
       if(v instanceof Date)return v;
-      const d=new Date(v);
-      return isNaN(d)?null:d;
+      if(typeof v==='number'){// Excel serial date
+        const d=new Date(Math.round((v-25569)*86400000));return isNaN(d)?null:d;
+      }
+      const d=new Date(String(v));return isNaN(d)?null:d;
     };
-    const valor=num(r[4]);
-    const valorPago=num(r[7])||0;
-    const saldoRaw=num(r[8]);
-    const saldo=saldoRaw>0?saldoRaw:Math.max(0,valor-valorPago);
-    return {
-      contrato:str(r[0]),
-      empresa:str(r[1]).toUpperCase().trim(),
-      unidade:str(r[2]),
-      numero:str(r[3]),
-      valor,
-      dataEmissao:toDate(r[5]),
-      vencimento:toDate(r[6]),
-      valorPago,
-      saldo,
-      status:str(r[9])||'Aberto',
-      extornado:str(r[10]).toUpperCase()==='S',
-      rowIdx:i+2, // 1-based sheet row (header=1, data starts at 2)
-    };
-  }).filter(r=>r&&r.numero);
+    return rows.slice(1).map((r,i)=>{
+      if(!r||!r[3])return null;
+      const valor=typeof r[4]==='number'?r[4]:parseFloat(String(r[4]||0).replace(',','.'))||0;
+      const valorPago=typeof r[7]==='number'?r[7]:parseFloat(String(r[7]||0).replace(',','.'))||0;
+      const saldoRaw=typeof r[8]==='number'?r[8]:parseFloat(String(r[8]||0).replace(',','.'))||0;
+      const saldo=saldoRaw>0.001?saldoRaw:Math.max(0,valor-valorPago);
+      return {
+        contrato:str(r[0]),
+        empresa:str(r[1]).toUpperCase().trim(),
+        unidade:str(r[2]),
+        numero:str(r[3]),
+        valor,
+        dataEmissao:toDate(r[5]),
+        vencimento:toDate(r[6]),
+        valorPago,
+        saldo,
+        status:str(r[9])||'Aberto',
+        extornado:str(r[10]).toUpperCase()==='S',
+        rowIdx:i+2,
+      };
+    }).filter(r=>r&&r.numero);
+  }catch(e){console.error('parseEmpenhos error:',e);return[];}
 }
 
 function parseNFSheet(wb,name){
@@ -1381,7 +1386,7 @@ function renderDash(){
   document.getElementById('lbl-exec26').textContent=`Executado 2026 — ${brl(se26)} (${p26.toFixed(1)}% | meta: ${metaAnual.toFixed(0)}% ${statusAnual})`;
   document.getElementById('lbl-rest26').textContent=`A executar — ${brl(Math.max(0,sr-se26))} (${pr26.toFixed(1)}%)`;
   // KPIs Empenhos
-  renderEmpKPIs();
+  try{renderEmpKPIs();}catch(e){console.error('renderEmpKPIs:',e);}
   // Charts
   renderChForn(rows);renderChUni(rows);renderChPct(rows);renderChAnos(rows);renderChMonthly();
   renderAlertas(rows);renderResTab(STATE.resTab);renderTable(rows);
@@ -1494,6 +1499,52 @@ function state_charts(k,c){STATE.charts[k]=c;return c}
 // ============================================================
 // EMPENHOS — KPIs, tabela, alerta de vencimento
 // ============================================================
+
+function buildEmpContratoHTML(gms){
+  try{
+    const gmsPure=(gms||'').replace(/[\/\s]/g,'').toUpperCase();
+    const empContrato=(STATE.empenhos||[]).filter(e=>{
+      const ec=e.contrato.replace(/[\/\s]/g,'').toUpperCase();
+      return ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec);
+    });
+    if(!empContrato.length)return '';
+    const hoje=new Date();hoje.setHours(0,0,0,0);
+    const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+    const abertos=empContrato.filter(function(e){return !e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado';});
+    const pagos=empContrato.filter(function(e){return e.status==='Pago'||e.saldo<0.01;});
+    const linhas=empContrato.map(function(e){
+      const venc=e.vencimento;
+      const vencida=venc&&venc<hoje;
+      const proxVenc=venc&&venc<=em15&&!vencida;
+      const stBadge=e.status==='Pago'?'emp-badge-pa':e.status==='Parcial'?'emp-badge-pr':e.extornado?'emp-badge-ex':'emp-badge-ab';
+      const vencStyle=vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':'';
+      const vencTxt=venc?venc.toLocaleDateString('pt-BR')+'('+( vencida?'VENCIDO':proxVenc?'PRÓXIMO':'OK')+')':'—';
+      return '<tr>'
+        +'<td style="font-weight:700">'+e.numero+'</td>'
+        +'<td>'+(e.unidade||'—')+'</td>'
+        +'<td style="text-align:right">'+brl(e.valor)+'</td>'
+        +'<td style="text-align:right">'+brl(e.valorPago)+'</td>'
+        +'<td style="text-align:right;font-weight:700;color:'+(e.saldo<0.01?'var(--green)':'var(--txt)')+'">'+brl(e.saldo)+'</td>'
+        +'<td style="white-space:nowrap">'+(e.dataEmissao?e.dataEmissao.toLocaleDateString('pt-BR'):'—')+'</td>'
+        +'<td style="white-space:nowrap;'+vencStyle+'">'+vencTxt+'</td>'
+        +'<td><span class="emp-badge '+stBadge+'">'+(e.status||'Aberto')+'</span></td>'
+        +'</tr>';
+    }).join('');
+    return '<div class="nf-wrap">'
+      +'<div class="tbl-hdr" style="margin-bottom:8px"><div>'
+      +'<span class="tbl-ttl">📋 Empenhos do Contrato</span>'
+      +'<span class="tbl-badge">'+empContrato.length+'</span>'
+      +'<span style="font-size:11px;color:var(--yel);margin-left:10px;font-weight:600">Em aberto: '+brl(abertos.reduce(function(a,e){return a+e.saldo;},0))+'</span>'
+      +'<span style="font-size:11px;color:var(--green);margin-left:8px;font-weight:600">Pagos: '+brl(pagos.reduce(function(a,e){return a+e.valor;},0))+'</span>'
+      +'</div></div>'
+      +'<div class="tbl-cont" style="max-height:260px">'
+      +'<table class="dt"><thead><tr>'
+      +'<th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th><th>Emissão</th><th>Vencimento</th><th>Status</th>'
+      +'</tr></thead><tbody>'+linhas+'</tbody></table>'
+      +'</div></div>';
+  }catch(e){console.error('buildEmpContratoHTML:',e);return '';}
+}
+
 function renderEmpKPIs(){
   const emps=STATE.empenhos||[];
   const wrap=document.getElementById('sec-empenhos-wrap');
@@ -1508,11 +1559,12 @@ function renderEmpKPIs(){
   const vencendo=abertos.filter(e=>e.vencimento&&e.vencimento<=em15);
   const qtVenc=vencendo.length;
   const valVenc=vencendo.reduce((a,e)=>a+e.saldo,0);
-  document.getElementById('k-emp-qt').textContent=qtEmp;
-  document.getElementById('k-emp-val').textContent=brl(valEmp);
-  document.getElementById('k-emp-saldo').textContent=brl(saldoEmp);
-  document.getElementById('k-emp-venc').textContent=qtVenc;
-  document.getElementById('k-emp-venc-val').textContent=brl(valVenc)+' em risco';
+  const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setT('k-emp-qt',qtEmp);
+  setT('k-emp-val',brl(valEmp));
+  setT('k-emp-saldo',brl(saldoEmp));
+  setT('k-emp-venc',qtVenc);
+  setT('k-emp-venc-val',brl(valVenc)+' em risco');
   // Alert panel para vencendo
   const alertWrap=document.getElementById('emp-venc-alert');
   if(alertWrap){
@@ -1945,52 +1997,7 @@ function renderDetail(row){
     <div class="cc"><h3>Saldo por Unidade</h3><canvas id="ch-d-saldo" height="220"></canvas></div>
   </div>`:''}
 
-  ${(()=>{
-    const empContrato=(STATE.empenhos||[]).filter(e=>{
-      const ec=e.contrato.replace(/[\/\s]/g,'').toUpperCase();
-      const gc=(row.gms||'').replace(/[\/\s]/g,'').toUpperCase();
-      return ec===gc||e.contrato===row.gms||ec.includes(gc)||gc.includes(ec);
-    });
-    if(!empContrato.length)return '';
-    const hoje=new Date();hoje.setHours(0,0,0,0);
-    const em15=new Date(hoje.getTime()+15*24*60*60*1000);
-    const abertos=empContrato.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
-    const pagos=empContrato.filter(e=>e.status==='Pago'||e.saldo<0.01);
-    return `
-  <!-- EMPENHOS DO CONTRATO -->
-  <div class="nf-wrap">
-    <div class="tbl-hdr" style="margin-bottom:8px">
-      <div>
-        <span class="tbl-ttl">📋 Empenhos do Contrato</span>
-        <span class="tbl-badge">${empContrato.length}</span>
-        <span style="font-size:11px;color:var(--yel);margin-left:10px;font-weight:600">Em aberto: ${brl(abertos.reduce((a,e)=>a+e.saldo,0))}</span>
-        <span style="font-size:11px;color:var(--green);margin-left:8px;font-weight:600">Pagos: ${brl(pagos.reduce((a,e)=>a+e.valor,0))}</span>
-      </div>
-    </div>
-    <div class="tbl-cont" style="max-height:260px">
-      <table class="dt"><thead><tr>
-        <th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th><th>Emissão</th><th>Vencimento</th><th>Status</th>
-      </tr></thead><tbody>
-      ${empContrato.map(e=>{
-        const venc=e.vencimento;
-        const vencida=venc&&venc<hoje;
-        const proxVenc=venc&&venc<=em15&&!vencida;
-        const stBadge=e.status==='Pago'?'emp-badge-pa':e.status==='Parcial'?'emp-badge-pr':e.extornado?'emp-badge-ex':'emp-badge-ab';
-        return `<tr>
-          <td style="font-weight:700">${e.numero}</td>
-          <td>${e.unidade||'—'}</td>
-          <td style="text-align:right">${brl(e.valor)}</td>
-          <td style="text-align:right">${brl(e.valorPago)}</td>
-          <td style="text-align:right;font-weight:700;color:${e.saldo<0.01?'var(--green)':'var(--txt)'}">${brl(e.saldo)}</td>
-          <td style="white-space:nowrap">${e.dataEmissao?e.dataEmissao.toLocaleDateString('pt-BR'):'—'}</td>
-          <td style="white-space:nowrap;${vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':''}">${venc?venc.toLocaleDateString('pt-BR'):'—'}${vencida?' ⚠️':proxVenc?' ⚡':''}</td>
-          <td><span class="emp-badge ${stBadge}">${e.status||'Aberto'}</span></td>
-        </tr>`;
-      }).join('')}
-      </tbody></table>
-    </div>
-  </div>`;
-  })()}
+  ${buildEmpContratoHTML(row.gms)}
 
   ${nfs.length>0?`
   <!-- NOTAS FISCAIS -->
