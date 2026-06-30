@@ -1639,49 +1639,89 @@ function state_charts(k,c){STATE.charts[k]=c;return c}
 // EMPENHOS — KPIs, tabela, alerta de vencimento
 // ============================================================
 
-function buildEmpContratoHTML(gms){
+
+function buildEmpNFCombinedHTML(gms,nfs,nfTotal){
   try{
     const gmsPure=(gms||'').replace(/[\/\s]/g,'').toUpperCase();
     const empContrato=(STATE.empenhos||[]).filter(e=>{
       const ec=e.contrato.replace(/[\/\s]/g,'').toUpperCase();
       return ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec);
     });
-    if(!empContrato.length)return '';
-    const hoje=new Date();hoje.setHours(0,0,0,0);
-    const em15=new Date(hoje.getTime()+15*24*60*60*1000);
-    const abertos=empContrato.filter(function(e){return !e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado';});
-    const pagos=empContrato.filter(function(e){return e.status==='Pago'||e.saldo<0.01;});
-    const linhas=empContrato.map(function(e){
-      const venc=e.vencimento;
-      const vencida=venc&&venc<hoje;
-      const proxVenc=venc&&venc<=em15&&!vencida;
-      const stBadge=e.status==='Pago'?'emp-badge-pa':e.status==='Parcial'?'emp-badge-pr':e.extornado?'emp-badge-ex':'emp-badge-ab';
-      const vencStyle=vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':'';
-      const vencTxt=venc?venc.toLocaleDateString('pt-BR')+'('+( vencida?'VENCIDO':proxVenc?'PRÓXIMO':'OK')+')':'—';
-      return '<tr>'
-        +'<td style="font-weight:700">'+e.numero+'</td>'
-        +'<td>'+(e.unidade||'—')+'</td>'
-        +'<td style="text-align:right">'+brl(e.valor)+'</td>'
-        +'<td style="text-align:right">'+brl(e.valorPago)+'</td>'
-        +'<td style="text-align:right;font-weight:700;color:'+(e.saldo<0.01?'var(--green)':'var(--txt)')+'">'+brl(e.saldo)+'</td>'
-        +'<td style="white-space:nowrap">'+(e.dataEmissao?e.dataEmissao.toLocaleDateString('pt-BR'):'—')+'</td>'
-        +'<td style="white-space:nowrap;'+vencStyle+'">'+vencTxt+'</td>'
-        +'<td><span class="emp-badge '+stBadge+'">'+(e.status||'Aberto')+'</span></td>'
-        +'</tr>';
-    }).join('');
+    const abertos=empContrato.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
+    if(!empContrato.length&&!nfs.length)return '';
+    STATE._ctdAbertos=abertos;
+    STATE._currentNFs=nfs;
+    const saldoAbertoTotal=abertos.reduce((a,e)=>a+e.saldo,0);
     return '<div class="nf-wrap">'
-      +'<div class="tbl-hdr" style="margin-bottom:8px"><div>'
-      +'<span class="tbl-ttl">📋 Empenhos do Contrato</span>'
-      +'<span class="tbl-badge">'+empContrato.length+'</span>'
-      +'<span style="font-size:11px;color:var(--yel);margin-left:10px;font-weight:600">Em aberto: '+brl(abertos.reduce(function(a,e){return a+e.saldo;},0))+'</span>'
-      +'<span style="font-size:11px;color:var(--green);margin-left:8px;font-weight:600">Pagos: '+brl(pagos.reduce(function(a,e){return a+e.valor;},0))+'</span>'
+      +'<div class="tbl-hdr" style="margin-bottom:4px"><div>'
+      +'<span class="tbl-ttl">📋 Empenhos &amp; Notas Fiscais</span>'
       +'</div></div>'
-      +'<div class="tbl-cont" style="max-height:260px">'
-      +'<table class="dt"><thead><tr>'
-      +'<th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th><th>Emissão</th><th>Vencimento</th><th>Status</th>'
-      +'</tr></thead><tbody>'+linhas+'</tbody></table>'
-      +'</div></div>';
-  }catch(e){console.error('buildEmpContratoHTML:',e);return '';}
+      +'<div class="res-tabs" id="ctd-tabs">'
+      +'<div class="res-tab active" data-tab="abertos" onclick="showCtdTab(\'abertos\',this)">Empenhos em Aberto <span class="tbl-badge">'+abertos.length+'</span></div>'
+      +'<div class="res-tab" data-tab="nfs" onclick="showCtdTab(\'nfs\',this)">Notas Fiscais <span class="tbl-badge">'+nfs.length+'</span></div>'
+      +'</div>'
+      +'<div style="font-size:11px;margin-bottom:8px"><span style="color:var(--yel);font-weight:600">Em aberto: '+brl(saldoAbertoTotal)+'</span>'
+      +'<span style="color:var(--green);font-weight:600;margin-left:14px">Total NFs: '+brl(nfTotal)+'</span></div>'
+      +'<div id="ctd-panel-abertos">'+renderCtdAbertosTable(abertos)+'</div>'
+      +'<div id="ctd-panel-nfs" style="display:none">'+renderCtdNFsPanel(nfs)+'</div>'
+      +'</div>';
+  }catch(e){console.error('buildEmpNFCombinedHTML:',e);return '';}
+}
+
+function renderCtdAbertosTable(abertos){
+  if(!abertos.length)return '<div style="text-align:center;padding:14px;color:var(--lbl)">Nenhum empenho em aberto. Todos os empenhos deste contrato estão pagos ou estornados.</div>';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+  const linhas=abertos.map(e=>{
+    const venc=e.vencimento;
+    const vencida=venc&&venc<hoje;
+    const proxVenc=venc&&venc<=em15&&!vencida;
+    const stBadge=e.status==='Parcial'?'emp-badge-pr':'emp-badge-ab';
+    const vencStyle=vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':'';
+    const vencTxt=venc?venc.toLocaleDateString('pt-BR')+'('+(vencida?'VENCIDO':proxVenc?'PRÓXIMO':'OK')+')':'—';
+    return '<tr>'
+      +'<td style="font-weight:700">'+e.numero+'</td>'
+      +'<td>'+(e.unidade||'—')+'</td>'
+      +'<td style="text-align:right">'+brl(e.valor)+'</td>'
+      +'<td style="text-align:right">'+brl(e.valorPago)+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:var(--txt)">'+brl(e.saldo)+'</td>'
+      +'<td style="white-space:nowrap;'+vencStyle+'">'+vencTxt+'</td>'
+      +'<td><span class="emp-badge '+stBadge+'">'+(e.status||'Aberto')+'</span></td>'
+      +'</tr>';
+  }).join('');
+  return '<div class="tbl-cont" style="max-height:260px">'
+    +'<table class="dt"><thead><tr>'
+    +'<th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th><th>Vencimento</th><th>Status</th>'
+    +'</tr></thead><tbody>'+linhas+'</tbody></table></div>';
+}
+
+function renderCtdNFsPanel(nfs){
+  if(!nfs.length)return '<div style="text-align:center;padding:18px;color:var(--lbl)">Sem registros de notas fiscais para este contrato.</div>';
+  return `<div class="tbl-hdr" style="margin-bottom:8px">
+      <div></div>
+      <div class="nf-filters">
+        <select id="nf-f-uni" onchange="filterNFs()">
+          <option value="">Todas Unidades</option>
+          ${[...new Set(nfs.map(n=>n.unidade))].sort().map(u=>`<option value="${u}">${u}</option>`).join('')}
+        </select>
+        <select id="nf-f-ano" onchange="filterNFs()">
+          <option value="">Todos Anos</option>
+          ${[...new Set(nfs.map(n=>n.ano).filter(Boolean))].sort().map(a=>`<option value="${a}">${a}</option>`).join('')}
+        </select>
+        <input type="text" id="nf-search" placeholder="🔍 Nº NF..." oninput="filterNFs()" style="width:100px">
+      </div>
+    </div>
+    <div class="tbl-cont" id="nf-table-cont" style="max-height:260px">${renderNFTable(nfs)}</div>
+    <div style="margin-top:14px"><canvas id="ch-d-nf" height="130"></canvas></div>`;
+}
+
+function showCtdTab(tab,el){
+  document.querySelectorAll('#ctd-tabs .res-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const pa=document.getElementById('ctd-panel-abertos'),pn=document.getElementById('ctd-panel-nfs');
+  if(pa)pa.style.display=tab==='abertos'?'':'none';
+  if(pn)pn.style.display=tab==='nfs'?'':'none';
+  if(tab==='nfs'&&(STATE._currentNFs||[]).length)setTimeout(()=>buildNFChart(STATE._currentNFs),60);
 }
 
 function renderEmpKPIs(){
@@ -2136,30 +2176,7 @@ function renderDetail(row){
     <div class="cc"><h3>Saldo por Unidade</h3><canvas id="ch-d-saldo" height="220"></canvas></div>
   </div>`:''}
 
-  ${buildEmpContratoHTML(row.gms)}
-
-  ${nfs.length>0?`
-  <!-- NOTAS FISCAIS -->
-  <div class="nf-wrap">
-    <div class="tbl-hdr" style="margin-bottom:8px">
-      <div><span class="tbl-ttl">Notas Fiscais / Pagamentos</span><span class="tbl-badge">${nfs.length}</span>
-        <span style="font-size:11px;color:var(--green);margin-left:10px;font-weight:600">Total: ${brl(nfTotal)}</span>
-      </div>
-      <div class="nf-filters">
-        <select id="nf-f-uni" onchange="filterNFs()">
-          <option value="">Todas Unidades</option>
-          ${[...new Set(nfs.map(n=>n.unidade))].sort().map(u=>`<option value="${u}">${u}</option>`).join('')}
-        </select>
-        <select id="nf-f-ano" onchange="filterNFs()">
-          <option value="">Todos Anos</option>
-          ${[...new Set(nfs.map(n=>n.ano).filter(Boolean))].sort().map(a=>`<option value="${a}">${a}</option>`).join('')}
-        </select>
-        <input type="text" id="nf-search" placeholder="🔍 Nº NF..." oninput="filterNFs()" style="width:100px">
-      </div>
-    </div>
-    <div class="tbl-cont" id="nf-table-cont" style="max-height:260px">${renderNFTable(nfs)}</div>
-    <div style="margin-top:14px"><canvas id="ch-d-nf" height="130"></canvas></div>
-  </div>`:`<div class="cc" style="margin-bottom:14px;text-align:center;padding:18px;color:var(--lbl)">Sem registros de notas fiscais para este contrato.</div>`}
+  ${buildEmpNFCombinedHTML(row.gms,nfs,nfTotal)}
   `;
 
   // Animate bars
@@ -2187,26 +2204,23 @@ function renderDetail(row){
     },120);
   }
 
-  // NF chart
-  if(nfs.length>0){
-    // Store current nfs for filtering
-    STATE._currentNFs=nfs;
-    setTimeout(()=>buildNFChart(nfs),140);
-  }
+  // NF chart é renderizado ao abrir a aba "Notas Fiscais" (ver showCtdTab)
+  STATE._currentNFs=nfs;
 }
 
 function renderNFTable(nfs){
   if(!nfs.length)return'<div style="text-align:center;padding:14px;color:var(--lbl)">Nenhum registro.</div>';
   const total=nfs.reduce((a,n)=>a+n.valor,0);
-  return`<table class="dt"><thead><tr><th>Unidade</th><th>Valor NF</th><th>Nº NF</th><th>Data Pgto</th><th>Ano</th></tr></thead>
+  return`<table class="dt"><thead><tr><th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor NF</th><th>Nº NF</th><th>Data Pgto</th><th>Ano</th></tr></thead>
     <tbody>${nfs.map(n=>`<tr>
-      <td style="font-weight:600">${n.unidade}</td>
-      <td class="td-g" style="font-weight:600">${brl(n.valor)}</td>
+      <td style="font-weight:700">${n.empenho||'—'}</td>
+      <td style="font-weight:600">${n.unidade||'—'}</td>
+      <td class="td-g" style="font-weight:600;text-align:right">${brl(n.valor)}</td>
       <td style="color:var(--txt2)">${n.numeroNF||'—'}</td>
       <td>${n.data||'—'}</td>
       <td><span class="badge ${n.ano===2026||n.ano==='2026'?'bg-g':'bg-b'}">${n.ano||'—'}</span></td>
     </tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="1" style="font-weight:700;padding:8px 10px;color:var(--txt2)">TOTAL</td><td style="font-weight:700;padding:8px 10px;color:var(--green)">${brl(total)}</td><td colspan="3"></td></tr></tfoot>
+    <tfoot><tr><td colspan="2" style="font-weight:700;padding:8px 10px;color:var(--txt2)">TOTAL</td><td style="font-weight:700;padding:8px 10px;color:var(--green);text-align:right">${brl(total)}</td><td colspan="3"></td></tr></tfoot>
   </table>`;
 }
 
