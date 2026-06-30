@@ -387,6 +387,44 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
   </div>
 </div>
 
+<!-- MODAL LANÇAR EMPENHO -->
+<div class="modal-nf-overlay" id="modal-emp-overlay" onclick="if(event.target===this)fecharModalEmp()">
+  <div class="modal-nf">
+    <h3>🏦 Lançar Empenho</h3>
+    <div class="modal-sub" id="modal-emp-sub">Registre um novo empenho no contrato</div>
+    <div class="nf-field">
+      <label>Contrato (GMS / Fornecedor)</label>
+      <select id="emp-modal-contrato" onchange="onEmpContratoChange()">
+        <option value="">— Selecione o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-field">
+      <label>Unidade OPM</label>
+      <select id="emp-modal-unidade">
+        <option value="">— Selecione a unidade —</option>
+      </select>
+    </div>
+    <div class="nf-field">
+      <label>Número do Empenho</label>
+      <input type="text" id="emp-modal-numero" placeholder="Ex: 2025NE000123">
+    </div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Valor do Empenho (R$)</label>
+        <input type="text" id="emp-modal-valor" placeholder="Ex: 45.000,00">
+      </div>
+      <div class="nf-field">
+        <label>Vencimento do Empenho</label>
+        <input type="date" id="emp-modal-vencimento">
+      </div>
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalEmp()" style="flex:0;padding:9px 18px">Cancelar</button>
+      <button class="btn-success" style="background:var(--pur)" onclick="salvarEmpenho()">✓ Registrar Empenho na Planilha</button>
+    </div>
+  </div>
+</div>
+
 <!-- IMPORT VALIDATION MODAL -->
 <div class="modal-ov" id="modal-val" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal-box">
@@ -457,6 +495,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <button class="btn-sec" id="btn-export-xlsx" onclick="exportExcel()" style="display:none" title="Exportar tabela atual para Excel">📥 Excel</button>
       <button class="btn-sec" id="btn-export-pdf" onclick="exportPDF()" style="display:none" title="Imprimir / exportar como PDF">🖨 PDF</button>
       <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-nf" onclick="abrirModalNF()" title="Lançar nova Nota Fiscal">🧾 Lançar NF</button>
+      <button class="btn-pri" style="background:var(--pur);display:none" id="btn-lancar-emp" onclick="abrirModalEmp()" title="Lançar novo Empenho">🏦 Lançar Empenho</button>
       <button class="btn-pri" onclick="document.getElementById('file-input').click()">📂 Importar Planilha</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
@@ -878,28 +917,29 @@ function parseWorkbook(buffer,fileName){
   STATE.serv_res_emp = sheetToObjs(wb,SHEET_SERV_EMP);
   STATE.serv_res_tipo= sheetToObjs(wb,SHEET_SERV_TIPO);
 
-  // Parse EMPENHOS sheet
-  STATE.empenhos=parseEmpenhos(wb);
-
-  // Individual contract sheets → NF records
-  // Build index by reading GMS+empresa from inside each sheet (row 1, cols 0 and 2)
+  // Individual contract sheets → NF records + empenho data
   STATE.nfs={};
   STATE.nfsIndex={};
+  STATE.empenhos=[];
   wb.SheetNames.forEach(name=>{
     if(SUMMARY_SHEETS.has(name))return;
-    STATE.nfs[name]=parseNFSheet(wb,name);
-    // Read GMS and empresa from the first data row of the sheet
-    try{
-      const ws=wb.Sheets[name];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
-      // Row 1 (index 1) has the first unit's data: [GMS, Tipo, Empresa, ...]
-      if(rows[1]){
-        const gms=str(rows[1][0]);
-        const empresa=str(rows[1][2]);
-        if(gms&&empresa)STATE.nfsIndex[gms+'|'+empresa]=name;
-      }
-    }catch(e){}
+    const parsed=parseNFSheet(wb,name);
+    STATE.nfs[name]=parsed.nfs;
+    // Acumula empenhos de todas as abas
+    if(parsed.empenhos&&parsed.empenhos.length)STATE.empenhos.push(...parsed.empenhos);
+    // Indexa por GMS|empresa usando GMS extraído do parseNFSheet
+    const gms=parsed.gms;
+    if(gms){
+      try{
+        const ws=wb.Sheets[name];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+        if(rows[1]){const empresa=str(rows[1][2]);if(empresa)STATE.nfsIndex[gms+'|'+empresa]=name;}
+      }catch(e){}
+    }
   });
+  // Se existir aba EMPENHOS dedicada, usa ela (prevalece sobre dados das abas de contrato)
+  const empDedicados=parseEmpenhos(wb);
+  if(empDedicados.length)STATE.empenhos=empDedicados;
 
   hideSpinner();
 
@@ -998,37 +1038,82 @@ function parseEmpenhos(wb){
   }catch(e){console.error('parseEmpenhos error:',e);return[];}
 }
 
+// Nova estrutura de colunas (A-K):
+// A=Unidade B=Empenho# C=ValorEmpenho D=Vencimento E=Saldo(fórmula)
+// F=Status(fórmula) G=ValorExtornado H=NumeroNF I=ValorNF J=Data K=Ano(fórmula)
 function parseNFSheet(wb,name){
   const ws=wb.Sheets[name];
-  if(!ws)return[];
+  if(!ws)return{nfs:[],empenhos:[],gms:''};
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
+  // Extrai GMS da primeira linha de dados (col A, linha 2)
+  const gms=rows.length>1?str(rows[1][0]):'';
   let nfStart=-1;
   for(let i=0;i<rows.length;i++){
     const r=rows[i];
-    if(r&&str(r[0]).toLowerCase()==='unidade'&&str(r[1]).toLowerCase().includes('valor')){
+    // Novo cabeçalho: A=Unidade, B=Empenho (ou Valor NF no layout antigo)
+    if(r&&str(r[0]).toLowerCase()==='unidade'&&
+      (str(r[1]||'').toLowerCase().includes('empenho')||str(r[7]||'').toLowerCase().includes('nf'))){
+      nfStart=i+1;break;
+    }
+    // Fallback layout antigo: A=Unidade, B=Valor NF
+    if(r&&str(r[0]).toLowerCase()==='unidade'&&str(r[1]||'').toLowerCase().includes('valor')){
       nfStart=i+1;break;
     }
   }
-  if(nfStart<0)return[];
+  if(nfStart<0)return{nfs:[],empenhos:[],gms};
+  // Detectar se é layout novo (col 1 = "Empenho") ou antigo (col 1 = "Valor NF")
+  const hdrRow=rows[nfStart-1]||[];
+  const isNewLayout=str(hdrRow[1]||'').toLowerCase().includes('empenho');
   const nfs=[];
+  const empenhos=[];
+  const empSeen=new Set();
   for(let i=nfStart;i<rows.length;i++){
     const r=rows[i];
-    if(!r||(!r[0]&&!r[1]))continue;
+    if(!r||!r[0])continue;
     const unidade=str(r[0]);if(!unidade)continue;
-    const valor=typeof r[1]==='number'?r[1]:parseFloat(String(r[1]||0).replace(',','.'))||0;
-    // Data: pode vir como Date object (cellDates:true) ou string
-    let dataStr='';
-    if(r[3] instanceof Date)dataStr=r[3].toLocaleDateString('pt-BR');
-    else dataStr=str(r[3]);
-    // Ano: pode ser número, Date ou string
-    let ano=null;
-    if(typeof r[4]==='number')ano=Math.round(r[4]);
-    else if(r[4] instanceof Date)ano=r[4].getFullYear();
-    else if(r[3] instanceof Date)ano=r[3].getFullYear();
-    else if(r[4])ano=parseInt(r[4]);
-    nfs.push({unidade,valor,numeroNF:str(r[2]),data:dataStr,ano,empenho:str(r[5])||null});
+    if(isNewLayout){
+      // Layout novo: B=Empenho#, C=ValorEmpenho, D=Vencimento, E=Saldo, F=Status, G=Extornado
+      const empNum=str(r[1]||'');
+      if(empNum&&!empSeen.has(empNum)){
+        empSeen.add(empNum);
+        const valorEmp=typeof r[2]==='number'?r[2]:parseFloat(String(r[2]||0).replace(',','.'))||0;
+        const toDate=v=>{if(!v)return null;if(v instanceof Date)return v;if(typeof v==='number'){const d=new Date(Math.round((v-25569)*86400000));return isNaN(d)?null:d;}const d=new Date(String(v));return isNaN(d)?null:d;};
+        const vencEmp=toDate(r[3]);
+        const saldoEmp=typeof r[4]==='number'?r[4]:parseFloat(String(r[4]||0).replace(',','.'))||0;
+        const statusEmp=str(r[5]||'')||'';
+        const extornado=typeof r[6]==='number'&&r[6]>0;
+        empenhos.push({contrato:gms,sheetName:name,unidade,numero:empNum,valor:valorEmp,vencimento:vencEmp,saldo:saldoEmp,status:statusEmp,extornado,rowIdx:i+1});
+      }
+      // H=NumeroNF, I=ValorNF, J=Data, K=Ano
+      const numeroNF=str(r[7]||'');
+      if(!numeroNF)continue;
+      const valor=typeof r[8]==='number'?r[8]:parseFloat(String(r[8]||0).replace(',','.'))||0;
+      let dataStr='';
+      if(r[9] instanceof Date)dataStr=r[9].toLocaleDateString('pt-BR');
+      else dataStr=str(r[9]||'');
+      let ano=null;
+      if(typeof r[10]==='number')ano=Math.round(r[10]);
+      else if(r[10] instanceof Date)ano=r[10].getFullYear();
+      else if(r[9] instanceof Date)ano=r[9].getFullYear();
+      else if(r[10])ano=parseInt(r[10]);
+      nfs.push({unidade,valor,numeroNF,data:dataStr,ano,empenho:empNum||null});
+    } else {
+      // Layout antigo: B=ValorNF, C=NumeroNF, D=Data, E=Ano
+      const valor=typeof r[1]==='number'?r[1]:parseFloat(String(r[1]||0).replace(',','.'))||0;
+      let dataStr='';
+      if(r[3] instanceof Date)dataStr=r[3].toLocaleDateString('pt-BR');
+      else dataStr=str(r[3]||'');
+      let ano=null;
+      if(typeof r[4]==='number')ano=Math.round(r[4]);
+      else if(r[4] instanceof Date)ano=r[4].getFullYear();
+      else if(r[3] instanceof Date)ano=r[3].getFullYear();
+      else if(r[4])ano=parseInt(r[4]);
+      const numeroNF=str(r[2]||'');
+      if(!valor&&!numeroNF)continue;
+      nfs.push({unidade,valor,numeroNF,data:dataStr,ano,empenho:str(r[5]||'')||null});
+    }
   }
-  return nfs;
+  return{nfs,empenhos,gms};
 }
 
 // ============================================================
@@ -2932,6 +3017,44 @@ function salvarNF(){
   _gravarNFnoSheets(gms,empresa,novaEntrada);
 }
 
+// Encontra a linha do cabeçalho da seção NF/Execução (ex: linha 8 = "Unidade | Empenho | ...")
+async function _findNFSectionRow(spreadsheetId,sheetTitle){
+  const resp=await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetTitle+'!A1:K60')}`,
+    {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+  if(!resp.ok)throw new Error('HTTP '+resp.status);
+  const data=await resp.json();
+  const rows=data.values||[];
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    if(!r)continue;
+    const a=str(r[0]||'').toLowerCase();
+    const b=str(r[1]||'').toLowerCase();
+    const h=str(r[7]||'').toLowerCase();
+    if(a==='unidade'&&(b.includes('empenho')||h.includes('nf')))return i+2; // 1-based, dados começam na próx
+    if(a==='unidade'&&b.includes('valor'))return i+2; // layout antigo
+  }
+  return -1;
+}
+
+// Encontra a primeira linha livre (coluna colIdx vazia) a partir de nfStartRow
+async function _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,colIdx){
+  const cols='ABCDEFGHIJK';
+  const colLetter=cols[colIdx]||'A';
+  const range=`${sheetTitle}!${colLetter}${nfStartRow}:${colLetter}2000`;
+  const resp=await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+    {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+  if(!resp.ok)throw new Error('HTTP '+resp.status);
+  const data=await resp.json();
+  const values=data.values||[];
+  for(let i=0;i<values.length;i++){
+    const v=values[i];
+    if(!v||!v[0]||String(v[0]).trim()==='')return nfStartRow+i;
+  }
+  return nfStartRow+values.length;
+}
+
 async function _gravarNFnoSheets(gms,empresa,novaEntrada){
   fecharModalNF();
   showSpinner('Gravando NF na planilha do Drive...');
@@ -2944,29 +3067,52 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada){
     if(!metaResp.ok)throw new Error('Erro ao ler abas: HTTP '+metaResp.status);
     const meta=await metaResp.json();
     const sheets=meta.sheets||[];
-    let targetSheet=null;
-    if(sheetKey)targetSheet=sheets.find(s=>s.properties.title===sheetKey);
+    let targetSheet=sheetKey?sheets.find(s=>s.properties.title===sheetKey):null;
     if(!targetSheet)targetSheet=sheets.find(s=>s.properties.title.includes(gms));
-    if(!targetSheet){
-      hideSpinner();
-      toast(`Aba do contrato GMS ${gms} não encontrada na planilha.`,'err');
-      return;
-    }
+    if(!targetSheet){hideSpinner();toast(`Aba do contrato GMS ${gms} não encontrada na planilha.`,'err');return;}
     const sheetTitle=targetSheet.properties.title;
-    const appendResp=await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-      {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
-       body:JSON.stringify({values:[[novaEntrada.unidade,novaEntrada.valor,novaEntrada.numeroNF,novaEntrada.data,novaEntrada.ano,novaEntrada.empenho||'']]})});
-    if(!appendResp.ok){const e=await appendResp.json();throw new Error(e.error?.message||'HTTP '+appendResp.status)}
-    // Atualiza empenho na aba EMPENHOS se vinculado
-    if(novaEntrada.empenho){
-      try{await _atualizarEmpenhoNaPlanilha(novaEntrada.empenho,novaEntrada.valor,novaEntrada.numeroNF,spreadsheetId);}
-      catch(e){console.warn('Aviso: não foi possível atualizar o empenho:',e.message)}
+
+    // Descobre linha do cabeçalho e primeira linha vazia no campo NumeroNF (col H = idx 7)
+    const nfStartRow=await _findNFSectionRow(spreadsheetId,sheetTitle);
+    if(nfStartRow<0){hideSpinner();toast('Seção de execução não encontrada na aba.','err');return;}
+
+    // Detecta layout: novo (col B = Empenho) ou antigo (col B = Valor NF)
+    const hdrResp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetTitle+'!B'+(nfStartRow-1))}`,
+      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    const hdrData=await hdrResp.json();
+    const hdrB=str((hdrData.values||[[]])[0]?.[0]||'').toLowerCase();
+    const isNewLayout=hdrB.includes('empenho');
+
+    if(isNewLayout){
+      // Novo layout: encontra primeira linha onde col H (NumeroNF) está vazia
+      const targetRow=await _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,7);
+      // Escreve A:B (Unidade, Empenho#) e H:J (NumeroNF, Valor, Data) separadamente
+      // para não sobrescrever as fórmulas em E, F, K
+      const batchResp=await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+        {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
+         body:JSON.stringify({valueInputOption:'USER_ENTERED',data:[
+           {range:`${sheetTitle}!A${targetRow}:B${targetRow}`,values:[[novaEntrada.unidade,novaEntrada.empenho||'']]},
+           {range:`${sheetTitle}!H${targetRow}:J${targetRow}`,values:[[novaEntrada.numeroNF,novaEntrada.valor,novaEntrada.data]]},
+         ]})});
+      if(!batchResp.ok){const e=await batchResp.json();throw new Error(e.error?.message||'HTTP '+batchResp.status)}
+      hideSpinner();
+      if(sheetKey&&STATE.nfs[sheetKey])STATE.nfs[sheetKey].push(novaEntrada);
+      else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
+      toast(`✓ NF ${novaEntrada.numeroNF} gravada! Aba: "${sheetTitle}" linha ${targetRow}${novaEntrada.empenho?' · Empenho: '+novaEntrada.empenho:''}`,'ok');
+    } else {
+      // Layout antigo: append simples
+      const appendResp=await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetTitle)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+        {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
+         body:JSON.stringify({values:[[novaEntrada.unidade,novaEntrada.valor,novaEntrada.numeroNF,novaEntrada.data,novaEntrada.ano,novaEntrada.empenho||'']]})});
+      if(!appendResp.ok){const e=await appendResp.json();throw new Error(e.error?.message||'HTTP '+appendResp.status)}
+      hideSpinner();
+      if(sheetKey&&STATE.nfs[sheetKey])STATE.nfs[sheetKey].push(novaEntrada);
+      else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
+      toast(`✓ NF ${novaEntrada.numeroNF} gravada! Aba: "${sheetTitle}"`,'ok');
     }
-    hideSpinner();
-    if(sheetKey&&STATE.nfs[sheetKey])STATE.nfs[sheetKey].push(novaEntrada);
-    else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
-    toast(`✓ NF ${novaEntrada.numeroNF} gravada! Aba: "${sheetTitle}"${novaEntrada.empenho?' · Empenho '+novaEntrada.empenho+' atualizado':''}`,'ok');
     if(STATE.currentGMS===gms)showContract(gms,empresa);
   }catch(err){
     hideSpinner();
@@ -2976,25 +3122,115 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada){
 }
 
 // ============================================================
-// ATUALIZAR EMPENHO NA PLANILHA APÓS PAGAMENTO DE NF
+// LANÇAR EMPENHO
 // ============================================================
-async function _atualizarEmpenhoNaPlanilha(empNumero,valorNF,numeroNF,spreadsheetId){
-  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNumero);
-  if(!emp)return;
-  // Atualiza em memória
-  emp.valorPago=(emp.valorPago||0)+valorNF;
-  emp.saldo=Math.max(0,emp.valor-emp.valorPago);
-  emp.status=emp.saldo<0.01?'Pago':emp.valorPago>0?'Parcial':'Aberto';
-  const nfsAnts=emp._nfsVinculadas||[];
-  nfsAnts.push(numeroNF);
-  emp._nfsVinculadas=nfsAnts;
-  // Atualiza colunas H (Valor Pago), I (Saldo), J (Status), L (NFs Vinculadas) na planilha
-  const range=`EMPENHOS!H${emp.rowIdx}:L${emp.rowIdx}`;
-  const resp=await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
-    {method:'PUT',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
-     body:JSON.stringify({range,majorDimension:'ROWS',values:[[emp.valorPago,emp.saldo,emp.status,'N',nfsAnts.join(', ')]]})});
-  if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'HTTP '+resp.status)}
+function abrirModalEmp(){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de lançar empenhos.','err');return}
+  const sel=document.getElementById('emp-modal-contrato');
+  const pool=[...STATE.painel,...STATE.serv_painel];
+  sel.innerHTML='<option value="">— Selecione o contrato —</option>';
+  pool.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.gms+'|'+r.empresa;
+    opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('emp-modal-numero').value='';
+  document.getElementById('emp-modal-valor').value='';
+  document.getElementById('emp-modal-vencimento').value='';
+  document.getElementById('emp-modal-unidade').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
+  document.getElementById('modal-emp-overlay').classList.add('show');
+}
+
+function fecharModalEmp(){
+  document.getElementById('modal-emp-overlay').classList.remove('show');
+}
+
+function onEmpContratoChange(){
+  const val=document.getElementById('emp-modal-contrato').value;
+  const selUni=document.getElementById('emp-modal-unidade');
+  selUni.innerHTML='<option value="">— Selecione a unidade —</option>';
+  if(!val)return;
+  const [gms,empresa]=val.split('|');
+  const baseRows=[...STATE.base,...STATE.serv_base].filter(b=>b.gms===gms);
+  if(baseRows.length){
+    const unis=[...new Set(baseRows.map(b=>b.unidade).filter(Boolean))].sort();
+    unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+  } else {
+    const sheetKey=findNFSheet(gms,empresa);
+    if(sheetKey){
+      const nfs=STATE.nfs[sheetKey]||[];
+      const unis=[...new Set(nfs.map(n=>n.unidade).filter(Boolean))].sort();
+      unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+    }
+  }
+  const row=[...STATE.painel,...STATE.serv_painel].find(r=>r.gms===gms&&r.empresa===empresa);
+  if(row){
+    document.getElementById('modal-emp-sub').textContent=
+      `Saldo disponível: R$ ${(row.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · ${empresa}`;
+  }
+}
+
+function salvarEmpenho(){
+  const contratoVal=document.getElementById('emp-modal-contrato').value;
+  const unidade=document.getElementById('emp-modal-unidade').value;
+  const numero=document.getElementById('emp-modal-numero').value.trim();
+  const valorStr=document.getElementById('emp-modal-valor').value.trim();
+  const vencimento=document.getElementById('emp-modal-vencimento').value;
+  if(!contratoVal){toast('Selecione o contrato.','err');return}
+  if(!unidade){toast('Selecione a unidade.','err');return}
+  if(!numero){toast('Informe o número do empenho.','err');return}
+  if(!valorStr){toast('Informe o valor do empenho.','err');return}
+  let valor=num(valorStr);
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 45.000,00','err');return}
+  const [gms,empresa]=contratoVal.split('|');
+  const novoEmp={unidade,numero,valor,vencimento:vencimento||''};
+  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarEmpenhoNoSheets(gms,empresa,novoEmp);gapiLogin();return}
+  _gravarEmpenhoNoSheets(gms,empresa,novoEmp);
+}
+
+async function _gravarEmpenhoNoSheets(gms,empresa,emp){
+  fecharModalEmp();
+  showSpinner('Gravando Empenho na planilha do Drive...');
+  const sheetKey=findNFSheet(gms,empresa);
+  const spreadsheetId=STATE._driveSheetId||GAPI_SPREADSHEET_ID;
+  try{
+    const metaResp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    if(!metaResp.ok)throw new Error('HTTP '+metaResp.status);
+    const meta=await metaResp.json();
+    const sheets=meta.sheets||[];
+    let targetSheet=sheetKey?sheets.find(s=>s.properties.title===sheetKey):null;
+    if(!targetSheet)targetSheet=sheets.find(s=>s.properties.title.includes(gms));
+    if(!targetSheet){hideSpinner();toast(`Aba do contrato GMS ${gms} não encontrada.`,'err');return;}
+    const sheetTitle=targetSheet.properties.title;
+
+    const nfStartRow=await _findNFSectionRow(spreadsheetId,sheetTitle);
+    if(nfStartRow<0){hideSpinner();toast('Seção de execução não encontrada na aba.','err');return;}
+
+    // Primeira linha onde col B (Empenho#, idx 1) está vazia
+    const targetRow=await _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,1);
+
+    // Escreve A:D (Unidade, Empenho#, ValorEmpenho, Vencimento)
+    // E, F, K são fórmulas já pré-preenchidas na planilha — não tocar
+    const range=`${sheetTitle}!A${targetRow}:D${targetRow}`;
+    const resp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+      {method:'PUT',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
+       body:JSON.stringify({range,majorDimension:'ROWS',values:[[emp.unidade,emp.numero,emp.valor,emp.vencimento||'']]})});
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'HTTP '+resp.status)}
+
+    // Atualiza empenhos em memória
+    STATE.empenhos.push({contrato:gms,sheetName:sheetTitle,unidade:emp.unidade,numero:emp.numero,valor:emp.valor,
+      vencimento:emp.vencimento?new Date(emp.vencimento+'T12:00:00'):null,saldo:emp.valor,status:'OK',extornado:false,rowIdx:targetRow});
+    hideSpinner();
+    toast(`✓ Empenho ${emp.numero} gravado! Aba: "${sheetTitle}" linha ${targetRow}`,'ok');
+  }catch(err){
+    hideSpinner();
+    toast('Erro ao gravar empenho: '+err.message,'err');
+    console.error(err);
+  }
 }
 
 // ============================================================
@@ -3021,6 +3257,8 @@ async function _atualizarEmpenhoNaPlanilha(empNumero,valorNF,numeroNF,spreadshee
     toast(`✓ Planilha carregada: ${STATE.painel.length} contratos, ${STATE.base.length} unidades.`,'ok');
     const btnNF=document.getElementById('btn-lancar-nf');
     if(btnNF)btnNF.style.display='';
+    const btnEmp=document.getElementById('btn-lancar-emp');
+    if(btnEmp)btnEmp.style.display='';
   };
 })();
 </script>
