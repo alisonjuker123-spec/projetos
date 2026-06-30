@@ -425,6 +425,48 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
   </div>
 </div>
 
+<!-- MODAL ESTORNAR EMPENHO -->
+<div class="modal-nf-overlay" id="modal-ext-overlay" onclick="if(event.target===this)fecharModalExt()">
+  <div class="modal-nf">
+    <h3>↩ Estornar Saldo de Empenho</h3>
+    <div class="modal-sub" id="modal-ext-sub">Registre o estorno do saldo remanescente para liquidar o empenho</div>
+    <div class="nf-field">
+      <label>Contrato (GMS / Fornecedor)</label>
+      <select id="ext-modal-contrato" onchange="onExtContratoChange()">
+        <option value="">— Selecione o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-field">
+      <label>Empenho com Saldo em Aberto</label>
+      <select id="ext-modal-empenho" onchange="onExtEmpenhoChange()">
+        <option value="">— Selecione o empenho —</option>
+      </select>
+    </div>
+    <div id="ext-emp-info" style="display:none;font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px 10px;background:var(--inp);border-radius:6px;line-height:1.7"></div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Unidade</label>
+        <input type="text" id="ext-modal-unidade" readonly style="background:var(--hov);cursor:default" placeholder="Auto-preenchido">
+      </div>
+      <div class="nf-field">
+        <label>Valor do Estorno (R$)</label>
+        <input type="text" id="ext-modal-valor" placeholder="Ex: 500,00">
+      </div>
+    </div>
+    <div class="nf-field">
+      <label>Motivo do Estorno <span style="color:var(--lbl);font-weight:400">(opcional)</span></label>
+      <input type="text" id="ext-modal-motivo" placeholder="Ex: Saldo remanescente não utilizado">
+    </div>
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--txt2);margin-bottom:4px">
+      ⚠️ O estorno será registrado na coluna <strong>G (Valor Extornado)</strong> da aba do contrato. A fórmula de Saldo recalculará automaticamente e o status passará para <strong>Extornado</strong>.
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalExt()" style="flex:0;padding:9px 18px">Cancelar</button>
+      <button class="btn-success" style="background:var(--orn)" onclick="salvarExtorno()">↩ Registrar Estorno na Planilha</button>
+    </div>
+  </div>
+</div>
+
 <!-- IMPORT VALIDATION MODAL -->
 <div class="modal-ov" id="modal-val" onclick="if(event.target===this)this.classList.remove('show')">
   <div class="modal-box">
@@ -496,6 +538,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <button class="btn-sec" id="btn-export-pdf" onclick="exportPDF()" style="display:none" title="Imprimir / exportar como PDF">🖨 PDF</button>
       <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-nf" onclick="abrirModalNF()" title="Lançar nova Nota Fiscal">🧾 Lançar NF</button>
       <button class="btn-pri" style="background:var(--pur);display:none" id="btn-lancar-emp" onclick="abrirModalEmp()" title="Lançar novo Empenho">🏦 Lançar Empenho</button>
+      <button class="btn-pri" style="background:var(--orn);display:none" id="btn-estornar-emp" onclick="abrirModalExt()" title="Estornar saldo de Empenho">↩ Estornar Empenho</button>
       <button class="btn-pri" onclick="document.getElementById('file-input').click()">📂 Importar Planilha</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
@@ -3236,6 +3279,172 @@ async function _gravarEmpenhoNoSheets(gms,empresa,emp){
 }
 
 // ============================================================
+// ESTORNAR EMPENHO
+// ============================================================
+function abrirModalExt(){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de registrar estornos.','err');return}
+  const sel=document.getElementById('ext-modal-contrato');
+  const pool=[...STATE.painel,...STATE.serv_painel];
+  sel.innerHTML='<option value="">— Selecione o contrato —</option>';
+  pool.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.gms+'|'+r.empresa;
+    opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('ext-modal-empenho').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
+  document.getElementById('ext-modal-unidade').value='';
+  document.getElementById('ext-modal-valor').value='';
+  document.getElementById('ext-modal-motivo').value='';
+  document.getElementById('ext-emp-info').style.display='none';
+  document.getElementById('modal-ext-overlay').classList.add('show');
+}
+
+function fecharModalExt(){
+  document.getElementById('modal-ext-overlay').classList.remove('show');
+}
+
+function onExtContratoChange(){
+  const val=document.getElementById('ext-modal-contrato').value;
+  const empSel=document.getElementById('ext-modal-empenho');
+  empSel.innerHTML='<option value="">— Selecione o empenho —</option>';
+  document.getElementById('ext-modal-unidade').value='';
+  document.getElementById('ext-modal-valor').value='';
+  document.getElementById('ext-emp-info').style.display='none';
+  if(!val)return;
+  const [gms]=val.split('|');
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const gmsPure=(gms||'').replace(/[\/\s]/g,'').toUpperCase();
+  // Empenhos com saldo > 0 e não extornados
+  const comSaldo=(STATE.empenhos||[]).filter(e=>{
+    const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
+    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))
+      &&!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado';
+  });
+  if(!comSaldo.length){
+    empSel.innerHTML='<option value="">— Nenhum empenho com saldo em aberto —</option>';
+    return;
+  }
+  comSaldo.forEach(e=>{
+    const opt=document.createElement('option');
+    opt.value=e.numero;
+    const vencInfo=e.vencimento?` | Venc: ${e.vencimento.toLocaleDateString('pt-BR')}`:'';
+    const vencida=e.vencimento&&e.vencimento<hoje;
+    opt.textContent=`${e.numero} | Saldo: R$ ${e.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2})}${vencInfo}${vencida?' ⚠️ VENCIDO':''}`;
+    opt.dataset.saldo=e.saldo;
+    opt.dataset.unidade=e.unidade||'';
+    empSel.appendChild(opt);
+  });
+}
+
+function onExtEmpenhoChange(){
+  const empSel=document.getElementById('ext-modal-empenho');
+  const info=document.getElementById('ext-emp-info');
+  const uniEl=document.getElementById('ext-modal-unidade');
+  const valEl=document.getElementById('ext-modal-valor');
+  const empNum=empSel.value;
+  if(!empNum){info.style.display='none';uniEl.value='';valEl.value='';return}
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
+  if(!emp){info.style.display='none';return}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const vencida=emp.vencimento&&emp.vencimento<hoje;
+  // Pré-preenche unidade e valor do saldo
+  uniEl.value=emp.unidade||'';
+  valEl.value=emp.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  // Info box
+  info.style.display='';
+  const pct=emp.valor>0?((emp.valorPago||0)/emp.valor*100).toFixed(1):'0';
+  info.innerHTML=
+    `💰 <strong>Valor empenhado:</strong> R$ ${emp.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}<br>`+
+    `✅ <strong>Já liquidado (NFs):</strong> R$ ${(emp.valorPago||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} (${pct}%)<br>`+
+    `🔴 <strong>Saldo a estornar:</strong> R$ ${emp.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2})}`+
+    (emp.vencimento?`<br>📅 <strong>Vencimento:</strong> <span style="color:${vencida?'var(--red)':'var(--yel)'}">${emp.vencimento.toLocaleDateString('pt-BR')}${vencida?' — VENCIDO':''}</span>`:'');
+}
+
+function salvarExtorno(){
+  const contratoVal=document.getElementById('ext-modal-contrato').value;
+  const empNum=document.getElementById('ext-modal-empenho').value;
+  const unidade=document.getElementById('ext-modal-unidade').value;
+  const valorStr=document.getElementById('ext-modal-valor').value.trim();
+  if(!contratoVal){toast('Selecione o contrato.','err');return}
+  if(!empNum){toast('Selecione o empenho.','err');return}
+  if(!valorStr){toast('Informe o valor do estorno.','err');return}
+  const valor=num(valorStr);
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 500,00','err');return}
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
+  if(emp&&valor>emp.saldo+0.01){
+    toast(`Valor do estorno (${brl(valor)}) maior que o saldo disponível (${brl(emp.saldo)}). Corrija o valor.`,'err');return;
+  }
+  const [gms,empresa]=contratoVal.split('|');
+  const extorno={unidade:unidade||emp?.unidade||'',numero:empNum,valor};
+  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarExtornoNoSheets(gms,empresa,extorno);gapiLogin();return}
+  _gravarExtornoNoSheets(gms,empresa,extorno);
+}
+
+async function _gravarExtornoNoSheets(gms,empresa,extorno){
+  fecharModalExt();
+  showSpinner('Registrando estorno na planilha do Drive...');
+  const sheetKey=findNFSheet(gms,empresa);
+  const spreadsheetId=STATE._driveSheetId||GAPI_SPREADSHEET_ID;
+  try{
+    // Encontra aba do contrato
+    const metaResp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    if(!metaResp.ok)throw new Error('HTTP '+metaResp.status);
+    const meta=await metaResp.json();
+    const sheets=meta.sheets||[];
+    let targetSheet=sheetKey?sheets.find(s=>s.properties.title===sheetKey):null;
+    if(!targetSheet)targetSheet=sheets.find(s=>s.properties.title.includes(gms));
+    if(!targetSheet){hideSpinner();toast(`Aba do contrato GMS ${gms} não encontrada.`,'err');return;}
+    const sheetTitle=targetSheet.properties.title;
+
+    // Localiza seção de execução e última linha ocupada
+    const nfStartRow=await _findNFSectionRow(spreadsheetId,sheetTitle);
+    if(nfStartRow<0){hideSpinner();toast('Seção de execução não encontrada na aba.','err');return;}
+
+    // Lê col A da seção para achar a última linha com dados → escreve na próxima
+    const aResp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetTitle+'!A'+nfStartRow+':A2000')}`,
+      {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+    if(!aResp.ok)throw new Error('HTTP '+aResp.status);
+    const aData=await aResp.json();
+    const aVals=aData.values||[];
+    // Última linha com col A preenchida
+    let lastOccupied=nfStartRow-1;
+    for(let i=0;i<aVals.length;i++){
+      if(aVals[i]&&aVals[i][0]&&String(aVals[i][0]).trim()!=='')lastOccupied=nfStartRow+i;
+    }
+    const targetRow=lastOccupied+1;
+
+    // Escreve A=Unidade, B=Empenho#, G=ValorExtornado (cols 1,2,7)
+    // H,I,J deixamos vazios (sem NF), fórmulas E,F,K cuidam do resto
+    const batchResp=await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+      {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
+       body:JSON.stringify({valueInputOption:'USER_ENTERED',data:[
+         {range:`${sheetTitle}!A${targetRow}:B${targetRow}`,values:[[extorno.unidade,extorno.numero]]},
+         {range:`${sheetTitle}!G${targetRow}`,values:[[extorno.valor]]},
+       ]})});
+    if(!batchResp.ok){const e=await batchResp.json();throw new Error(e.error?.message||'HTTP '+batchResp.status)}
+
+    // Atualiza saldo do empenho em memória
+    const emp=(STATE.empenhos||[]).find(e=>e.numero===extorno.numero);
+    if(emp){
+      emp.saldo=Math.max(0,emp.saldo-extorno.valor);
+      emp.status=emp.saldo<0.01?'Extornado':emp.status;
+      emp.extornado=emp.saldo<0.01;
+    }
+    hideSpinner();
+    toast(`✓ Estorno de ${brl(extorno.valor)} registrado! Empenho ${extorno.numero} — aba "${sheetTitle}" linha ${targetRow}`,'ok');
+  }catch(err){
+    hideSpinner();
+    toast('Erro ao registrar estorno: '+err.message,'err');
+    console.error(err);
+  }
+}
+
+// ============================================================
 // BOOT — aguarda o usuário importar o arquivo
 // ============================================================
 (function init(){
@@ -3261,6 +3470,8 @@ async function _gravarEmpenhoNoSheets(gms,empresa,emp){
     if(btnNF)btnNF.style.display='';
     const btnEmp=document.getElementById('btn-lancar-emp');
     if(btnEmp)btnEmp.style.display='';
+    const btnExt=document.getElementById('btn-estornar-emp');
+    if(btnExt)btnExt.style.display='';
   };
 })();
 </script>
