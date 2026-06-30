@@ -421,8 +421,11 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <input type="date" id="nf-modal-data">
     </div>
     <div id="nf-estorno-box" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--orn);border-radius:6px">
-      <div id="nf-estorno-info" style="font-size:11px;color:var(--txt2);margin-bottom:8px"></div>
-      <button class="btn-pri" style="background:var(--orn);width:100%;padding:7px;font-size:12px" onclick="estornarSaldoRestante()">↩ Estornar Saldo Restante</button>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt)">
+        <input type="checkbox" id="nf-estorno-check" onchange="onNFValorInput()" style="width:16px;height:16px;cursor:pointer">
+        <span>↩ Estornar o saldo restante após esta NF</span>
+      </label>
+      <div id="nf-estorno-info" style="font-size:11px;color:var(--txt2);margin-top:6px"></div>
     </div>
     <div class="modal-nf-footer">
       <button class="btn-sec" onclick="fecharModalNF()">Cancelar</button>
@@ -3030,6 +3033,7 @@ function abrirModalNF(gmsPresel,empresaPresel){
   document.getElementById('nf-modal-empenho').innerHTML='<option value="">— Selecione o empenho —</option>';
   document.getElementById('nf-empenho-info').style.display='none';
   document.getElementById('nf-estorno-box').style.display='none';
+  document.getElementById('nf-estorno-check').checked=false;
   if(gmsPresel&&empresaPresel){
     sel.value=gmsPresel+'|'+empresaPresel;
     onNFContratoChange();
@@ -3123,27 +3127,19 @@ function onNFValorInput(){
   info.innerHTML=`💰 Saldo disponível: <strong>${brl(emp.saldo)}</strong> de ${brl(emp.valor)} empenhado`+
     (emp.vencimento?` · Vencimento: <strong style="color:${vencida?'var(--red)':'var(--yel)'}">${emp.vencimento.toLocaleDateString('pt-BR')}${vencida?' ⚠️ VENCIDO':''}</strong>`:'')+
     (valorNF>0?`<br>📊 Saldo restante após esta NF: <strong style="color:${restante<0.01?'var(--green)':'var(--txt)'}">${brl(restante)}</strong>`:'');
-  // Mostra opção de estornar saldo restante
+  // Mostra checkbox de estorno do saldo restante
   estornoBox.style.display='';
-  document.getElementById('nf-estorno-info').textContent=
-    `Saldo a estornar: ${brl(restante)} (zera o empenho ${emp.numero})`;
-}
-
-function estornarSaldoRestante(){
-  const contratoVal=document.getElementById('nf-modal-contrato').value;
-  const empNum=document.getElementById('nf-modal-empenho').value;
-  const unidade=document.getElementById('nf-modal-unidade').value;
-  if(!contratoVal||!empNum){toast('Selecione o contrato, a unidade e o empenho.','err');return}
-  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
-  if(!emp){toast('Empenho não encontrado.','err');return}
-  const valorStr=document.getElementById('nf-modal-valor').value.trim();
-  const valorNF=valorStr?num(valorStr):0;
-  const restante=Math.max(0,emp.saldo-(valorNF||0));
-  if(restante<=0.01){toast('Não há saldo restante para estornar.','err');return}
-  const [gms,empresa]=contratoVal.split('|');
-  const extorno={unidade,numero:empNum,valor:restante};
-  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarExtornoNoSheets(gms,empresa,extorno);gapiLogin();return}
-  _gravarExtornoNoSheets(gms,empresa,extorno);
+  const chk=document.getElementById('nf-estorno-check');
+  const estInfo=document.getElementById('nf-estorno-info');
+  if(restante<=0.01){
+    chk.checked=false;chk.disabled=true;
+    estInfo.textContent='Não há saldo restante a estornar após esta NF.';
+  } else {
+    chk.disabled=false;
+    estInfo.textContent=chk.checked?
+      `✓ Será estornado: ${brl(restante)} (zera o empenho ${emp.numero})`:
+      `Saldo que ficaria em aberto: ${brl(restante)}`;
+  }
 }
 
 function salvarNF(){
@@ -3153,6 +3149,7 @@ function salvarNF(){
   const numeroNF=document.getElementById('nf-modal-numero').value.trim();
   const valorStr=document.getElementById('nf-modal-valor').value.trim();
   const dataVal=document.getElementById('nf-modal-data').value;
+  const estornarRestante=document.getElementById('nf-estorno-check').checked;
   if(!contratoVal){toast('Selecione o contrato.','err');return}
   if(!unidade){toast('Selecione a unidade.','err');return}
   if(!numeroNF){toast('Informe o número da NF.','err');return}
@@ -3160,12 +3157,14 @@ function salvarNF(){
   if(!dataVal){toast('Informe a data de pagamento.','err');return}
   const valor=num(valorStr);
   if(!valor||valor<=0){toast('Valor inválido. Use o formato 15.500,00','err');return}
+  let estornoValor=0;
   if(empNumero){
     const emp=(STATE.empenhos||[]).find(e=>e.numero===empNumero);
     if(emp&&valor>emp.saldo+0.01){toast(`Valor da NF (${brl(valor)}) excede o saldo do empenho ${empNumero} (${brl(emp.saldo)}).`,'err');return}
+    if(emp&&estornarRestante)estornoValor=Math.max(0,emp.saldo-valor);
   }
   const dataObj=new Date(dataVal+'T12:00:00');
-  const novaEntrada={unidade,valor,numeroNF,data:dataObj.toLocaleDateString('pt-BR'),ano:dataObj.getFullYear(),empenho:empNumero||null};
+  const novaEntrada={unidade,valor,numeroNF,data:dataObj.toLocaleDateString('pt-BR'),ano:dataObj.getFullYear(),empenho:empNumero||null,estornoValor};
   const [gms,empresa]=contratoVal.split('|');
   if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarNFnoSheets(gms,empresa,novaEntrada);gapiLogin();return}
   _gravarNFnoSheets(gms,empresa,novaEntrada);
@@ -3242,22 +3241,34 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
     const isNewLayout=hdrB.includes('empenho');
 
     if(isNewLayout){
-      // Novo layout: encontra primeira linha onde col H (NumeroNF) está vazia
-      const targetRow=await _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,7);
-      // Escreve A:B (Unidade, Empenho#) e H:J (NumeroNF, Valor, Data) separadamente
+      // Se a NF está vinculada a um empenho, grava na MESMA linha do empenho (rowIdx).
+      // Sem empenho vinculado (lançamento avulso): usa a primeira linha livre em H.
+      const gmsPure=gms.replace(/[\/\s]/g,'').toUpperCase();
+      const empObjForRow=novaEntrada.empenho?(STATE.empenhos||[]).find(e=>{
+        const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
+        return e.numero===novaEntrada.empenho&&(ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec));
+      }):null;
+      const targetRow=(empObjForRow&&empObjForRow.rowIdx)?empObjForRow.rowIdx:await _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,7);
+      // Escreve H:J (NumeroNF, Valor, Data) e, se houver, G (ValorExtornado) na mesma linha
       // para não sobrescrever as fórmulas em E, F, K
+      const batchData=[{range:`${sheetTitle}!H${targetRow}:J${targetRow}`,values:[[novaEntrada.numeroNF,novaEntrada.valor,novaEntrada.data]]}];
+      if(!empObjForRow){
+        // Lançamento avulso: também grava Unidade/Empenho# nessa nova linha
+        batchData.unshift({range:`${sheetTitle}!A${targetRow}:B${targetRow}`,values:[[novaEntrada.unidade,novaEntrada.empenho||'']]});
+      }
+      if(novaEntrada.estornoValor>0){
+        batchData.push({range:`${sheetTitle}!G${targetRow}`,values:[[novaEntrada.estornoValor]]});
+      }
       const batchResp=await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
         {method:'POST',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
-         body:JSON.stringify({valueInputOption:'USER_ENTERED',data:[
-           {range:`${sheetTitle}!A${targetRow}:B${targetRow}`,values:[[novaEntrada.unidade,novaEntrada.empenho||'']]},
-           {range:`${sheetTitle}!H${targetRow}:J${targetRow}`,values:[[novaEntrada.numeroNF,novaEntrada.valor,novaEntrada.data]]},
-         ]})});
+         body:JSON.stringify({valueInputOption:'USER_ENTERED',data:batchData})});
       if(!batchResp.ok){const e=await batchResp.json();throw new Error(e.error?.message||'HTTP '+batchResp.status)}
       hideSpinner();
       if(sheetKey&&STATE.nfs[sheetKey])STATE.nfs[sheetKey].push(novaEntrada);
       else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
-      toast(`✓ NF ${novaEntrada.numeroNF} gravada! Aba: "${sheetTitle}" linha ${targetRow}${novaEntrada.empenho?' · Empenho: '+novaEntrada.empenho:''}`,'ok');
+      const estornoMsg=novaEntrada.estornoValor>0?` · Estornado: ${brl(novaEntrada.estornoValor)}`:'';
+      toast(`✓ NF ${novaEntrada.numeroNF} gravada! Aba: "${sheetTitle}" linha ${targetRow}${novaEntrada.empenho?' · Empenho: '+novaEntrada.empenho:''}${estornoMsg}`,'ok');
     } else {
       // Layout antigo: append simples
       const appendResp=await fetch(
@@ -3279,8 +3290,10 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
       });
       if(empObj){
         empObj.valorPago=(empObj.valorPago||0)+novaEntrada.valor;
-        empObj.saldo=Math.max(0,empObj.valor-empObj.valorPago);
-        empObj.status=empObj.saldo<0.01?'Pago':(empObj.valorPago>0?'Parcial':'Aberto');
+        const estornado=(novaEntrada.estornoValor||0);
+        empObj.saldo=Math.max(0,empObj.valor-empObj.valorPago-estornado);
+        if(estornado>0)empObj.extornado=empObj.saldo<0.01;
+        empObj.status=empObj.saldo<0.01?(estornado>0?'Extornado':'Pago'):(empObj.valorPago>0?'Parcial':'Aberto');
       }
     }
     if(STATE.currentGMS===gms)showContract(gms,empresa);
