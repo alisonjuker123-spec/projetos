@@ -1045,8 +1045,9 @@ function parseNFSheet(wb,name){
   const ws=wb.Sheets[name];
   if(!ws)return{nfs:[],empenhos:[],gms:''};
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
-  // Extrai GMS da primeira linha de dados (col A, linha 2)
+  // Extrai GMS (col A) e Empresa (col C) da primeira linha de dados
   const gms=rows.length>1?str(rows[1][0]):'';
+  const empresa=rows.length>1?str(rows[1][2]):'';
   let nfStart=-1;
   for(let i=0;i<rows.length;i++){
     const r=rows[i];
@@ -1060,7 +1061,7 @@ function parseNFSheet(wb,name){
       nfStart=i+1;break;
     }
   }
-  if(nfStart<0)return{nfs:[],empenhos:[],gms};
+  if(nfStart<0)return{nfs:[],empenhos:[],gms,empresa};
   // Detectar se é layout novo (col 1 = "Empenho") ou antigo (col 1 = "Valor NF")
   const hdrRow=rows[nfStart-1]||[];
   const isNewLayout=str(hdrRow[1]||'').toLowerCase().includes('empenho');
@@ -1082,7 +1083,8 @@ function parseNFSheet(wb,name){
         const saldoEmp=typeof r[4]==='number'?r[4]:parseFloat(String(r[4]||0).replace(',','.'))||0;
         const statusEmp=str(r[5]||'')||'';
         const extornado=typeof r[6]==='number'&&r[6]>0;
-        empenhos.push({contrato:gms,sheetName:name,unidade,numero:empNum,valor:valorEmp,vencimento:vencEmp,saldo:saldoEmp,status:statusEmp,extornado,rowIdx:i+1});
+        const valorPago=Math.max(0,valorEmp-saldoEmp);
+        empenhos.push({contrato:gms,sheetName:name,empresa,unidade,numero:empNum,valor:valorEmp,valorPago,vencimento:vencEmp,saldo:saldoEmp,status:statusEmp,extornado,dataEmissao:null,rowIdx:i+1});
       }
       // H=NumeroNF, I=ValorNF, J=Data, K=Ano
       const numeroNF=str(r[7]||'');
@@ -1113,7 +1115,7 @@ function parseNFSheet(wb,name){
       nfs.push({unidade,valor,numeroNF,data:dataStr,ano,empenho:str(r[5]||'')||null});
     }
   }
-  return{nfs,empenhos,gms};
+  return{nfs,empenhos,gms,empresa};
 }
 
 // ============================================================
