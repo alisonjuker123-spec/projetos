@@ -342,105 +342,91 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
 <!-- SIDEBAR OVERLAY (mobile) -->
 <div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
 
-<!-- MODAL LANÇAR NOTA FISCAL -->
-<!-- MODAL UNIFICADO: EMPENHO + NOTA FISCAL -->
-<div class="modal-nf-overlay" id="modal-exec-overlay" onclick="if(event.target===this)fecharModalExec()">
-  <div class="modal-nf" style="max-width:600px">
-    <h3>📋 Execução Orçamentária</h3>
-    <div class="modal-sub" id="modal-exec-sub">Registre empenhos e notas fiscais do contrato</div>
+<!-- MODAL LANÇAR EMPENHO -->
+<div class="modal-nf-overlay" id="modal-emp-overlay" onclick="if(event.target===this)fecharModalEmp()">
+  <div class="modal-nf">
+    <h3>🏦 Lançar Empenho</h3>
+    <div class="modal-sub" id="modal-emp-sub">Registre um novo empenho para o contrato</div>
+    <div class="nf-field">
+      <label>Contrato (GMS / Fornecedor)</label>
+      <select id="emp-modal-contrato" onchange="onEmpContratoChange()">
+        <option value="">— Selecione o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-field">
+      <label>Unidade OPM</label>
+      <select id="emp-modal-unidade">
+        <option value="">— Selecione primeiro o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Número do Empenho</label>
+        <input type="text" id="emp-modal-numero" placeholder="Ex: 2025NE000123">
+      </div>
+      <div class="nf-field">
+        <label>Valor do Empenho (R$)</label>
+        <input type="text" id="emp-modal-valor" placeholder="Ex: 45.000,00">
+      </div>
+    </div>
+    <div class="nf-field">
+      <label>Vencimento do Empenho</label>
+      <input type="date" id="emp-modal-vencimento">
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalEmp()">Cancelar</button>
+      <button class="btn-success" style="background:var(--pur)" onclick="salvarEmpenho()">🏦 Gravar Empenho</button>
+    </div>
+  </div>
+</div>
 
-    <!-- CONTRATO + UNIDADE -->
+<!-- MODAL LANÇAR NOTA FISCAL -->
+<div class="modal-nf-overlay" id="modal-nf-overlay" onclick="if(event.target===this)fecharModalNF()">
+  <div class="modal-nf">
+    <h3>🧾 Lançar Nota Fiscal</h3>
+    <div class="modal-sub" id="modal-nf-sub">Selecione o contrato e a unidade para ver os empenhos em aberto</div>
     <div class="nf-row">
       <div class="nf-field">
         <label>Contrato (GMS / Fornecedor)</label>
-        <select id="exec-contrato" onchange="onExecContratoChange()">
+        <select id="nf-modal-contrato" onchange="onNFContratoChange()">
           <option value="">— Selecione o contrato —</option>
         </select>
       </div>
       <div class="nf-field">
         <label>Unidade OPM</label>
-        <select id="exec-unidade" onchange="onExecUnidadeChange()">
-          <option value="">— Selecione a unidade —</option>
+        <select id="nf-modal-unidade" onchange="onNFUnidadeChange()">
+          <option value="">— Selecione primeiro o contrato —</option>
         </select>
       </div>
     </div>
-
-    <!-- TABELA DE EMPENHOS DA UNIDADE -->
-    <div id="exec-emp-panel" style="display:none;margin-bottom:14px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--lbl);margin-bottom:6px">Empenhos desta Unidade</div>
-      <div style="overflow-x:auto;border-radius:6px;border:1px solid var(--bdr)">
-        <table style="width:100%;border-collapse:collapse;font-size:11px">
-          <thead>
-            <tr style="background:var(--inp)">
-              <th style="padding:6px 8px;text-align:left;color:var(--lbl);font-size:9px;text-transform:uppercase;white-space:nowrap">Nº Empenho</th>
-              <th style="padding:6px 8px;text-align:right;color:var(--lbl);font-size:9px;text-transform:uppercase">Valor</th>
-              <th style="padding:6px 8px;text-align:right;color:var(--lbl);font-size:9px;text-transform:uppercase">Saldo</th>
-              <th style="padding:6px 8px;text-align:center;color:var(--lbl);font-size:9px;text-transform:uppercase">Vencimento</th>
-              <th style="padding:6px 8px;text-align:center;color:var(--lbl);font-size:9px;text-transform:uppercase">Status</th>
-            </tr>
-          </thead>
-          <tbody id="exec-emp-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- DIVISOR EMPENHO -->
-    <div style="display:flex;align-items:center;gap:8px;margin:10px 0 12px">
-      <div style="flex:1;height:1px;background:var(--bdr)"></div>
-      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--pur)">🏦 Registrar Novo Empenho</span>
-      <div style="flex:1;height:1px;background:var(--bdr)"></div>
-    </div>
-    <div class="nf-row">
-      <div class="nf-field">
-        <label>Número do Empenho</label>
-        <input type="text" id="exec-emp-numero" placeholder="Ex: 2025NE000123">
-      </div>
-      <div class="nf-field">
-        <label>Valor do Empenho (R$)</label>
-        <input type="text" id="exec-emp-valor" placeholder="Ex: 45.000,00">
-      </div>
-    </div>
-    <div class="nf-field">
-      <label>Vencimento do Empenho</label>
-      <input type="date" id="exec-emp-vencimento">
-    </div>
-    <div style="text-align:right;margin-bottom:4px">
-      <button class="btn-success" style="background:var(--pur);padding:7px 18px;font-size:12px" onclick="salvarEmpenhoExec()">🏦 Gravar Empenho</button>
-    </div>
-
-    <!-- DIVISOR NF -->
-    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 12px">
-      <div style="flex:1;height:1px;background:var(--bdr)"></div>
-      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green)">🧾 Registrar Nota Fiscal</span>
-      <div style="flex:1;height:1px;background:var(--bdr)"></div>
-    </div>
-    <div class="nf-field" id="exec-nf-empenho-field">
-      <label>Empenho Vinculado <span style="color:var(--lbl);font-weight:400">(desta unidade)</span></label>
-      <select id="exec-nf-empenho" onchange="onExecNFEmpenhoChange()">
-        <option value="">— Selecione contrato e unidade primeiro —</option>
+    <div class="nf-field" id="nf-empenho-field" style="display:none">
+      <label>Empenho em Aberto</label>
+      <select id="nf-modal-empenho" onchange="onNFEmpenhoChange()">
+        <option value="">— Selecione o empenho —</option>
       </select>
-      <div id="exec-nf-emp-info" style="display:none;font-size:11px;color:var(--txt2);margin-top:5px;padding:6px 8px;background:var(--inp);border-radius:5px"></div>
+      <div id="nf-empenho-info" style="display:none;font-size:11px;color:var(--txt2);margin-top:5px;padding:8px 10px;background:var(--inp);border-radius:6px;line-height:1.7"></div>
     </div>
     <div class="nf-row">
       <div class="nf-field">
         <label>Número da NF</label>
-        <input type="text" id="exec-nf-numero" placeholder="Ex: 000123">
+        <input type="text" id="nf-modal-numero" placeholder="Ex: 000123">
       </div>
       <div class="nf-field">
         <label>Valor NF (R$)</label>
-        <input type="text" id="exec-nf-valor" placeholder="Ex: 9.500,00">
+        <input type="text" id="nf-modal-valor" placeholder="Ex: 9.500,00" oninput="onNFValorInput()">
       </div>
     </div>
     <div class="nf-field">
       <label>Data de Pagamento</label>
-      <input type="date" id="exec-nf-data">
+      <input type="date" id="nf-modal-data">
     </div>
-    <div style="text-align:right;margin-bottom:4px">
-      <button class="btn-success" style="padding:7px 18px;font-size:12px" onclick="salvarNFExec()">🧾 Gravar Nota Fiscal</button>
+    <div id="nf-estorno-box" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--orn);border-radius:6px">
+      <div id="nf-estorno-info" style="font-size:11px;color:var(--txt2);margin-bottom:8px"></div>
+      <button class="btn-pri" style="background:var(--orn);width:100%;padding:7px;font-size:12px" onclick="estornarSaldoRestante()">↩ Estornar Saldo Restante</button>
     </div>
-
-    <div class="modal-nf-footer" style="margin-top:8px">
-      <button class="btn-sec" onclick="fecharModalExec()" style="width:100%;padding:9px">Fechar</button>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalNF()">Cancelar</button>
+      <button class="btn-success" onclick="salvarNF()">🧾 Gravar Nota Fiscal</button>
     </div>
   </div>
 </div>
@@ -556,7 +542,8 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <span class="file-name-tag" id="file-name-tag">📄 —</span>
       <button class="btn-sec" id="btn-export-xlsx" onclick="exportExcel()" style="display:none" title="Exportar tabela atual para Excel">📥 Excel</button>
       <button class="btn-sec" id="btn-export-pdf" onclick="exportPDF()" style="display:none" title="Imprimir / exportar como PDF">🖨 PDF</button>
-      <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-exec" onclick="abrirModalExec()" title="Lançar Empenho ou Nota Fiscal">📋 Empenho / NF</button>
+      <button class="btn-pri" style="background:var(--pur);display:none" id="btn-lancar-emp" onclick="abrirModalEmp()" title="Lançar Empenho">🏦 Lançar Empenho</button>
+      <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-nf" onclick="abrirModalNF()" title="Lançar Nota Fiscal">🧾 Lançar NF</button>
       <button class="btn-pri" style="background:var(--orn);display:none" id="btn-estornar-emp" onclick="abrirModalExt()" title="Estornar saldo de Empenho">↩ Estornar Empenho</button>
       <button class="btn-pri" onclick="document.getElementById('file-input').click()">📂 Importar Planilha</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
@@ -2948,9 +2935,12 @@ function autoReloadGDrive(){loadFromGDrive()}
 // ============================================================
 // MODAL UNIFICADO EXECUÇÃO (EMPENHO + NF)
 // ============================================================
-function abrirModalExec(gmsPresel,empresaPresel){
-  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de lançar.','err');return}
-  const sel=document.getElementById('exec-contrato');
+// ============================================================
+// LANÇAR EMPENHO (modal simples, sem listar empenhos existentes)
+// ============================================================
+function abrirModalEmp(gmsPresel,empresaPresel){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de lançar empenhos.','err');return}
+  const sel=document.getElementById('emp-modal-contrato');
   const pool=[...STATE.painel,...STATE.serv_painel];
   sel.innerHTML='<option value="">— Selecione o contrato —</option>';
   pool.forEach(r=>{
@@ -2959,34 +2949,106 @@ function abrirModalExec(gmsPresel,empresaPresel){
     opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
     sel.appendChild(opt);
   });
-  // Reset campos
-  document.getElementById('exec-unidade').innerHTML='<option value="">— Selecione a unidade —</option>';
-  document.getElementById('exec-emp-numero').value='';
-  document.getElementById('exec-emp-valor').value='';
-  document.getElementById('exec-emp-vencimento').value='';
-  document.getElementById('exec-nf-numero').value='';
-  document.getElementById('exec-nf-valor').value='';
-  document.getElementById('exec-nf-data').value=new Date().toISOString().split('T')[0];
-  document.getElementById('exec-nf-empenho').innerHTML='<option value="">— Selecione contrato e unidade primeiro —</option>';
-  document.getElementById('exec-nf-emp-info').style.display='none';
-  document.getElementById('exec-emp-panel').style.display='none';
-  // Pré-seleciona contrato se informado
+  document.getElementById('emp-modal-numero').value='';
+  document.getElementById('emp-modal-valor').value='';
+  document.getElementById('emp-modal-vencimento').value='';
+  document.getElementById('emp-modal-unidade').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
   if(gmsPresel&&empresaPresel){
     sel.value=gmsPresel+'|'+empresaPresel;
-    onExecContratoChange();
+    onEmpContratoChange();
   }
-  document.getElementById('modal-exec-overlay').classList.add('show');
+  document.getElementById('modal-emp-overlay').classList.add('show');
 }
-function fecharModalExec(){document.getElementById('modal-exec-overlay').classList.remove('show')}
+
+function fecharModalEmp(){
+  document.getElementById('modal-emp-overlay').classList.remove('show');
+}
+
+function onEmpContratoChange(){
+  const val=document.getElementById('emp-modal-contrato').value;
+  const selUni=document.getElementById('emp-modal-unidade');
+  selUni.innerHTML='<option value="">— Selecione a unidade —</option>';
+  if(!val)return;
+  const [gms,empresa]=val.split('|');
+  const baseRows=[...STATE.base,...STATE.serv_base].filter(b=>b.gms===gms);
+  if(baseRows.length){
+    const unis=[...new Set(baseRows.map(b=>b.unidade).filter(Boolean))].sort();
+    unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+  } else {
+    const sheetKey=findNFSheet(gms,empresa);
+    if(sheetKey){
+      const nfs=STATE.nfs[sheetKey]||[];
+      const unis=[...new Set(nfs.map(n=>n.unidade).filter(Boolean))].sort();
+      unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+    }
+  }
+  const row=[...STATE.painel,...STATE.serv_painel].find(r=>r.gms===gms&&r.empresa===empresa);
+  if(row){
+    document.getElementById('modal-emp-sub').textContent=
+      `Saldo disponível: R$ ${(row.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · ${empresa}`;
+  }
+}
+
+function salvarEmpenho(){
+  const contratoVal=document.getElementById('emp-modal-contrato').value;
+  const unidade=document.getElementById('emp-modal-unidade').value;
+  const numero=document.getElementById('emp-modal-numero').value.trim();
+  const valorStr=document.getElementById('emp-modal-valor').value.trim();
+  const vencimento=document.getElementById('emp-modal-vencimento').value;
+  if(!contratoVal){toast('Selecione o contrato.','err');return}
+  if(!unidade){toast('Selecione a unidade.','err');return}
+  if(!numero){toast('Informe o número do empenho.','err');return}
+  if(!valorStr){toast('Informe o valor do empenho.','err');return}
+  const valor=num(valorStr);
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 45.000,00','err');return}
+  const [gms,empresa]=contratoVal.split('|');
+  const novoEmp={unidade,numero,valor,vencimento:vencimento||''};
+  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarEmpenhoNoSheets(gms,empresa,novoEmp);gapiLogin();return}
+  _gravarEmpenhoNoSheets(gms,empresa,novoEmp);
+}
+
+// ============================================================
+// LANÇAR NOTA FISCAL (mostra apenas empenhos com saldo em aberto
+// da unidade + contrato selecionados; permite estornar saldo restante)
+// ============================================================
+function abrirModalNF(gmsPresel,empresaPresel){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de lançar NFs.','err');return}
+  const sel=document.getElementById('nf-modal-contrato');
+  const pool=[...STATE.painel,...STATE.serv_painel];
+  sel.innerHTML='<option value="">— Selecione o contrato —</option>';
+  pool.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.gms+'|'+r.empresa;
+    opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('nf-modal-numero').value='';
+  document.getElementById('nf-modal-valor').value='';
+  document.getElementById('nf-modal-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('nf-modal-unidade').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
+  document.getElementById('nf-empenho-field').style.display='none';
+  document.getElementById('nf-modal-empenho').innerHTML='<option value="">— Selecione o empenho —</option>';
+  document.getElementById('nf-empenho-info').style.display='none';
+  document.getElementById('nf-estorno-box').style.display='none';
+  if(gmsPresel&&empresaPresel){
+    sel.value=gmsPresel+'|'+empresaPresel;
+    onNFContratoChange();
+  }
+  document.getElementById('modal-nf-overlay').classList.add('show');
+}
+
+function fecharModalNF(){
+  document.getElementById('modal-nf-overlay').classList.remove('show');
+}
 
 // Ao mudar contrato: popula unidades
-function onExecContratoChange(){
-  const val=document.getElementById('exec-contrato').value;
-  const selUni=document.getElementById('exec-unidade');
+function onNFContratoChange(){
+  const val=document.getElementById('nf-modal-contrato').value;
+  const selUni=document.getElementById('nf-modal-unidade');
   selUni.innerHTML='<option value="">— Selecione a unidade —</option>';
-  document.getElementById('exec-emp-panel').style.display='none';
-  document.getElementById('exec-nf-empenho').innerHTML='<option value="">— Selecione contrato e unidade primeiro —</option>';
-  document.getElementById('exec-nf-emp-info').style.display='none';
+  document.getElementById('nf-empenho-field').style.display='none';
+  document.getElementById('nf-empenho-info').style.display='none';
+  document.getElementById('nf-estorno-box').style.display='none';
   if(!val)return;
   const [gms,empresa]=val.split('|');
   const baseRows=[...STATE.base,...STATE.serv_base].filter(b=>b.gms===gms);
@@ -2999,135 +3061,115 @@ function onExecContratoChange(){
   }
   unis.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;selUni.appendChild(o)});
   const row=[...STATE.painel,...STATE.serv_painel].find(r=>r.gms===gms&&r.empresa===empresa);
-  document.getElementById('modal-exec-sub').textContent=row?
-    `Saldo disponível: R$ ${(row.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · ${empresa}`
+  document.getElementById('modal-nf-sub').textContent=row?
+    `Saldo disponível: R$ ${(row.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · Executado: R$ ${(row.executadoTotal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`
     :`Contrato: GMS ${gms} — ${empresa}`;
 }
 
-// Ao mudar unidade: atualiza tabela de empenhos e dropdown de NF
-function onExecUnidadeChange(){
-  const contratoVal=document.getElementById('exec-contrato').value;
-  const unidade=document.getElementById('exec-unidade').value;
-  if(!contratoVal||!unidade){
-    document.getElementById('exec-emp-panel').style.display='none';
-    document.getElementById('exec-nf-empenho').innerHTML='<option value="">— Selecione contrato e unidade primeiro —</option>';
-    return;
-  }
+// Ao mudar unidade: popula dropdown apenas com empenhos COM saldo em aberto
+function onNFUnidadeChange(){
+  const contratoVal=document.getElementById('nf-modal-contrato').value;
+  const unidade=document.getElementById('nf-modal-unidade').value;
+  const empField=document.getElementById('nf-empenho-field');
+  const empSel=document.getElementById('nf-modal-empenho');
+  document.getElementById('nf-empenho-info').style.display='none';
+  document.getElementById('nf-estorno-box').style.display='none';
+  if(!contratoVal||!unidade){empField.style.display='none';return}
   const [gms]=contratoVal.split('|');
   const gmsPure=gms.replace(/[\/\s]/g,'').toUpperCase();
   const uniNorm=unidade.toUpperCase().trim();
-  // Todos os empenhos desta unidade + contrato
-  const empsUni=(STATE.empenhos||[]).filter(e=>{
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const abertos=(STATE.empenhos||[]).filter(e=>{
     const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
     const eu=(e.unidade||'').toUpperCase().trim();
-    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&eu===uniNorm;
+    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&eu===uniNorm
+      &&!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado';
   });
-  // Tabela de empenhos
-  const tbody=document.getElementById('exec-emp-tbody');
-  const panel=document.getElementById('exec-emp-panel');
-  const hoje=new Date();hoje.setHours(0,0,0,0);
-  if(empsUni.length){
-    panel.style.display='';
-    tbody.innerHTML=empsUni.map(e=>{
-      const vencida=e.vencimento&&e.vencimento<hoje;
-      const proxVenc=e.vencimento&&!vencida&&(e.vencimento-hoje)<=15*86400000;
-      const stColor=e.status==='VENCIDO'||vencida?'var(--red)':e.status==='URGENTE'||proxVenc?'var(--yel)':e.status==='Pago'||e.status==='Extornado'?'var(--lbl)':'var(--green)';
-      return`<tr style="border-bottom:1px solid var(--bdr)">
-        <td style="padding:6px 8px;font-weight:700">${e.numero}</td>
-        <td style="padding:6px 8px;text-align:right">${brl(e.valor)}</td>
-        <td style="padding:6px 8px;text-align:right;font-weight:700;color:${e.saldo<0.01?'var(--lbl)':'var(--txt)'}">${brl(e.saldo)}</td>
-        <td style="padding:6px 8px;text-align:center;font-size:10px;${vencida?'color:var(--red)':proxVenc?'color:var(--yel)':''}">${e.vencimento?e.vencimento.toLocaleDateString('pt-BR'):'—'}${vencida?' ⚠️':proxVenc?' ⚡':''}</td>
-        <td style="padding:6px 8px;text-align:center;font-size:10px;font-weight:700;color:${stColor}">${e.status||'—'}</td>
-      </tr>`;
-    }).join('');
-  } else {
-    panel.style.display='';
-    tbody.innerHTML='<tr><td colspan="5" style="padding:10px 8px;text-align:center;color:var(--lbl);font-size:11px">Nenhum empenho registrado para esta unidade</td></tr>';
-  }
-  // Dropdown NF: apenas empenhos COM saldo desta unidade
-  const empSel=document.getElementById('exec-nf-empenho');
-  const comSaldo=empsUni.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
-  empSel.innerHTML='<option value="">— Sem empenho (lançamento avulso) —</option>';
-  if(comSaldo.length){
-    comSaldo.forEach(e=>{
+  empSel.innerHTML='<option value="">— Selecione o empenho —</option>';
+  if(abertos.length){
+    abertos.forEach(e=>{
       const o=document.createElement('option');
       o.value=e.numero;
+      const vencInfo=e.vencimento?` | Venc: ${e.vencimento.toLocaleDateString('pt-BR')}`:'';
       const vencida=e.vencimento&&e.vencimento<hoje;
-      o.textContent=`${e.numero} | Saldo: ${brl(e.saldo)}${e.vencimento?` | Venc: ${e.vencimento.toLocaleDateString('pt-BR')}${vencida?' ⚠️':''}`:'' }`;
+      o.textContent=`${e.numero} | Saldo: ${brl(e.saldo)}${vencInfo}${vencida?' ⚠️ VENCIDO':''}`;
       empSel.appendChild(o);
     });
+    empField.style.display='';
   } else {
-    const o=document.createElement('option');o.value='';o.textContent='— Nenhum empenho com saldo nesta unidade —';
-    empSel.appendChild(o);
+    empSel.innerHTML='<option value="">— Nenhum empenho com saldo em aberto nesta unidade —</option>';
+    empField.style.display='';
   }
-  document.getElementById('exec-nf-emp-info').style.display='none';
 }
 
-function onExecNFEmpenhoChange(){
-  const empNum=document.getElementById('exec-nf-empenho').value;
-  const info=document.getElementById('exec-nf-emp-info');
-  if(!empNum){info.style.display='none';return}
+function onNFEmpenhoChange(){
+  onNFValorInput();
+}
+
+// Recalcula saldo restante em tempo real conforme o valor da NF é digitado
+function onNFValorInput(){
+  const empNum=document.getElementById('nf-modal-empenho').value;
+  const info=document.getElementById('nf-empenho-info');
+  const estornoBox=document.getElementById('nf-estorno-box');
+  if(!empNum){info.style.display='none';estornoBox.style.display='none';return}
   const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
-  if(!emp){info.style.display='none';return}
+  if(!emp){info.style.display='none';estornoBox.style.display='none';return}
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const vencida=emp.vencimento&&emp.vencimento<hoje;
+  const valorStr=document.getElementById('nf-modal-valor').value.trim();
+  const valorNF=valorStr?num(valorStr):0;
+  const restante=Math.max(0,emp.saldo-(valorNF||0));
   info.style.display='';
   info.innerHTML=`💰 Saldo disponível: <strong>${brl(emp.saldo)}</strong> de ${brl(emp.valor)} empenhado`+
-    (emp.vencimento?` · Vencimento: <strong style="color:${vencida?'var(--red)':'var(--yel)'}">${emp.vencimento.toLocaleDateString('pt-BR')}${vencida?' ⚠️ VENCIDO':''}</strong>`:'');
+    (emp.vencimento?` · Vencimento: <strong style="color:${vencida?'var(--red)':'var(--yel)'}">${emp.vencimento.toLocaleDateString('pt-BR')}${vencida?' ⚠️ VENCIDO':''}</strong>`:'')+
+    (valorNF>0?`<br>📊 Saldo restante após esta NF: <strong style="color:${restante<0.01?'var(--green)':'var(--txt)'}">${brl(restante)}</strong>`:'');
+  // Mostra opção de estornar saldo restante
+  estornoBox.style.display='';
+  document.getElementById('nf-estorno-info').textContent=
+    `Saldo a estornar: ${brl(restante)} (zera o empenho ${emp.numero})`;
 }
 
-// Salvar Empenho pelo modal unificado
-function salvarEmpenhoExec(){
-  const contratoVal=document.getElementById('exec-contrato').value;
-  const unidade=document.getElementById('exec-unidade').value;
-  const numero=document.getElementById('exec-emp-numero').value.trim();
-  const valorStr=document.getElementById('exec-emp-valor').value.trim();
-  const vencimento=document.getElementById('exec-emp-vencimento').value;
-  if(!contratoVal){toast('Selecione o contrato.','err');return}
-  if(!unidade){toast('Selecione a unidade.','err');return}
-  if(!numero){toast('Informe o número do empenho.','err');return}
-  if(!valorStr){toast('Informe o valor do empenho.','err');return}
-  const valor=num(valorStr);
-  if(!valor||valor<=0){toast('Valor inválido.','err');return}
+function estornarSaldoRestante(){
+  const contratoVal=document.getElementById('nf-modal-contrato').value;
+  const empNum=document.getElementById('nf-modal-empenho').value;
+  const unidade=document.getElementById('nf-modal-unidade').value;
+  if(!contratoVal||!empNum){toast('Selecione o contrato, a unidade e o empenho.','err');return}
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
+  if(!emp){toast('Empenho não encontrado.','err');return}
+  const valorStr=document.getElementById('nf-modal-valor').value.trim();
+  const valorNF=valorStr?num(valorStr):0;
+  const restante=Math.max(0,emp.saldo-(valorNF||0));
+  if(restante<=0.01){toast('Não há saldo restante para estornar.','err');return}
   const [gms,empresa]=contratoVal.split('|');
-  const emp={unidade,numero,valor,vencimento:vencimento||''};
-  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarEmpenhoNoSheets(gms,empresa,emp,true);gapiLogin();return}
-  _gravarEmpenhoNoSheets(gms,empresa,emp,true);
+  const extorno={unidade,numero:empNum,valor:restante};
+  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarExtornoNoSheets(gms,empresa,extorno);gapiLogin();return}
+  _gravarExtornoNoSheets(gms,empresa,extorno);
 }
 
-// Salvar NF pelo modal unificado
-function salvarNFExec(){
-  const contratoVal=document.getElementById('exec-contrato').value;
-  const unidade=document.getElementById('exec-unidade').value;
-  const empNumero=document.getElementById('exec-nf-empenho').value||'';
-  const numeroNF=document.getElementById('exec-nf-numero').value.trim();
-  const valorStr=document.getElementById('exec-nf-valor').value.trim();
-  const dataVal=document.getElementById('exec-nf-data').value;
+function salvarNF(){
+  const contratoVal=document.getElementById('nf-modal-contrato').value;
+  const unidade=document.getElementById('nf-modal-unidade').value;
+  const empNumero=document.getElementById('nf-modal-empenho').value||'';
+  const numeroNF=document.getElementById('nf-modal-numero').value.trim();
+  const valorStr=document.getElementById('nf-modal-valor').value.trim();
+  const dataVal=document.getElementById('nf-modal-data').value;
   if(!contratoVal){toast('Selecione o contrato.','err');return}
   if(!unidade){toast('Selecione a unidade.','err');return}
   if(!numeroNF){toast('Informe o número da NF.','err');return}
   if(!valorStr){toast('Informe o valor da NF.','err');return}
   if(!dataVal){toast('Informe a data de pagamento.','err');return}
   const valor=num(valorStr);
-  if(!valor||valor<=0){toast('Valor inválido.','err');return}
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 15.500,00','err');return}
   if(empNumero){
     const emp=(STATE.empenhos||[]).find(e=>e.numero===empNumero);
-    if(emp&&valor>emp.saldo+0.01){toast(`Valor da NF (${brl(valor)}) excede o saldo do empenho (${brl(emp.saldo)}).`,'err');return}
+    if(emp&&valor>emp.saldo+0.01){toast(`Valor da NF (${brl(valor)}) excede o saldo do empenho ${empNumero} (${brl(emp.saldo)}).`,'err');return}
   }
   const dataObj=new Date(dataVal+'T12:00:00');
   const novaEntrada={unidade,valor,numeroNF,data:dataObj.toLocaleDateString('pt-BR'),ano:dataObj.getFullYear(),empenho:empNumero||null};
   const [gms,empresa]=contratoVal.split('|');
-  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarNFnoSheets(gms,empresa,novaEntrada,true);gapiLogin();return}
-  _gravarNFnoSheets(gms,empresa,novaEntrada,true);
+  if(!_gapiAccessToken){_pendingAfterAuth=()=>_gravarNFnoSheets(gms,empresa,novaEntrada);gapiLogin();return}
+  _gravarNFnoSheets(gms,empresa,novaEntrada);
 }
-
-// Mantém compatibilidade com chamadas antigas (ex: botão de detalhe do contrato)
-function abrirModalNF(gms,empresa){abrirModalExec(gms,empresa)}
-function fecharModalNF(){fecharModalExec()}
-function salvarNF(){salvarNFExec()}
-function abrirModalEmp(gms,empresa){abrirModalExec(gms,empresa)}
-function fecharModalEmp(){fecharModalExec()}
-function salvarEmpenho(){salvarEmpenhoExec()}
 
 // ============================================================
 // HELPERS: gravar NF e Empenho no Google Sheets
@@ -3171,7 +3213,7 @@ async function _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,colIdx){
 }
 
 async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
-  if(!keepModalOpen)fecharModalExec();
+  if(!keepModalOpen)fecharModalNF();
   showSpinner('Gravando NF na planilha do Drive...');
   const sheetKey=findNFSheet(gms,empresa);
   const spreadsheetId=STATE._driveSheetId||GAPI_SPREADSHEET_ID;
@@ -3228,6 +3270,19 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
       else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
       toast(`✓ NF ${novaEntrada.numeroNF} gravada! Aba: "${sheetTitle}"`,'ok');
     }
+    // Atualiza saldo/status do empenho vinculado em memória (Pago / Parcial / Aberto)
+    if(novaEntrada.empenho){
+      const gmsPure=gms.replace(/[\/\s]/g,'').toUpperCase();
+      const empObj=(STATE.empenhos||[]).find(e=>{
+        const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
+        return e.numero===novaEntrada.empenho&&(ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec));
+      });
+      if(empObj){
+        empObj.valorPago=(empObj.valorPago||0)+novaEntrada.valor;
+        empObj.saldo=Math.max(0,empObj.valor-empObj.valorPago);
+        empObj.status=empObj.saldo<0.01?'Pago':(empObj.valorPago>0?'Parcial':'Aberto');
+      }
+    }
     if(STATE.currentGMS===gms)showContract(gms,empresa);
   }catch(err){
     hideSpinner();
@@ -3237,7 +3292,7 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
 }
 
 async function _gravarEmpenhoNoSheets(gms,empresa,emp,keepModalOpen){
-  if(!keepModalOpen)fecharModalExec();
+  if(!keepModalOpen)fecharModalEmp();
   showSpinner('Gravando Empenho na planilha do Drive...');
   const sheetKey=findNFSheet(gms,empresa);
   const spreadsheetId=STATE._driveSheetId||GAPI_SPREADSHEET_ID;
@@ -3468,8 +3523,10 @@ async function _gravarExtornoNoSheets(gms,empresa,extorno){
     populateFilters();applyFilters();buildTabs();showOverview();
     const fn=STATE._pendingFileName||fileName;
     toast(`✓ Planilha carregada: ${STATE.painel.length} contratos, ${STATE.base.length} unidades.`,'ok');
-    const btnExec=document.getElementById('btn-lancar-exec');
-    if(btnExec)btnExec.style.display='';
+    const btnEmp=document.getElementById('btn-lancar-emp');
+    if(btnEmp)btnEmp.style.display='';
+    const btnNf=document.getElementById('btn-lancar-nf');
+    if(btnNf)btnNf.style.display='';
     const btnExt=document.getElementById('btn-estornar-emp');
     if(btnExt)btnExt.style.display='';
   };
