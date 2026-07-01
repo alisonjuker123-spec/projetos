@@ -3273,6 +3273,23 @@ async function _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,colIdx){
   return nfStartRow+values.length;
 }
 
+// Encontra a próxima linha após a última com qualquer dado em A:K (para empenhos sempre irem ao final)
+async function _findLastDataRow(spreadsheetId,sheetTitle,nfStartRow){
+  const range=`${sheetTitle}!A${nfStartRow}:K2000`;
+  const resp=await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+    {headers:{Authorization:'Bearer '+_gapiAccessToken}});
+  if(!resp.ok)throw new Error('HTTP '+resp.status);
+  const data=await resp.json();
+  const values=data.values||[];
+  let lastFilled=0;
+  for(let i=0;i<values.length;i++){
+    const row=values[i]||[];
+    if(row.some(c=>c!=null&&String(c).trim()!==''))lastFilled=i;
+  }
+  return nfStartRow+lastFilled+1;
+}
+
 async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
   if(!keepModalOpen)fecharModalNF();
   showSpinner('Gravando NF na planilha do Drive...');
@@ -3389,21 +3406,24 @@ async function _gravarEmpenhoNoSheets(gms,empresa,emp,keepModalOpen){
     const nfStartRow=await _findNFSectionRow(spreadsheetId,sheetTitle);
     if(nfStartRow<0){hideSpinner();toast('Seção de execução não encontrada na aba.','err');return;}
 
-    // Primeira linha onde col B (Empenho#, idx 1) está vazia
-    const targetRow=await _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,1);
+    // Usa a ÚLTIMA linha com dados (qualquer coluna A-K) + 1 para não inserir no meio de NFs sem empenho
+    const targetRow=await _findLastDataRow(spreadsheetId,sheetTitle,nfStartRow);
 
-    // Escreve A:D (Unidade, Empenho#, ValorEmpenho, Vencimento)
-    // E, F, K são fórmulas já pré-preenchidas na planilha — não tocar
-    const range=`${sheetTitle}!A${targetRow}:D${targetRow}`;
+    // Escreve A:K: A=Unidade, B=Empenho#, C=ValorEmpenho, D=Vencimento,
+    // E=fórmula saldo, F=fórmula status, G vazio, H vazio, I vazio, J vazio, K=fórmula ano
+    const eFormula=`=IF(B${targetRow}="","",C${targetRow}-SUMIF($H$1:$H$2001,B${targetRow},$I$1:$I$2001)-SUMIF($H$1:$H$2001,B${targetRow},$G$1:$G$2001))`;
+    const fFormula=`=IF(B${targetRow}="","",IF(E${targetRow}<=0,"Pago",IF(AND(D${targetRow}<>"",D${targetRow}<TODAY()),"Vencido Aberto","Aberto e Vigente")))`;
+    const kFormula=`=IF(J${targetRow}="","",YEAR(J${targetRow}))`;
+    const range=`${sheetTitle}!A${targetRow}:K${targetRow}`;
     const resp=await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
       {method:'PUT',headers:{Authorization:'Bearer '+_gapiAccessToken,'Content-Type':'application/json'},
-       body:JSON.stringify({range,majorDimension:'ROWS',values:[[emp.unidade,emp.numero,emp.valor,emp.vencimento||'']]})});
+       body:JSON.stringify({range,majorDimension:'ROWS',values:[[emp.unidade,emp.numero,emp.valor,emp.vencimento||'',eFormula,fFormula,'','','','',kFormula]]})});
     if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'HTTP '+resp.status)}
 
     // Atualiza empenhos em memória
     STATE.empenhos.push({contrato:gms,sheetName:sheetTitle,unidade:emp.unidade,numero:emp.numero,valor:emp.valor,
-      vencimento:emp.vencimento?new Date(emp.vencimento+'T12:00:00'):null,saldo:emp.valor,status:'OK',extornado:false,rowIdx:targetRow});
+      vencimento:emp.vencimento?new Date(emp.vencimento+'T12:00:00'):null,saldo:emp.valor,status:'Aberto e Vigente',extornado:false,rowIdx:targetRow});
     hideSpinner();
     toast(`✓ Empenho ${emp.numero} gravado! Aba: "${sheetTitle}" linha ${targetRow}`,'ok');
   }catch(err){
