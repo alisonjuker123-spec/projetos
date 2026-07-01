@@ -1298,7 +1298,7 @@ function mapPainelServ(raw){
     executadoTotal:num(CP.execTotal(o)),executado2025:num(CP.exec2025(o)),executado2026:num(CP.exec2026(o)),
     saldo:num(CP.saldo(o)),pctExecTotal:num(CP.pctExecTotal(o)),
     mediaGastoMensal:num(CP.mediaGasto(o)),
-    mesesRestantes:CP.mesesRest(o),mesesSaldo:CP.mesesSaldo(o),
+    mesesRestantes:null,mesesSaldo:CP.mesesSaldo(o),
     acimaDoTeto:str(CP.acimaDoTeto(o)),necessitaSupl:str(CP.necessitaSupl(o)),
     valorSupl:num(CP.valorSupl(o)),
     // compat fields para renderização compartilhada
@@ -1312,6 +1312,7 @@ function mapPainelServ(raw){
       meses=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());
     }
     r.valorMensal=meses>0?r.valorGlobal/meses:0;
+    if(r.dataFim){const hoje=new Date();hoje.setHours(0,0,0,0);const fim=new Date(r.dataFim);r.mesesRestantes=Math.max(0,(fim.getFullYear()-hoje.getFullYear())*12+(fim.getMonth()-hoje.getMonth()));}else{r.mesesRestantes=0;}
     return r;
   });
 }
@@ -1355,7 +1356,7 @@ function mapPainel(raw){
     executadoTotal:num(C.execTotal(o)),executado2025:num(C.exec2025(o)),executado2026:num(C.exec2026(o)),
     saldo:num(C.saldo(o)),pctExecTotal:num(C.pctExecTotal(o)),pctExecAnual:num(C.pctExecAnual(o)),
     mediaGastoMensal:num(C.mediaGasto(o)),gastoMensalPol:num(C.gastoMensalPol(o)),
-    mesesRestantes:C.mesesRest(o),mesesSaldo:C.mesesSaldo(o),
+    mesesRestantes:null,mesesSaldo:C.mesesSaldo(o),
     acimaDoTeto:str(C.acimaDoTeto(o)),necessitaSupl:str(C.necessitaSupl(o)),
     valorSupl:num(C.valorSupl(o))
   })).filter(r=>r.gms).map(r=>{
@@ -1366,6 +1367,7 @@ function mapPainel(raw){
       meses=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());
     }
     r.valorMensal=meses>0?r.valorGlobal/meses:0;
+    if(r.dataFim){const hoje=new Date();hoje.setHours(0,0,0,0);const fim=new Date(r.dataFim);r.mesesRestantes=Math.max(0,(fim.getFullYear()-hoje.getFullYear())*12+(fim.getMonth()-hoje.getMonth()));}else{r.mesesRestantes=0;}
     return r;
   });
 }
