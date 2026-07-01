@@ -123,8 +123,9 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:
 .emp-venc-alert{background:#1c0a0a;border:1px solid var(--red);border-radius:8px;padding:14px 18px;margin-bottom:14px}
 .emp-venc-alert .alrt-title{color:var(--red)}
 .emp-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase}
-.emp-badge-ab{background:rgba(34,197,94,.15);color:var(--green)}
-.emp-badge-pa{background:rgba(79,142,247,.15);color:var(--blue)}
+.emp-badge-ab{background:rgba(34,197,94,.15);color:var(--green)}   /* Aberto e Vigente */
+.emp-badge-pa{background:rgba(79,142,247,.15);color:var(--blue)}   /* Pago */
+.emp-badge-ve{background:rgba(239,68,68,.15);color:var(--red)}     /* Vencido Aberto */
 .emp-badge-pr{background:rgba(245,158,11,.15);color:var(--yel)}
 .emp-badge-ex{background:rgba(100,116,139,.15);color:var(--lbl)}
 .kpi-g8{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
@@ -1649,7 +1650,7 @@ function buildEmpNFCombinedHTML(gms,nfs,nfTotal){
     });
     const hoje=new Date();hoje.setHours(0,0,0,0);
     const em15=new Date(hoje.getTime()+15*24*60*60*1000);
-    const abertos=empContrato.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
+    const abertos=empContrato.filter(_empAberto);
     if(!empContrato.length&&!nfs.length)return '';
     STATE._ctdAbertos=abertos;
     STATE._currentNFs=nfs;
@@ -1686,9 +1687,8 @@ function renderCtdAbertosTable(abertos){
     const venc=e.vencimento;
     const vencida=venc&&venc<hoje;
     const proxVenc=venc&&venc<=em15&&!vencida;
-    const stBadge=e.status==='Parcial'?'emp-badge-pr':'emp-badge-ab';
     const vencStyle=vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':'';
-    const vencTxt=venc?venc.toLocaleDateString('pt-BR')+'('+(vencida?'VENCIDO':proxVenc?'PRÓXIMO':'OK')+')':'—';
+    const vencTxt=venc?venc.toLocaleDateString('pt-BR')+(vencida?' (VENCIDO)':proxVenc?' (PRÓXIMO)':''):'—';
     return '<tr>'
       +'<td style="font-weight:700">'+e.numero+'</td>'
       +'<td>'+(e.unidade||'—')+'</td>'
@@ -1696,7 +1696,7 @@ function renderCtdAbertosTable(abertos){
       +'<td style="text-align:right">'+brl(e.valorPago)+'</td>'
       +'<td style="text-align:right;font-weight:700;color:var(--txt)">'+brl(e.saldo)+'</td>'
       +'<td style="white-space:nowrap;'+vencStyle+'">'+vencTxt+'</td>'
-      +'<td><span class="emp-badge '+stBadge+'">'+(e.status||'Aberto')+'</span></td>'
+      +'<td>'+empStatusBadge(e)+'</td>'
       +'</tr>';
   }).join('');
   return '<div class="tbl-cont" style="max-height:520px">'
@@ -1734,6 +1734,24 @@ function showCtdTab(tab,el){
   if(tab==='nfs'&&(STATE._currentNFs||[]).length)setTimeout(()=>buildNFChart(STATE._currentNFs),60);
 }
 
+function empStatusBadge(e){
+  const s=e.status||'';
+  if(s==='Pago')return '<span class="emp-badge emp-badge-pa">Pago</span>';
+  if(s==='Vencido Aberto')return '<span class="emp-badge emp-badge-ve">Vencido Aberto</span>';
+  if(s==='Aberto e Vigente')return '<span class="emp-badge emp-badge-ab">Aberto e Vigente</span>';
+  // fallback para status legado ou computado em memória
+  if(e.saldo<0.01)return '<span class="emp-badge emp-badge-pa">Pago</span>';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  if(e.vencimento&&e.vencimento<hoje)return '<span class="emp-badge emp-badge-ve">Vencido Aberto</span>';
+  return '<span class="emp-badge emp-badge-ab">Aberto e Vigente</span>';
+}
+function _empAberto(e){
+  // Empenho em aberto = tem saldo E status não é "Pago"
+  if(e.saldo<0.01)return false;
+  const s=e.status||'';
+  return s!=='Pago';
+}
+
 function renderEmpKPIs(){
   const emps=STATE.empenhos||[];
   const wrap=document.getElementById('sec-empenhos-wrap');
@@ -1741,7 +1759,7 @@ function renderEmpKPIs(){
   if(wrap)wrap.style.display='';
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const em15=new Date(hoje.getTime()+15*24*60*60*1000);
-  const abertos=emps.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
+  const abertos=emps.filter(_empAberto);
   const qtEmp=abertos.length;
   const valEmp=abertos.reduce((a,e)=>a+e.valor,0);
   const saldoEmp=abertos.reduce((a,e)=>a+e.saldo,0);
@@ -1789,7 +1807,6 @@ function renderEmpTable(emps,filtro){
     const vencida=venc&&venc<hoje;
     const proxVenc=venc&&venc<=em15&&!vencida;
     const pct=e.valor>0?Math.min((e.valorPago/e.valor)*100,100):0;
-    const stBadge=e.status==='Pago'?'emp-badge-pa':e.status==='Parcial'?'emp-badge-pr':e.extornado?'emp-badge-ex':'emp-badge-ab';
     return `<tr>
       <td style="font-weight:700;white-space:nowrap">${e.numero}</td>
       <td>${e.contrato}</td>
@@ -1800,13 +1817,13 @@ function renderEmpTable(emps,filtro){
       <td style="text-align:right;font-weight:700;color:${e.saldo<0.01?'var(--green)':'var(--txt)'}">${brl(e.saldo)}</td>
       <td style="white-space:nowrap">${e.dataEmissao?e.dataEmissao.toLocaleDateString('pt-BR'):'—'}</td>
       <td style="white-space:nowrap;${vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':''}">${venc?venc.toLocaleDateString('pt-BR'):'—'}${vencida?' ⚠️':proxVenc?' ⚡':''}</td>
-      <td><span class="emp-badge ${stBadge}">${e.status||'Aberto'}</span></td>
+      <td>${empStatusBadge(e)}</td>
     </tr>`;
   }).join('');
 }
 
 function filterEmpTable(q){
-  const abertos=(STATE.empenhos||[]).filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
+  const abertos=(STATE.empenhos||[]).filter(_empAberto);
   renderEmpTable(abertos,q);
 }
 
@@ -3130,8 +3147,7 @@ function onNFUnidadeChange(){
   const abertos=(STATE.empenhos||[]).filter(e=>{
     const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
     const eu=(e.unidade||'').toUpperCase().trim();
-    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&eu===uniNorm
-      &&!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado';
+    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&eu===uniNorm&&_empAberto(e);
   });
   empSel.innerHTML='<option value="">— Selecione o empenho —</option>';
   if(abertos.length){
@@ -3337,7 +3353,10 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
         const estornado=(novaEntrada.estornoValor||0);
         empObj.saldo=Math.max(0,empObj.valor-empObj.valorPago-estornado);
         if(estornado>0)empObj.extornado=empObj.saldo<0.01;
-        empObj.status=empObj.saldo<0.01?(estornado>0?'Extornado':'Pago'):(empObj.valorPago>0?'Parcial':'Aberto');
+        const hoje2=new Date();hoje2.setHours(0,0,0,0);
+        if(empObj.saldo<0.01){empObj.status='Pago';}
+        else if(empObj.vencimento&&empObj.vencimento<hoje2){empObj.status='Vencido Aberto';}
+        else{empObj.status='Aberto e Vigente';}
       }
     }
     if(STATE.currentGMS===gms)showContract(gms,empresa);
@@ -3432,8 +3451,7 @@ function onExtContratoChange(){
   // Empenhos com saldo > 0 e não extornados
   const comSaldo=(STATE.empenhos||[]).filter(e=>{
     const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
-    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))
-      &&!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado';
+    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&_empAberto(e);
   });
   if(!comSaldo.length){
     empSel.innerHTML='<option value="">— Nenhum empenho com saldo em aberto —</option>';
@@ -3546,8 +3564,11 @@ async function _gravarExtornoNoSheets(gms,empresa,extorno){
     const emp=(STATE.empenhos||[]).find(e=>e.numero===extorno.numero);
     if(emp){
       emp.saldo=Math.max(0,emp.saldo-extorno.valor);
-      emp.status=emp.saldo<0.01?'Extornado':emp.status;
       emp.extornado=emp.saldo<0.01;
+      const hojeE=new Date();hojeE.setHours(0,0,0,0);
+      if(emp.saldo<0.01){emp.status='Pago';}
+      else if(emp.vencimento&&emp.vencimento<hojeE){emp.status='Vencido Aberto';}
+      else{emp.status='Aberto e Vigente';}
     }
     hideSpinner();
     toast(`✓ Estorno de ${brl(extorno.valor)} registrado! Empenho ${extorno.numero} — aba "${sheetTitle}" linha ${targetRow}`,'ok');
