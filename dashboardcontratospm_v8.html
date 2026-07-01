@@ -1699,7 +1699,7 @@ function renderCtdAbertosTable(abertos){
       +'<td><span class="emp-badge '+stBadge+'">'+(e.status||'Aberto')+'</span></td>'
       +'</tr>';
   }).join('');
-  return '<div class="tbl-cont" style="max-height:260px">'
+  return '<div class="tbl-cont" style="max-height:520px">'
     +'<table class="dt"><thead><tr>'
     +'<th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th><th>Vencimento</th><th>Status</th>'
     +'</tr></thead><tbody>'+linhas+'</tbody></table></div>';
@@ -1721,7 +1721,7 @@ function renderCtdNFsPanel(nfs){
         <input type="text" id="nf-search" placeholder="🔍 Nº NF..." oninput="filterNFs()" style="width:100px">
       </div>
     </div>
-    <div class="tbl-cont" id="nf-table-cont" style="max-height:260px">${renderNFTable(nfs)}</div>
+    <div class="tbl-cont" id="nf-table-cont" style="max-height:520px">${renderNFTable(nfs)}</div>
     <div style="margin-top:14px"><canvas id="ch-d-nf" height="130"></canvas></div>`;
 }
 
@@ -2705,7 +2705,7 @@ function renderServDetail(row){
         </select>
       </div>
     </div>
-    <div class="tbl-cont" id="nf-table-cont" style="max-height:260px">${renderNFTable(nfs)}</div>
+    <div class="tbl-cont" id="nf-table-cont" style="max-height:520px">${renderNFTable(nfs)}</div>
     <div style="margin-top:14px"><canvas id="sv-ch-d-nf" height="120"></canvas></div>
   </div>`:`<div class="cc" style="margin-bottom:14px;text-align:center;padding:18px;color:var(--lbl)">Sem registros de notas fiscais para este contrato.</div>`}
   `;
