@@ -1647,21 +1647,31 @@ function buildEmpNFCombinedHTML(gms,nfs,nfTotal){
       const ec=e.contrato.replace(/[\/\s]/g,'').toUpperCase();
       return ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec);
     });
+    const hoje=new Date();hoje.setHours(0,0,0,0);
+    const em15=new Date(hoje.getTime()+15*24*60*60*1000);
     const abertos=empContrato.filter(e=>!e.extornado&&e.saldo>0.01&&e.status!=='Pago'&&e.status!=='Extornado');
     if(!empContrato.length&&!nfs.length)return '';
     STATE._ctdAbertos=abertos;
     STATE._currentNFs=nfs;
+    STATE._ctdEmpContrato=empContrato;
     const saldoAbertoTotal=abertos.reduce((a,e)=>a+e.saldo,0);
+    const valorEmpenhado=empContrato.reduce((a,e)=>a+e.valor,0);
+    const vencendo15=abertos.filter(e=>e.vencimento&&e.vencimento<=em15);
+    const kpis='<div class="kpi-g4" style="margin-bottom:14px">'
+      +'<div class="kc" style="border-top-color:var(--pur)"><div class="kl">Empenhos em Aberto</div><div class="kv">'+abertos.length+'</div><div class="ks">com saldo disponível</div></div>'
+      +'<div class="kc" style="border-top-color:var(--blue)"><div class="kl">Valor Total Empenhado</div><div class="kv" style="font-size:14px">'+brl(valorEmpenhado)+'</div><div class="ks">soma dos empenhos</div></div>'
+      +'<div class="kc" style="border-top-color:var(--yel)"><div class="kl">Saldo a Liquidar</div><div class="kv" style="font-size:14px">'+brl(saldoAbertoTotal)+'</div><div class="ks">ainda não pago</div></div>'
+      +'<div class="kc" style="border-top-color:var(--red)"><div class="kl">⚡ Vencendo em 15 dias</div><div class="kv">'+vencendo15.length+'</div><div class="ks">'+brl(vencendo15.reduce((a,e)=>a+e.saldo,0))+' em risco</div></div>'
+      +'</div>';
     return '<div class="nf-wrap">'
       +'<div class="tbl-hdr" style="margin-bottom:4px"><div>'
       +'<span class="tbl-ttl">📋 Empenhos &amp; Notas Fiscais</span>'
       +'</div></div>'
+      +kpis
       +'<div class="res-tabs" id="ctd-tabs">'
       +'<div class="res-tab active" data-tab="abertos" onclick="showCtdTab(\'abertos\',this)">Empenhos em Aberto <span class="tbl-badge">'+abertos.length+'</span></div>'
       +'<div class="res-tab" data-tab="nfs" onclick="showCtdTab(\'nfs\',this)">Notas Fiscais <span class="tbl-badge">'+nfs.length+'</span></div>'
       +'</div>'
-      +'<div style="font-size:11px;margin-bottom:8px"><span style="color:var(--yel);font-weight:600">Em aberto: '+brl(saldoAbertoTotal)+'</span>'
-      +'<span style="color:var(--green);font-weight:600;margin-left:14px">Total NFs: '+brl(nfTotal)+'</span></div>'
       +'<div id="ctd-panel-abertos">'+renderCtdAbertosTable(abertos)+'</div>'
       +'<div id="ctd-panel-nfs" style="display:none">'+renderCtdNFsPanel(nfs)+'</div>'
       +'</div>';
@@ -2210,17 +2220,25 @@ function renderDetail(row){
 
 function renderNFTable(nfs){
   if(!nfs.length)return'<div style="text-align:center;padding:14px;color:var(--lbl)">Nenhum registro.</div>';
+  const empMap={};
+  (STATE._ctdEmpContrato||STATE.empenhos||[]).forEach(e=>{if(e.numero)empMap[e.numero]=e.valor;});
   const total=nfs.reduce((a,n)=>a+n.valor,0);
-  return`<table class="dt"><thead><tr><th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor NF</th><th>Nº NF</th><th>Data Pgto</th><th>Ano</th></tr></thead>
-    <tbody>${nfs.map(n=>`<tr>
-      <td style="font-weight:700">${n.empenho||'—'}</td>
+  return`<table class="dt"><thead><tr>
+    <th>Unidade</th><th>Nº Empenho</th><th style="text-align:right">Valor Empenho</th><th>Nº NF</th><th style="text-align:right">Valor NF</th><th>Data Pgto</th><th>Ano</th>
+  </tr></thead>
+  <tbody>${nfs.map(n=>{
+    const valEmp=n.empenho?empMap[n.empenho]:null;
+    return`<tr>
       <td style="font-weight:600">${n.unidade||'—'}</td>
-      <td class="td-g" style="font-weight:600;text-align:right">${brl(n.valor)}</td>
+      <td style="font-weight:700">${n.empenho||'—'}</td>
+      <td style="text-align:right;color:var(--txt2)">${valEmp!=null?brl(valEmp):'—'}</td>
       <td style="color:var(--txt2)">${n.numeroNF||'—'}</td>
+      <td class="td-g" style="font-weight:600;text-align:right">${brl(n.valor)}</td>
       <td>${n.data||'—'}</td>
       <td><span class="badge ${n.ano===2026||n.ano==='2026'?'bg-g':'bg-b'}">${n.ano||'—'}</span></td>
-    </tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="2" style="font-weight:700;padding:8px 10px;color:var(--txt2)">TOTAL</td><td style="font-weight:700;padding:8px 10px;color:var(--green);text-align:right">${brl(total)}</td><td colspan="3"></td></tr></tfoot>
+    </tr>`;
+  }).join('')}</tbody>
+  <tfoot><tr><td colspan="4" style="font-weight:700;padding:8px 10px;color:var(--txt2)">TOTAL NFs</td><td style="font-weight:700;padding:8px 10px;color:var(--green);text-align:right">${brl(total)}</td><td colspan="2"></td></tr></tfoot>
   </table>`;
 }
 
