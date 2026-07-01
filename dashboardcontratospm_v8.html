@@ -3437,7 +3437,7 @@ async function _gravarEmpenhoNoSheets(gms,empresa,emp,keepModalOpen){
 
     // Escreve A:K: A=Unidade, B=Empenho#, C=ValorEmpenho, D=Vencimento,
     // E=fórmula saldo, F=fórmula status, G vazio, H vazio, I vazio, J vazio, K=fórmula ano
-    const eFormula=`=SE(B${targetRow}="";"";C${targetRow}-SOMASE($H$1:$H$2001;B${targetRow};$I$1:$I$2001)-SOMASE($H$1:$H$2001;B${targetRow};$G$1:$G$2001))`;
+    const eFormula=`=SE(B${targetRow}="";"";C${targetRow}-SEERRO(VALOR(I${targetRow});0)-SEERRO(VALOR(G${targetRow});0))`;
     const fFormula=`=SE(B${targetRow}="";"";SE(E${targetRow}<=0;"Pago";SE(E(D${targetRow}<>"";D${targetRow}<HOJE());"Vencido Aberto";"Aberto e Vigente")))`;
     const kFormula=`=SE(J${targetRow}="";"";ANO(J${targetRow}))`;
     const range=`${sheetTitle}!A${targetRow}:K${targetRow}`;
