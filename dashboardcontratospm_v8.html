@@ -3356,7 +3356,15 @@ async function _gravarNFnoSheets(gms,empresa,novaEntrada,keepModalOpen){
       const targetRow=(empObjForRow&&empObjForRow.rowIdx)?empObjForRow.rowIdx:await _findFirstEmptyRow(spreadsheetId,sheetTitle,nfStartRow,7);
       // Escreve H:J (NumeroNF, Valor, Data) e, se houver, G (ValorExtornado) na mesma linha
       // para não sobrescrever as fórmulas em E, F, K
-      const batchData=[{range:`${sheetTitle}!H${targetRow}:J${targetRow}`,values:[[novaEntrada.numeroNF,novaEntrada.valor,novaEntrada.data]]}];
+      const eFormula=`=SE(B${targetRow}="";"";C${targetRow}-SEERRO(VALOR(I${targetRow});0)-SEERRO(VALOR(G${targetRow});0))`;
+      const fFormula=`=SE(B${targetRow}="";"";SE(E${targetRow}<=0;"Pago";SE(E(D${targetRow}<>"";D${targetRow}<HOJE());"Vencido Aberto";"Aberto e Vigente")))`;
+      const kFormula=`=SE(J${targetRow}="";"";ANO(J${targetRow}))`;
+      const batchData=[
+        {range:`${sheetTitle}!E${targetRow}`,values:[[eFormula]]},
+        {range:`${sheetTitle}!F${targetRow}`,values:[[fFormula]]},
+        {range:`${sheetTitle}!H${targetRow}:J${targetRow}`,values:[[novaEntrada.numeroNF,novaEntrada.valor,novaEntrada.data]]},
+        {range:`${sheetTitle}!K${targetRow}`,values:[[kFormula]]}
+      ];
       if(!empObjForRow){
         // Lançamento avulso: também grava Unidade/Empenho# nessa nova linha
         batchData.unshift({range:`${sheetTitle}!A${targetRow}:B${targetRow}`,values:[[novaEntrada.unidade,novaEntrada.empenho||'']]});
