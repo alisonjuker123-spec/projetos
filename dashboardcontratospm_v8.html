@@ -1501,8 +1501,9 @@ function renderDash(){
   animNum('k-ct-gen',ctGen);animNum('k-ct-hort',ctHort);animNum('k-ct-coffee',ctCoffee);
   // Barra 1: execução total vs valor global da vigência
   const tot=sg||1,pp=(se/tot)*100,ps=(ss/tot)*100;
-  // Barra 2: executado 2026 vs valor anual c/ reajuste
-  const p26=sr>0?(se26/sr)*100:0,pr26=Math.max(0,100-p26);
+  // Barra 2: executado 2026 vs soma dos valores anuais (valorMensal*12)
+  const sanual=rows.reduce((a,r)=>a+(r.valorMensal||0)*12,0);
+  const p26=sanual>0?(se26/sanual)*100:0,pr26=Math.max(0,100-p26);
   // Meta proporcional: % do ano já decorrido (jan=1 a dez=12)
   const mesAtual=new Date().getMonth()+1; // 1-12
   const metaAnual=(mesAtual/12)*100;
@@ -1526,7 +1527,7 @@ function renderDash(){
   document.getElementById('lbl-saldo').textContent=`Saldo (${ps.toFixed(1)}%)`;
   const statusAnual=p26>=metaAnual?'✅ acima da meta':'⚠️ abaixo da meta';
   document.getElementById('lbl-exec26').textContent=`Executado 2026 — ${brl(se26)} (${p26.toFixed(1)}% | meta: ${metaAnual.toFixed(0)}% ${statusAnual})`;
-  document.getElementById('lbl-rest26').textContent=`A executar — ${brl(Math.max(0,sr-se26))} (${pr26.toFixed(1)}%)`;
+  document.getElementById('lbl-rest26').textContent=`A executar — ${brl(Math.max(0,sanual-se26))} (${pr26.toFixed(1)}%)`;
   // KPIs Empenhos
   try{renderEmpKPIs();}catch(e){console.error('renderEmpKPIs:',e);}
   // Charts
@@ -1866,13 +1867,27 @@ function renderResTab(tab){
       brl(col(r,['Saldo Total','Saldo'])),pct(col(r,['% Execução','% Exec.']))
     ]));
   } else if(tab==='uni'&&STATE.mode==='food'){
-    const cols=['Unidade','Contratos','Efetivo','Val. Alocado','Executado','Saldo','% Exec.'];
-    el.innerHTML=resTable(cols,STATE.res_uni.map(r=>[
-      col(r,['Unidade']),col(r,['Qtde Contratos','Quantidade']),col(r,['Efetivo (mais recente)','Efetivo']),
-      brl(col(r,['Valor Global Alocado (proporcional)','Valor Global Alocado','Valor'])),
-      brl(col(r,['Executado Total','Executado'])),brl(col(r,['Saldo Alocado','Saldo'])),
-      pct(col(r,['% Execução','% Exec.']))
-    ]));
+    const cols=['Unidade','Contratos','Efetivo','Val. Alocado','Executado','Saldo','% Exec.','Custo/Policial'];
+    el.innerHTML=resTable(cols,STATE.res_uni.map(r=>{
+      const unidade=col(r,['Unidade']);
+      let efetivo=num(col(r,['Efetivo (mais recente)','Efetivo']));
+      if(!efetivo&&unidade){
+        const baseRows=STATE.base.filter(b=>b.unidade===unidade&&b.efetivo>0);
+        if(baseRows.length)efetivo=Math.max(...baseRows.map(b=>b.efetivo));
+      }
+      const valAlocado=num(col(r,['Valor Global Alocado (proporcional)','Valor Global Alocado','Valor']));
+      const custoPol=efetivo>0?valAlocado/efetivo:0;
+      return[
+        unidade,
+        col(r,['Qtde Contratos','Quantidade']),
+        efetivo||'—',
+        brl(valAlocado),
+        brl(num(col(r,['Executado Total','Executado']))),
+        brl(num(col(r,['Saldo Alocado','Saldo']))),
+        pct(col(r,['% Execução','% Exec.'])),
+        efetivo>0?brl(custoPol):'—'
+      ];
+    }));
   } else {
     const cols=['Tipo','Qtde','Valor Global','Executado','Saldo','% Exec.','Gasto Mensal'];
     const src=getActiveResTipo();
