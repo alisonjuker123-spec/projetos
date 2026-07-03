@@ -678,9 +678,9 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
         <div id="sec-empenhos-wrap" style="display:none">
           <div class="sec-lbl" style="margin-top:2px">Empenhos</div>
           <div class="kpi-g4">
-            <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Empenhos em Aberto</div><div class="kv" id="k-emp-qt">0</div><div class="ks">quantidade</div></div>
-            <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Valor Total Empenhado</div><div class="kv" id="k-emp-val">0,00</div><div class="ks">valor original</div></div>
+            <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Empenhos em Aberto</div><div class="kv" id="k-emp-qt">0</div><div class="ks">com saldo disponível</div></div>
             <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Saldo a Liquidar</div><div class="kv" id="k-emp-saldo">0,00</div><div class="ks">ainda não pago</div></div>
+            <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Empenhos Vencidos</div><div class="kv" id="k-emp-vencidos">0</div><div class="ks" id="k-emp-vencidos-val">R$ 0,00 em aberto</div></div>
             <div class="kc big" style="border-top-color:var(--red)"><div class="kl">⚡ Vencendo em 15 dias</div><div class="kv" id="k-emp-venc">0</div><div class="ks" id="k-emp-venc-val">R$ 0,00 em risco</div></div>
           </div>
         </div>
@@ -1769,10 +1769,14 @@ function renderEmpKPIs(){
   const vencendo=abertos.filter(e=>e.vencimento&&e.vencimento<=em15);
   const qtVenc=vencendo.length;
   const valVenc=vencendo.reduce((a,e)=>a+e.saldo,0);
+  const vencidos=abertos.filter(e=>e.vencimento&&e.vencimento<hoje);
+  const qtVencidos=vencidos.length;
+  const valVencidos=vencidos.reduce((a,e)=>a+e.saldo,0);
   const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
   setT('k-emp-qt',qtEmp);
-  setT('k-emp-val',brl(valEmp));
   setT('k-emp-saldo',brl(saldoEmp));
+  setT('k-emp-vencidos',qtVencidos);
+  setT('k-emp-vencidos-val',brl(valVencidos)+' em aberto');
   setT('k-emp-venc',qtVenc);
   setT('k-emp-venc-val',brl(valVenc)+' em risco');
   // Alert panel para vencendo
