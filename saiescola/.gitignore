@@ -8,3 +8,4 @@ backend/.env
 dist/
 .DS_Store
 backend/public/
+saiescola-v2.html
