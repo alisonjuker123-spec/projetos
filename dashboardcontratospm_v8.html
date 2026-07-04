@@ -495,8 +495,10 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- INPUT FILE OCULTO -->
-<input type="file" id="file-input" accept=".xlsx,.xls,.ods,.csv" style="display:none" onchange="handleFileInput(this)">
+<!-- INPUT FILE OCULTO — posicionado fora da tela mas acessível ao Safari iOS -->
+<input type="file" id="file-input" accept=".xlsx,.xls,.ods,.csv"
+  style="position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0"
+  onchange="handleFileInput(this)">
 
 <div class="app">
   <!-- SIDEBAR -->
@@ -549,7 +551,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <button class="btn-pri" style="background:var(--pur);display:none" id="btn-lancar-emp" onclick="abrirModalEmp()" title="Lançar Empenho">🏦 Lançar Empenho</button>
       <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-nf" onclick="abrirModalNF()" title="Lançar Nota Fiscal">🧾 Lançar NF</button>
       <button class="btn-pri" style="background:var(--orn);display:none" id="btn-estornar-emp" onclick="abrirModalExt()" title="Estornar saldo de Empenho">↩ Estornar Empenho</button>
-      <button class="btn-pri" onclick="document.getElementById('file-input').click()">📂 Importar Planilha</button>
+      <label for="file-input" class="btn-pri" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📂 Importar Planilha</label>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
     </div>
@@ -579,7 +581,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
               <span class="drop-fmt">.xls</span>
               <span class="drop-fmt">.ods</span>
             </div>
-            <button class="drop-btn" onclick="event.stopPropagation();document.getElementById('file-input').click()">Selecionar Arquivo</button>
+            <label for="file-input" class="drop-btn" style="cursor:pointer;display:inline-block" onclick="event.stopPropagation()">Selecionar Arquivo</label>
           </div>
           <div style="background:var(--card);border-radius:8px;padding:18px 20px;border-left:4px solid var(--blue)">
             <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">ℹ Abas esperadas na planilha</div>
