@@ -2,6 +2,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>SaiEscola — Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -18,7 +19,6 @@
   .screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
   .screen.active{display:flex;}
 
-  /* Login */
   #login{justify-content:center;align-items:center;padding:32px 24px;background:linear-gradient(160deg,#0F1629 0%,#162040 100%);}
   .logo-wrap{text-align:center;margin-bottom:36px;}
   .logo-icon{width:72px;height:72px;background:var(--primary);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:32px;box-shadow:0 8px 32px rgba(79,142,247,.35);}
@@ -28,8 +28,8 @@
   .login-card h2{font-size:17px;font-weight:600;margin-bottom:18px;}
   .field{margin-bottom:13px;}
   .field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
-  .field input,.field select{width:100%;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;outline:none;transition:border-color .15s;}
-  .field input:focus,.field select:focus{border-color:var(--primary);}
+  .field input{width:100%;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;outline:none;transition:border-color .15s;}
+  .field input:focus{border-color:var(--primary);}
   .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;user-select:none;}
   .btn-primary{background:var(--primary);color:#fff;}
   .btn-primary:active{background:var(--primary-d);transform:scale(.98);}
@@ -52,7 +52,6 @@
   .hint-chip[data-role="portao"] .role{color:var(--green);}
   .hint-chip[data-role="admin"] .role{color:var(--muted);}
 
-  /* Topbar */
   .topbar{display:flex;align-items:center;padding:14px 18px 12px;background:var(--surface);border-bottom:1px solid var(--border);gap:11px;flex-shrink:0;}
   .topbar-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
   .topbar-info{flex:1;min-width:0;}
@@ -62,19 +61,18 @@
   .notif-btn{position:relative;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px;}
   .badge-dot{width:8px;height:8px;background:var(--amber);border-radius:50%;position:absolute;top:-1px;right:-1px;}
 
-  /* Sync indicator */
-  .sync-bar{display:flex;align-items:center;gap:6px;padding:6px 18px;background:rgba(16,201,143,.08);border-bottom:1px solid rgba(16,201,143,.15);font-size:11px;color:var(--green);font-weight:600;flex-shrink:0;}
+  .sync-bar{display:flex;align-items:center;gap:6px;padding:6px 18px;border-bottom:1px solid rgba(16,201,143,.15);font-size:11px;font-weight:600;flex-shrink:0;background:rgba(16,201,143,.08);color:var(--green);}
   .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.4s infinite;}
   .sync-bar.offline{background:rgba(245,166,35,.08);border-color:rgba(245,166,35,.15);color:var(--amber);}
-  .sync-bar.offline .sync-dot{background:var(--amber);}
+  .sync-bar.offline .sync-dot{background:var(--amber);animation:none;}
+  .sync-bar.error{background:rgba(245,101,101,.08);border-color:rgba(245,101,101,.15);color:var(--red);}
+  .sync-bar.error .sync-dot{background:var(--red);animation:none;}
 
-  /* Content */
   .content{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
   .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;}
   .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);}
   .count-pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--surface2);color:var(--muted);}
 
-  /* Card */
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;transition:border-color .2s;}
   .card.highlight{border-color:var(--amber);}
   .card.highlight-green{border-color:var(--green);}
@@ -86,7 +84,6 @@
   .card-sub{font-size:13px;color:var(--muted);margin-top:1px;}
   .card-footer{margin-top:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-  /* Badge */
   .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.3px;}
   .badge::before{content:'';width:6px;height:6px;border-radius:50%;}
   .badge-escola{background:rgba(122,139,173,.15);color:var(--muted);}
@@ -99,19 +96,16 @@
   .badge-saiu::before{background:var(--green);}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
 
-  /* Notif banner */
   .notif-banner{display:none;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.25);border-radius:var(--radius);padding:13px 15px;margin:0 14px;flex-shrink:0;}
   .notif-banner.show{display:block;animation:slideIn .25s ease;}
   .notif-title{font-size:13px;font-weight:700;color:var(--amber);margin-bottom:3px;}
   .notif-body{font-size:13px;color:var(--text);}
   @keyframes slideIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 
-  /* Empty */
   .empty{text-align:center;padding:40px 20px;color:var(--muted);}
   .empty-icon{font-size:38px;margin-bottom:10px;}
   .empty-text{font-size:14px;}
 
-  /* Timeline */
   .timeline-row{display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border);}
   .timeline-row:last-child{border-bottom:none;}
   .timeline-time{font-size:12px;color:var(--muted);width:42px;flex-shrink:0;padding-top:2px;font-variant-numeric:tabular-nums;}
@@ -119,57 +113,32 @@
   .timeline-name{font-size:14px;font-weight:600;}
   .timeline-sub{font-size:12px;color:var(--muted);margin-top:1px;}
 
-  /* Stats */
   .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
   .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 10px;text-align:center;}
   .stat-num{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;}
   .stat-label{font-size:11px;color:var(--muted);margin-top:1px;font-weight:500;}
 
-  /* Table */
   .table-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:8px 11px;border-bottom:1px solid var(--border);}
   td{padding:10px 11px;border-bottom:1px solid var(--border);}
   tr:last-child td{border-bottom:none;}
 
-  /* Toast */
   #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(12px);background:#1e2d4d;border:1px solid var(--border);border-radius:100px;padding:10px 20px;font-size:13px;font-weight:600;color:var(--text);opacity:0;pointer-events:none;transition:all .25s;white-space:nowrap;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-  /* Session picker */
-  #session-screen{justify-content:center;align-items:center;padding:24px;background:linear-gradient(160deg,#0F1629 0%,#162040 100%);}
-  .session-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;width:100%;}
-  .session-card h2{font-size:17px;font-weight:600;margin-bottom:6px;}
-  .session-card p{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.5;}
-  .session-code{font-size:32px;font-weight:800;letter-spacing:6px;text-align:center;padding:18px;background:var(--surface2);border-radius:var(--radius-sm);color:var(--primary);font-variant-numeric:tabular-nums;margin-bottom:14px;}
-  .or-divider{text-align:center;color:var(--muted);font-size:12px;margin:12px 0;position:relative;}
-  .or-divider::before,.or-divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:var(--border);}
-  .or-divider::before{left:0;}.or-divider::after{right:0;}
-  .join-row{display:flex;gap:8px;}
-  .join-row input{flex:1;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:18px;font-weight:700;letter-spacing:4px;text-align:center;outline:none;text-transform:uppercase;}
-  .join-row input:focus{border-color:var(--primary);}
+  /* Loading */
+  #loading-screen{justify-content:center;align-items:center;gap:14px;background:var(--bg);}
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 
 <div id="app">
 
-  <!-- SESSION PICKER -->
-  <div id="session-screen" class="screen active">
-    <div style="text-align:center;margin-bottom:28px;">
-      <div class="logo-icon" style="margin:0 auto 12px">🏫</div>
-      <div class="logo-name">SaiEscola</div>
-      <div class="logo-sub">Demo em tempo real</div>
-    </div>
-    <div class="session-card">
-      <h2>Criar sessão de teste</h2>
-      <p>Compartilhe o código abaixo com os outros celulares para todos verem as atualizações em tempo real.</p>
-      <div class="session-code" id="my-session-code">----</div>
-      <button class="btn btn-primary" onclick="createSession()" id="create-btn">Criar nova sessão</button>
-      <div class="or-divider">ou entre em uma sessão existente</div>
-      <div class="join-row">
-        <input type="text" id="join-code" placeholder="XXXX" maxlength="4" oninput="this.value=this.value.toUpperCase()">
-        <button class="btn btn-secondary btn-sm" onclick="joinSession()" style="white-space:nowrap">Entrar</button>
-      </div>
-    </div>
+  <!-- LOADING -->
+  <div id="loading-screen" class="screen active">
+    <div class="spinner"></div>
+    <div style="color:var(--muted);font-size:14px">Conectando...</div>
   </div>
 
   <!-- LOGIN -->
@@ -177,7 +146,7 @@
     <div class="logo-wrap">
       <div class="logo-icon">🏫</div>
       <div class="logo-name">SaiEscola</div>
-      <div class="logo-sub">Sessão: <span id="session-label" style="color:var(--primary)"></span></div>
+      <div class="logo-sub">Sistema de Retirada de Alunos</div>
     </div>
     <div class="login-card">
       <h2>Entrar</h2>
@@ -220,7 +189,7 @@
       </div>
       <button class="topbar-action" onclick="logout()">↩</button>
     </div>
-    <div class="sync-bar" id="sync-pai"><span class="sync-dot"></span><span id="sync-pai-text">Sincronizando...</span></div>
+    <div class="sync-bar" id="sync-pai"><span class="sync-dot"></span><span id="sync-pai-text">Conectando...</span></div>
     <div class="content" id="pai-content"></div>
   </div>
 
@@ -232,10 +201,10 @@
         <div class="topbar-name">Prof. Ana Lima</div>
         <div class="topbar-role">3º ano A</div>
       </div>
-      <button class="notif-btn" id="notif-bell" onclick="toggleNotif()">🔔<span class="badge-dot" id="bell-dot" style="display:none"></span></button>
+      <button class="notif-btn" onclick="toggleNotif()">🔔<span class="badge-dot" id="bell-dot" style="display:none"></span></button>
       <button class="topbar-action" onclick="logout()">↩</button>
     </div>
-    <div class="sync-bar" id="sync-prof"><span class="sync-dot"></span><span id="sync-prof-text">Sincronizando...</span></div>
+    <div class="sync-bar" id="sync-professora"><span class="sync-dot"></span><span id="sync-professora-text">Conectando...</span></div>
     <div class="notif-banner" id="prof-notif-banner">
       <div class="notif-title">🔔 Nova solicitação de retirada</div>
       <div class="notif-body" id="prof-notif-text">—</div>
@@ -253,7 +222,7 @@
       </div>
       <button class="topbar-action" onclick="logout()">↩</button>
     </div>
-    <div class="sync-bar" id="sync-portao"><span class="sync-dot"></span><span id="sync-portao-text">Sincronizando...</span></div>
+    <div class="sync-bar" id="sync-portao"><span class="sync-dot"></span><span id="sync-portao-text">Conectando...</span></div>
     <div class="content" id="portao-content"></div>
   </div>
 
@@ -267,7 +236,7 @@
       </div>
       <button class="topbar-action" onclick="logout()">↩</button>
     </div>
-    <div class="sync-bar" id="sync-admin"><span class="sync-dot"></span></div>
+    <div class="sync-bar" id="sync-admin"><span class="sync-dot"></span><span id="sync-admin-text">Conectando...</span></div>
     <div class="content" id="admin-content"></div>
   </div>
 
@@ -275,103 +244,118 @@
 </div>
 
 <script>
-// ── Static data ─────────────────────────────────────────────
-const DB = {
-  alunos: [
-    {id:1,nome:'Lucas Silva',   turma:'3º ano A',turmaId:1,cor:'#4F8EF7'},
-    {id:2,nome:'Sofia Silva',   turma:'3º ano A',turmaId:1,cor:'#8B5CF6'},
-    {id:3,nome:'Pedro Oliveira',turma:'4º ano B',turmaId:2,cor:'#F5A623'},
-    {id:4,nome:'Ana Costa',     turma:'2º ano C',turmaId:3,cor:'#10C98F'},
-    {id:5,nome:'Marcos Pereira',turma:'3º ano A',turmaId:1,cor:'#F56565'},
-    {id:6,nome:'Júlia Ramos',   turma:'4º ano B',turmaId:2,cor:'#4F8EF7'},
-    {id:7,nome:'Rafael Lima',   turma:'2º ano C',turmaId:3,cor:'#F5A623'},
-    {id:8,nome:'Beatriz Ferraz',turma:'3º ano A',turmaId:1,cor:'#10C98F'},
-    {id:9,nome:'Gabriel Souza', turma:'4º ano B',turmaId:2,cor:'#8B5CF6'},
-    {id:10,nome:'Larissa Melo', turma:'2º ano C',turmaId:3,cor:'#F56565'},
-  ],
-  usuarios: {
-    'pai@teste.com':        {papel:'pai',       nome:'João Silva',      senha:'123456'},
-    'professora@teste.com': {papel:'professora',nome:'Prof. Ana Lima',  senha:'123456'},
-    'portao@teste.com':     {papel:'portao',    nome:'Supervisora Ana', senha:'123456'},
-    'admin@teste.com':      {papel:'admin',     nome:'Diretor Pedro',   senha:'123456'},
-  },
-  filhosDoPai: [1, 2],
+// ── Supabase config ──────────────────────────────────────────
+const SUPA_URL = 'https://pfkudkjpgziqliskfjkx.supabase.co';
+const SUPA_KEY = 'sb_publishable_OlRjKxSN0R-lzGIQNt9lLw_3WIF4Hdw';
+const SESSION_ID = 'demo'; // shared session for everyone
+
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+// ── Static data ──────────────────────────────────────────────
+const ALUNOS = [
+  {id:1,nome:'Lucas Silva',   turma:'3º ano A',turmaId:1,cor:'#4F8EF7'},
+  {id:2,nome:'Sofia Silva',   turma:'3º ano A',turmaId:1,cor:'#8B5CF6'},
+  {id:3,nome:'Pedro Oliveira',turma:'4º ano B',turmaId:2,cor:'#F5A623'},
+  {id:4,nome:'Ana Costa',     turma:'2º ano C',turmaId:3,cor:'#10C98F'},
+  {id:5,nome:'Marcos Pereira',turma:'3º ano A',turmaId:1,cor:'#F56565'},
+  {id:6,nome:'Júlia Ramos',   turma:'4º ano B',turmaId:2,cor:'#4F8EF7'},
+  {id:7,nome:'Rafael Lima',   turma:'2º ano C',turmaId:3,cor:'#F5A623'},
+  {id:8,nome:'Beatriz Ferraz',turma:'3º ano A',turmaId:1,cor:'#10C98F'},
+  {id:9,nome:'Gabriel Souza', turma:'4º ano B',turmaId:2,cor:'#8B5CF6'},
+  {id:10,nome:'Larissa Melo', turma:'2º ano C',turmaId:3,cor:'#F56565'},
+];
+const USUARIOS = {
+  'pai@teste.com':        {papel:'pai',       nome:'João Silva'},
+  'professora@teste.com': {papel:'professora',nome:'Prof. Ana Lima'},
+  'portao@teste.com':     {papel:'portao',    nome:'Supervisora Ana'},
+  'admin@teste.com':      {papel:'admin',     nome:'Diretor Pedro'},
 };
+const FILHOS_DO_PAI = [1, 2];
 
-// ── Shared state via localStorage + BroadcastChannel ────────
-// Works across tabs on SAME device AND across devices on same network
-// via periodic sync through a shared session key in localStorage
-
-let sessionCode = null;
+// ── App state ────────────────────────────────────────────────
 let currentUser = null;
+let appState = {retiradas:[], nextId:1};
 let adminTab = 'alunos';
 let profNotifOpen = false;
-let lastNotifCount = 0;
+let lastPendingCount = 0;
+let pollTimer = null;
+let syncOk = false;
 
-// BroadcastChannel for same-device multi-tab sync
-let bc = null;
-
-function getState() {
+// ── Supabase helpers ─────────────────────────────────────────
+async function loadState() {
   try {
-    const raw = localStorage.getItem('saiescola_' + sessionCode);
-    return raw ? JSON.parse(raw) : {retiradas:[], nextId:1};
-  } catch(e) { return {retiradas:[], nextId:1}; }
-}
-
-function setState(s) {
-  localStorage.setItem('saiescola_' + sessionCode, JSON.stringify(s));
-  // Broadcast to other tabs
-  if (bc) bc.postMessage({type:'update', code: sessionCode});
-}
-
-function resetState() {
-  localStorage.setItem('saiescola_' + sessionCode, JSON.stringify({retiradas:[], nextId:1}));
-  if (bc) bc.postMessage({type:'update', code: sessionCode});
-}
-
-// ── Session management ───────────────────────────────────────
-function randomCode() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let s = '';
-  for(let i=0;i<4;i++) s += chars[Math.floor(Math.random()*chars.length)];
-  return s;
-}
-
-function createSession() {
-  const code = randomCode();
-  document.getElementById('my-session-code').textContent = code;
-  localStorage.setItem('saiescola_last_session', code);
-  // Pre-populate so it's ready
-  if (!localStorage.getItem('saiescola_' + code)) {
-    localStorage.setItem('saiescola_' + code, JSON.stringify({retiradas:[], nextId:1}));
+    const {data, error} = await db.from('sessions').select('data').eq('id', SESSION_ID).single();
+    if (error && error.code === 'PGRST116') {
+      // Row doesn't exist yet, create it
+      await db.from('sessions').insert({id: SESSION_ID, data: {retiradas:[], nextId:1}});
+      appState = {retiradas:[], nextId:1};
+    } else if (error) {
+      throw error;
+    } else {
+      appState = data.data;
+    }
+    syncOk = true;
+    return true;
+  } catch(e) {
+    console.error('loadState error:', e);
+    syncOk = false;
+    return false;
   }
-  // Show copy hint
-  document.getElementById('create-btn').textContent = 'Sessão criada! Compartilhe o código ↑';
-  document.getElementById('create-btn').disabled = true;
-  setTimeout(() => {
-    enterSession(code);
-  }, 1800);
 }
 
-function joinSession() {
-  const code = document.getElementById('join-code').value.trim().toUpperCase();
-  if (code.length !== 4) { toast('Digite um código de 4 letras'); return; }
-  enterSession(code);
-}
-
-function enterSession(code) {
-  sessionCode = code;
-  document.getElementById('session-label').textContent = code;
-
-  // Setup BroadcastChannel
+async function saveState() {
   try {
-    bc = new BroadcastChannel('saiescola_' + code);
-    bc.onmessage = (e) => {
-      if (e.data.type === 'update' && currentUser) renderView();
-    };
-  } catch(e) {}
+    const {error} = await db.from('sessions').upsert({
+      id: SESSION_ID,
+      data: appState,
+      updated_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    syncOk = true;
+  } catch(e) {
+    console.error('saveState error:', e);
+    syncOk = false;
+  }
+}
 
-  showScreen('login');
+// ── Init ─────────────────────────────────────────────────────
+async function init() {
+  showScreen('loading-screen');
+  const ok = await loadState();
+  if (ok) {
+    showScreen('login');
+  } else {
+    // Fallback: use local state
+    appState = {retiradas:[], nextId:1};
+    showScreen('login');
+    toast('⚠️ Modo offline — sem sincronização');
+  }
+}
+
+// ── Polling ──────────────────────────────────────────────────
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    const ok = await loadState();
+    setSyncBar(ok);
+    if (currentUser) renderView();
+  }, 2000);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+function setSyncBar(ok) {
+  const papel = currentUser?.papel;
+  if (!papel) return;
+  const bar = document.getElementById('sync-' + papel);
+  const txt = document.getElementById('sync-' + papel + '-text');
+  if (!bar) return;
+  bar.className = 'sync-bar' + (ok ? '' : ' error');
+  if (txt) txt.textContent = ok ? '🔴 Ao vivo — sincronizando em tempo real' : '⚠️ Sem conexão';
+  if (ok) bar.querySelector('.sync-dot').style.display = 'inline-block';
 }
 
 // ── Auth ─────────────────────────────────────────────────────
@@ -383,17 +367,20 @@ function fillLogin(email) {
 function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const senha = document.getElementById('login-senha').value;
-  const u = DB.usuarios[email];
-  if (!u || u.senha !== senha) { toast('E-mail ou senha inválidos'); return; }
+  const u = USUARIOS[email];
+  if (!u || senha !== '123456') { toast('E-mail ou senha inválidos'); return; }
   currentUser = {email, ...u};
   showScreen('screen-' + u.papel);
   renderView();
   startPolling();
+  setSyncBar(syncOk);
 }
 
 function logout() {
   currentUser = null;
   stopPolling();
+  profNotifOpen = false;
+  lastPendingCount = 0;
   showScreen('login');
 }
 
@@ -402,54 +389,24 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
-// ── Polling (for cross-device sync) ──────────────────────────
-let pollInterval = null;
-
-function startPolling() {
-  stopPolling();
-  pollInterval = setInterval(() => {
-    if (currentUser) {
-      renderView();
-      updateSyncBar(true);
-    }
-  }, 1500);
-}
-
-function stopPolling() {
-  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-}
-
-function updateSyncBar(ok) {
-  const papel = currentUser?.papel;
-  if (!papel) return;
-  const bar = document.getElementById('sync-' + papel);
-  const txt = document.getElementById('sync-' + papel + '-text');
-  if (!bar) return;
-  bar.className = 'sync-bar' + (ok ? '' : ' offline');
-  if (txt) txt.textContent = ok ? 'Ao vivo • sessão ' + sessionCode : 'Sem conexão';
-}
-
-// ── Helpers ───────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────
 function agora() {
   return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 }
 function initials(nome) {
   return nome.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase();
 }
-function getAluno(id) { return DB.alunos.find(a=>a.id===id); }
-function getRetirada(alunoId) {
-  const s = getState();
-  return s.retiradas.find(r=>r.alunoId===alunoId && r.status!=='saiu');
+function getAluno(id) { return ALUNOS.find(a=>a.id===id); }
+function getRetAtiva(alunoId) {
+  return appState.retiradas.find(r=>r.alunoId===alunoId && r.status!=='saiu');
 }
-function getRet(id) {
-  const s = getState();
-  return s.retiradas.find(r=>r.id===id);
-}
+
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 2200);
+  setTimeout(()=>t.classList.remove('show'), 2500);
 }
+
 function statusBadge(status) {
   const map = {
     escola:             ['badge-escola',  'Na escola'],
@@ -473,13 +430,10 @@ function renderView() {
 
 // PAI ──────────────────────────────────────────────────────────
 function renderPai() {
-  const s = getState();
-  const filhos = DB.filhosDoPai.map(id=>DB.alunos.find(a=>a.id===id));
+  const filhos = FILHOS_DO_PAI.map(id=>ALUNOS.find(a=>a.id===id));
   let html = `<div class="section-head"><span class="section-title">Meus filhos</span></div>`;
-
   filhos.forEach(a => {
-    const ret = s.retiradas.find(r=>r.alunoId===a.id && r.status!=='saiu');
-    const canRequest = !ret;
+    const ret = getRetAtiva(a.id);
     html += `<div class="card ${ret?(ret.status==='liberado'?'highlight-green':'highlight'):''}">
       <div class="card-row">
         <div class="avatar" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div>
@@ -489,7 +443,7 @@ function renderPai() {
         </div>
         ${statusBadge(ret?ret.status:'escola')}
       </div>`;
-    if (canRequest) {
+    if (!ret) {
       html += `<div class="card-footer"><button class="btn btn-primary btn-sm" onclick="paiChegou(${a.id})">📍 Chegou para buscar</button></div>`;
     } else if (ret.status==='responsavel_chegou') {
       html += `<div class="card-footer" style="color:var(--amber);font-size:13px">⏳ Aguardando a professora liberar...</div>`;
@@ -498,8 +452,7 @@ function renderPai() {
     }
     html += `</div>`;
   });
-
-  const hist = s.retiradas.filter(r=>r.status==='saiu');
+  const hist = appState.retiradas.filter(r=>r.status==='saiu');
   if (hist.length) {
     html += `<div class="section-head" style="margin-top:6px"><span class="section-title">Histórico de hoje</span></div><div class="card">`;
     hist.forEach(r => {
@@ -515,24 +468,21 @@ function renderPai() {
   document.getElementById('pai-content').innerHTML = html;
 }
 
-function paiChegou(alunoId) {
-  const s = getState();
-  if (s.retiradas.find(r=>r.alunoId===alunoId && r.status!=='saiu')) return;
+async function paiChegou(alunoId) {
+  if (getRetAtiva(alunoId)) return;
   const a = getAluno(alunoId);
-  s.retiradas.push({id:s.nextId++,alunoId,responsavelNome:'João Silva',status:'responsavel_chegou',horSolicitacao:agora(),horLiberacao:null,horSaida:null});
-  setState(s);
-  toast(`✅ Notificação enviada para ${a.turma}`);
+  appState.retiradas.push({id:appState.nextId++,alunoId,responsavelNome:'João Silva',status:'responsavel_chegou',horSolicitacao:agora(),horLiberacao:null,horSaida:null});
   renderView();
+  await saveState();
+  toast(`✅ Notificação enviada para ${a.turma}`);
 }
 
 // PROFESSORA ───────────────────────────────────────────────────
 function renderProfessora() {
-  const s = getState();
-  const turmaAlunos = DB.alunos.filter(a=>a.turmaId===1);
-  const pending = s.retiradas.filter(r=>r.status==='responsavel_chegou' && turmaAlunos.find(a=>a.id===r.alunoId));
+  const turmaAlunos = ALUNOS.filter(a=>a.turmaId===1);
+  const pending = appState.retiradas.filter(r=>r.status==='responsavel_chegou' && turmaAlunos.find(a=>a.id===r.alunoId));
 
-  // Notification
-  if (pending.length > lastNotifCount) {
+  if (pending.length > lastPendingCount) {
     document.getElementById('bell-dot').style.display = 'block';
     const r = pending[pending.length-1];
     const a = getAluno(r.alunoId);
@@ -542,7 +492,7 @@ function renderProfessora() {
       profNotifOpen = true;
     }
   }
-  lastNotifCount = pending.length;
+  lastPendingCount = pending.length;
 
   let html = '';
   if (pending.length) {
@@ -558,10 +508,9 @@ function renderProfessora() {
       </div>`;
     });
   }
-
-  html += `<div class="section-head" style="margin-top:${pending.length?'4px':'0'}"><span class="section-title">Turma 3º ano A</span></div>`;
+  html += `<div class="section-head"><span class="section-title">Turma 3º ano A</span></div>`;
   turmaAlunos.forEach(a => {
-    const ret = s.retiradas.find(r=>r.alunoId===a.id && r.status!=='saiu');
+    const ret = getRetAtiva(a.id);
     html += `<div class="card">
       <div class="card-row">
         <div class="avatar" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div>
@@ -573,20 +522,19 @@ function renderProfessora() {
   document.getElementById('prof-content').innerHTML = html;
 }
 
-function professoraLibera(retId) {
-  const s = getState();
-  const ret = s.retiradas.find(r=>r.id===retId);
+async function professoraLibera(retId) {
+  const ret = appState.retiradas.find(r=>r.id===retId);
   if (!ret) return;
   ret.status = 'liberado';
   ret.horLiberacao = agora();
-  setState(s);
-  lastNotifCount = 0;
+  lastPendingCount = 0;
   document.getElementById('bell-dot').style.display = 'none';
   document.getElementById('prof-notif-banner').classList.remove('show');
   profNotifOpen = false;
+  renderView();
+  await saveState();
   const a = getAluno(ret.alunoId);
   toast(`🚶 ${a.nome} liberado para o portão`);
-  renderView();
 }
 
 function toggleNotif() {
@@ -597,15 +545,13 @@ function toggleNotif() {
 
 // PORTÃO ───────────────────────────────────────────────────────
 function renderPortao() {
-  const s = getState();
-  const caminho = s.retiradas.filter(r=>r.status==='liberado');
-  const hist    = s.retiradas.filter(r=>r.status==='saiu');
+  const caminho = appState.retiradas.filter(r=>r.status==='liberado');
+  const hist    = appState.retiradas.filter(r=>r.status==='saiu');
   let html = `<div class="stats-row">
     <div class="stat-card"><div class="stat-num" style="color:var(--primary)">${caminho.length}</div><div class="stat-label">A caminho</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--green)">${hist.length}</div><div class="stat-label">Saíram</div></div>
-    <div class="stat-card"><div class="stat-num">${DB.alunos.length}</div><div class="stat-label">Total</div></div>
+    <div class="stat-card"><div class="stat-num">${ALUNOS.length}</div><div class="stat-label">Total</div></div>
   </div>`;
-
   if (caminho.length) {
     html += `<div class="section-head"><span class="section-title">A caminho do portão</span><span class="count-pill" style="background:rgba(79,142,247,.15);color:var(--primary)">${caminho.length}</span></div>`;
     caminho.forEach(ret => {
@@ -625,7 +571,6 @@ function renderPortao() {
   } else {
     html += `<div class="empty"><div class="empty-icon">🚪</div><div class="empty-text">Nenhum aluno a caminho</div></div>`;
   }
-
   if (hist.length) {
     html += `<div class="section-head" style="margin-top:6px"><span class="section-title">Histórico de hoje</span></div><div class="card">`;
     hist.forEach(ret => {
@@ -641,26 +586,23 @@ function renderPortao() {
   document.getElementById('portao-content').innerHTML = html;
 }
 
-function portaoConfirma(retId) {
-  const s = getState();
-  const ret = s.retiradas.find(r=>r.id===retId);
+async function portaoConfirma(retId) {
+  const ret = appState.retiradas.find(r=>r.id===retId);
   if (!ret) return;
   ret.status = 'saiu';
   ret.horSaida = agora();
-  setState(s);
+  renderView();
+  await saveState();
   const a = getAluno(ret.alunoId);
   toast(`✅ ${a.nome} saiu da escola`);
-  renderView();
 }
 
 // ADMIN ────────────────────────────────────────────────────────
 function renderAdmin() {
-  const s = getState();
-  const caminho  = s.retiradas.filter(r=>r.status==='liberado').length;
-  const chegaram = s.retiradas.filter(r=>r.status==='responsavel_chegou').length;
-  const sairam   = s.retiradas.filter(r=>r.status==='saiu').length;
+  const caminho  = appState.retiradas.filter(r=>r.status==='liberado').length;
+  const chegaram = appState.retiradas.filter(r=>r.status==='responsavel_chegou').length;
+  const sairam   = appState.retiradas.filter(r=>r.status==='saiu').length;
   const t = adminTab;
-
   let html = `<div class="stats-row">
     <div class="stat-card"><div class="stat-num" style="color:var(--green)">${sairam}</div><div class="stat-label">Saíram</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--primary)">${caminho}</div><div class="stat-label">A caminho</div></div>
@@ -670,29 +612,23 @@ function renderAdmin() {
     <button onclick="setAdminTab('alunos')" class="btn btn-sm ${t==='alunos'?'btn-primary':'btn-secondary'}" style="flex:1">Alunos</button>
     <button onclick="setAdminTab('retiradas')" class="btn btn-sm ${t==='retiradas'?'btn-primary':'btn-secondary'}" style="flex:1">Retiradas</button>
   </div>`;
-
   if (t==='alunos') {
-    html += `<div class="card" style="padding:0"><div class="table-wrap"><table>
-      <tr><th>Aluno</th><th>Turma</th><th>Status</th></tr>`;
-    DB.alunos.forEach(a => {
-      const ret = s.retiradas.find(r=>r.alunoId===a.id && r.status!=='saiu');
+    html += `<div class="card" style="padding:0"><div class="table-wrap"><table><tr><th>Aluno</th><th>Turma</th><th>Status</th></tr>`;
+    ALUNOS.forEach(a => {
+      const ret = getRetAtiva(a.id);
       html += `<tr>
-        <td><div style="display:flex;align-items:center;gap:8px">
-          <div class="avatar avatar-sm" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div>
-          <span style="font-weight:600">${a.nome}</span>
-        </div></td>
+        <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div><span style="font-weight:600">${a.nome}</span></div></td>
         <td style="color:var(--muted);font-size:12px">${a.turma}</td>
         <td>${statusBadge(ret?ret.status:'escola')}</td>
       </tr>`;
     });
     html += `</table></div></div>`;
   } else {
-    if (!s.retiradas.length) {
+    if (!appState.retiradas.length) {
       html += `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Nenhuma retirada ainda</div></div>`;
     } else {
-      html += `<div class="card" style="padding:0"><div class="table-wrap"><table>
-        <tr><th>Aluno</th><th>Responsável</th><th>Status</th><th>Hora</th></tr>`;
-      s.retiradas.forEach(r => {
+      html += `<div class="card" style="padding:0"><div class="table-wrap"><table><tr><th>Aluno</th><th>Responsável</th><th>Status</th><th>Hora</th></tr>`;
+      appState.retiradas.forEach(r => {
         const a = getAluno(r.alunoId);
         const hora = r.horSaida||r.horLiberacao||r.horSolicitacao;
         html += `<tr>
@@ -706,13 +642,10 @@ function renderAdmin() {
     }
   }
   document.getElementById('admin-content').innerHTML = html;
-  document.getElementById('sync-admin').querySelector('span:last-child') &&
-    (document.getElementById('sync-admin').innerHTML = `<span class="sync-dot"></span> Ao vivo · sessão ${sessionCode}`);
 }
 
 function setAdminTab(t) { adminTab = t; renderAdmin(); }
 
-// ── Init ──────────────────────────────────────────────────────
-// Generate a code on load so it's ready
-document.getElementById('my-session-code').textContent = randomCode();
+// ── Start ─────────────────────────────────────────────────────
+init();
 </script>
