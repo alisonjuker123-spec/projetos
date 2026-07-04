@@ -552,6 +552,7 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-nf" onclick="abrirModalNF()" title="Lançar Nota Fiscal">🧾 Lançar NF</button>
       <button class="btn-pri" style="background:var(--orn);display:none" id="btn-estornar-emp" onclick="abrirModalExt()" title="Estornar saldo de Empenho">↩ Estornar Empenho</button>
       <label for="file-input" class="btn-pri" style="cursor:pointer;display:inline-flex;align-items:center;justify-content:center">📂 Importar Planilha</label>
+      <button class="btn-gdrive" id="btn-topbar-drive" onclick="gapiLogin(loadFromGDrive)" title="Conectar ao Google Drive e carregar planilha" style="font-size:12px;padding:7px 14px">🔑 Drive</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
     </div>
@@ -2972,14 +2973,17 @@ function _gapiSilentRefresh(){
 
 function updateAuthStatus(loggedIn){
   const btnAuth=document.getElementById('btn-gapi-auth');
+  const btnTopDrive=document.getElementById('btn-topbar-drive');
   const statusEl=document.getElementById('gdrive-status');
   if(loggedIn){
     if(btnAuth){btnAuth.textContent='✓ Conectado ao Google';btnAuth.style.background='var(--green)'}
+    if(btnTopDrive){btnTopDrive.textContent='✓ Drive';btnTopDrive.style.background='var(--green)'}
     if(statusEl){statusEl.textContent='✓ Autenticado — pronto para gravar NFs';statusEl.style.color='var(--green)'}
     const btnReload=document.getElementById('btn-gdrive-reload');
     if(btnReload)btnReload.style.display='';
   } else {
     if(btnAuth){btnAuth.textContent='🔑 Conectar ao Google';btnAuth.style.background='#1a73e8'}
+    if(btnTopDrive){btnTopDrive.textContent='🔑 Drive';btnTopDrive.style.background='#1a73e8'}
     if(statusEl){statusEl.textContent='Clique em "Conectar ao Google" para autenticar';statusEl.style.color='var(--lbl)'}
   }
 }
