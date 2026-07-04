@@ -77,7 +77,8 @@
   .card.highlight{border-color:var(--amber);}
   .card.highlight-green{border-color:var(--green);}
   .card-row{display:flex;align-items:center;gap:11px;}
-  .avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+  .avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;overflow:hidden;}
+  .avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
   .avatar-sm{width:34px;height:34px;font-size:12px;}
   .card-info{flex:1;min-width:0;}
   .card-name{font-size:15px;font-weight:600;}
@@ -182,7 +183,7 @@
   <!-- PAI -->
   <div id="screen-pai" class="screen">
     <div class="topbar">
-      <div class="topbar-avatar" style="background:rgba(79,142,247,.18);color:var(--primary)">JS</div>
+      <div class="topbar-avatar"><img id="topbar-pai-foto" src="" style="width:36px;height:36px;border-radius:50%;object-fit:cover"></div>
       <div class="topbar-info">
         <div class="topbar-name">João Silva</div>
         <div class="topbar-role">Responsável</div>
@@ -196,7 +197,7 @@
   <!-- PROFESSORA -->
   <div id="screen-professora" class="screen">
     <div class="topbar">
-      <div class="topbar-avatar" style="background:rgba(139,92,246,.18);color:var(--violet)">AL</div>
+      <div class="topbar-avatar"><img src="https://api.dicebear.com/9.x/personas/svg?seed=ana-lima-prof" style="width:36px;height:36px;border-radius:50%;object-fit:cover"></div>
       <div class="topbar-info">
         <div class="topbar-name">Prof. Ana Lima</div>
         <div class="topbar-role">3º ano A</div>
@@ -215,7 +216,7 @@
   <!-- PORTÃO -->
   <div id="screen-portao" class="screen">
     <div class="topbar">
-      <div class="topbar-avatar" style="background:rgba(16,201,143,.18);color:var(--green)">SA</div>
+      <div class="topbar-avatar"><img src="https://api.dicebear.com/9.x/personas/svg?seed=supervisora-ana" style="width:36px;height:36px;border-radius:50%;object-fit:cover"></div>
       <div class="topbar-info">
         <div class="topbar-name">Supervisora Ana</div>
         <div class="topbar-role">Portão</div>
@@ -229,7 +230,7 @@
   <!-- ADMIN -->
   <div id="screen-admin" class="screen">
     <div class="topbar">
-      <div class="topbar-avatar" style="background:rgba(122,139,173,.2);color:var(--muted)">DP</div>
+      <div class="topbar-avatar"><img src="https://api.dicebear.com/9.x/personas/svg?seed=diretor-pedro" style="width:36px;height:36px;border-radius:50%;object-fit:cover"></div>
       <div class="topbar-info">
         <div class="topbar-name">Diretor Pedro</div>
         <div class="topbar-role">Administrador</div>
@@ -253,23 +254,30 @@ const { createClient } = supabase;
 const db = createClient(SUPA_URL, SUPA_KEY);
 
 // ── Static data ──────────────────────────────────────────────
+const DICEBEAR = 'https://api.dicebear.com/9.x';
+function avatarAluno(seed) { return `${DICEBEAR}/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`; }
+function avatarResp(seed)  { return `${DICEBEAR}/personas/svg?seed=${encodeURIComponent(seed)}`; }
+
 const ALUNOS = [
-  {id:1,nome:'Lucas Silva',   turma:'3º ano A',turmaId:1,cor:'#4F8EF7'},
-  {id:2,nome:'Sofia Silva',   turma:'3º ano A',turmaId:1,cor:'#8B5CF6'},
-  {id:3,nome:'Pedro Oliveira',turma:'4º ano B',turmaId:2,cor:'#F5A623'},
-  {id:4,nome:'Ana Costa',     turma:'2º ano C',turmaId:3,cor:'#10C98F'},
-  {id:5,nome:'Marcos Pereira',turma:'3º ano A',turmaId:1,cor:'#F56565'},
-  {id:6,nome:'Júlia Ramos',   turma:'4º ano B',turmaId:2,cor:'#4F8EF7'},
-  {id:7,nome:'Rafael Lima',   turma:'2º ano C',turmaId:3,cor:'#F5A623'},
-  {id:8,nome:'Beatriz Ferraz',turma:'3º ano A',turmaId:1,cor:'#10C98F'},
-  {id:9,nome:'Gabriel Souza', turma:'4º ano B',turmaId:2,cor:'#8B5CF6'},
-  {id:10,nome:'Larissa Melo', turma:'2º ano C',turmaId:3,cor:'#F56565'},
+  {id:1, nome:'Lucas Silva',    turma:'3º ano A',turmaId:1,cor:'#4F8EF7', foto: avatarAluno('lucas-silva')},
+  {id:2, nome:'Sofia Silva',    turma:'3º ano A',turmaId:1,cor:'#8B5CF6', foto: avatarAluno('sofia-silva')},
+  {id:3, nome:'Pedro Oliveira', turma:'4º ano B',turmaId:2,cor:'#F5A623', foto: avatarAluno('pedro-oliveira')},
+  {id:4, nome:'Ana Costa',      turma:'2º ano C',turmaId:3,cor:'#10C98F', foto: avatarAluno('ana-costa')},
+  {id:5, nome:'Marcos Pereira', turma:'3º ano A',turmaId:1,cor:'#F56565', foto: avatarAluno('marcos-pereira')},
+  {id:6, nome:'Júlia Ramos',    turma:'4º ano B',turmaId:2,cor:'#4F8EF7', foto: avatarAluno('julia-ramos')},
+  {id:7, nome:'Rafael Lima',    turma:'2º ano C',turmaId:3,cor:'#F5A623', foto: avatarAluno('rafael-lima')},
+  {id:8, nome:'Beatriz Ferraz', turma:'3º ano A',turmaId:1,cor:'#10C98F', foto: avatarAluno('beatriz-ferraz')},
+  {id:9, nome:'Gabriel Souza',  turma:'4º ano B',turmaId:2,cor:'#8B5CF6', foto: avatarAluno('gabriel-souza')},
+  {id:10,nome:'Larissa Melo',   turma:'2º ano C',turmaId:3,cor:'#F56565', foto: avatarAluno('larissa-melo')},
 ];
+const RESPONSAVEIS = {
+  'pai@teste.com': { nome:'João Silva', parentesco:'Pai', foto: avatarResp('joao-silva-pai') },
+};
 const USUARIOS = {
-  'pai@teste.com':        {papel:'pai',       nome:'João Silva'},
-  'professora@teste.com': {papel:'professora',nome:'Prof. Ana Lima'},
-  'portao@teste.com':     {papel:'portao',    nome:'Supervisora Ana'},
-  'admin@teste.com':      {papel:'admin',     nome:'Diretor Pedro'},
+  'pai@teste.com':        {papel:'pai',       nome:'João Silva',      foto: avatarResp('joao-silva-pai')},
+  'professora@teste.com': {papel:'professora',nome:'Prof. Ana Lima',  foto: avatarResp('ana-lima-prof')},
+  'portao@teste.com':     {papel:'portao',    nome:'Supervisora Ana', foto: avatarResp('supervisora-ana')},
+  'admin@teste.com':      {papel:'admin',     nome:'Diretor Pedro',   foto: avatarResp('diretor-pedro')},
 };
 const FILHOS_DO_PAI = [1, 2];
 
@@ -370,6 +378,10 @@ function doLogin() {
   const u = USUARIOS[email];
   if (!u || senha !== '123456') { toast('E-mail ou senha inválidos'); return; }
   currentUser = {email, ...u};
+  // Set topbar photo for pai
+  if (u.papel === 'pai') {
+    document.getElementById('topbar-pai-foto').src = u.foto;
+  }
   showScreen('screen-' + u.papel);
   renderView();
   startPolling();
@@ -436,7 +448,7 @@ function renderPai() {
     const ret = getRetAtiva(a.id);
     html += `<div class="card ${ret?(ret.status==='liberado'?'highlight-green':'highlight'):''}">
       <div class="card-row">
-        <div class="avatar" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div>
+        <div class="avatar" style="background:${a.cor}22"><img src="${a.foto}" style="width:42px;height:42px;border-radius:50%;object-fit:cover"></div>
         <div class="card-info">
           <div class="card-name">${a.nome}</div>
           <div class="card-sub">${a.turma}</div>
@@ -499,9 +511,10 @@ function renderProfessora() {
     html += `<div class="section-head"><span class="section-title">Aguardando liberação</span><span class="count-pill" style="background:rgba(245,166,35,.15);color:var(--amber)">${pending.length}</span></div>`;
     pending.forEach(ret => {
       const a = getAluno(ret.alunoId);
+      const respFoto = RESPONSAVEIS['pai@teste.com'].foto;
       html += `<div class="card highlight">
         <div class="card-row">
-          <div class="avatar" style="background:rgba(245,166,35,.15);color:var(--amber)">JS</div>
+          <div class="avatar"><img src="${respFoto}" style="width:42px;height:42px;border-radius:50%;object-fit:cover"></div>
           <div class="card-info"><div class="card-name">${ret.responsavelNome}</div><div class="card-sub">buscar <strong>${a.nome}</strong> · ${ret.horSolicitacao}</div></div>
         </div>
         <div class="card-footer"><button class="btn btn-amber btn-sm" onclick="professoraLibera(${ret.id})">✔ Liberar ${a.nome}</button></div>
@@ -513,7 +526,7 @@ function renderProfessora() {
     const ret = getRetAtiva(a.id);
     html += `<div class="card">
       <div class="card-row">
-        <div class="avatar" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div>
+        <div class="avatar" style="background:${a.cor}22"><img src="${a.foto}" style="width:42px;height:42px;border-radius:50%;object-fit:cover"></div>
         <div class="card-info"><div class="card-name">${a.nome}</div><div class="card-sub">${ret?ret.responsavelNome:'Na escola'}</div></div>
         ${statusBadge(ret?ret.status:'escola')}
       </div>
@@ -558,7 +571,7 @@ function renderPortao() {
       const a = getAluno(ret.alunoId);
       html += `<div class="card highlight-green">
         <div class="card-row">
-          <div class="avatar" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div>
+          <div class="avatar" style="background:${a.cor}22"><img src="${a.foto}" style="width:42px;height:42px;border-radius:50%;object-fit:cover"></div>
           <div class="card-info"><div class="card-name">${a.nome}</div><div class="card-sub">${a.turma} · ${ret.responsavelNome}</div></div>
           ${statusBadge('liberado')}
         </div>
@@ -617,7 +630,7 @@ function renderAdmin() {
     ALUNOS.forEach(a => {
       const ret = getRetAtiva(a.id);
       html += `<tr>
-        <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar avatar-sm" style="background:${a.cor}22;color:${a.cor}">${initials(a.nome)}</div><span style="font-weight:600">${a.nome}</span></div></td>
+        <td><div style="display:flex;align-items:center;gap:8px"><img src="${a.foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"><span style="font-weight:600">${a.nome}</span></div></td>
         <td style="color:var(--muted);font-size:12px">${a.turma}</td>
         <td>${statusBadge(ret?ret.status:'escola')}</td>
       </tr>`;
