@@ -58,9 +58,12 @@ def malha_texto(linhas: list[str], largura: float) -> trimesh.Trimesh:
             m.apply_translation([0, y0 - i * alt_linha, 0])
             blocos.append(m)
     texto = trimesh.util.concatenate(blocos)
-    # extrusão é em +Z; girar para a face das costas (-Y do modelo)
+    # extrusão é em +Z; girar para que o relevo aponte para +Y e o texto
+    # fique legível para quem olha as costas (observador em +Y)
     texto.apply_transform(trimesh.transformations.rotation_matrix(
-        np.pi / 2, [1, 0, 0]))          # agora o relevo aponta para -Y
+        np.pi / 2, [1, 0, 0]))
+    texto.apply_transform(trimesh.transformations.rotation_matrix(
+        np.pi, [0, 0, 1]))
     return texto
 
 
@@ -102,7 +105,7 @@ def main():
                                 & (modelo.vertices[:, 2] < 0.75 * alt)]
         y_costas = faixa[:, 1].max() if len(faixa) else modelo.bounds[1][1]
         z_centro = 0.65 * alt
-        txt.apply_translation([0, y_costas - EMBUTIR + (RELEVO + EMBUTIR), z_centro])
+        txt.apply_translation([0, y_costas - EMBUTIR, z_centro])
         print(f"texto nas costas: y={y_costas:.1f} z={z_centro:.1f} larg={larg:.1f}mm")
         objetos.append((txt, "Texto POLÍCIA MILITAR (amarelo)", "#FFD500"))
 
