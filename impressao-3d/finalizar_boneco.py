@@ -7,7 +7,7 @@ Finaliza o boneco do policial para impressão 3D:
 - base elíptica de apoio
 - exporta .3MF colorido (corpo + base + letras)
 
-Uso: python3 finalizar_boneco.py [saida.3mf]
+Uso: python3 finalizar_boneco.py [saida.3mf] [--sem-texto]
 """
 import sys
 
@@ -27,9 +27,42 @@ COR_BASE = "#3A3A3A"     # grafite
 
 
 def main():
-    saida = sys.argv[1] if len(sys.argv) > 1 else "boneco-policia-militar.3mf"
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    com_texto = "--sem-texto" not in sys.argv
+    saida = args[0] if args else "boneco-policia-militar.3mf"
     corpo = trimesh.load("corpo-final.ply")
 
+    letras = None
+    if com_texto:
+        letras = gerar_letras(corpo)
+
+    # ---- base elíptica sob os pés
+    pes = corpo.vertices[corpo.vertices[:, 2] < 6.0]
+    cx, cy = pes[:, 0].mean(), pes[:, 1].mean()
+    rx = (pes[:, 0].max() - pes[:, 0].min()) / 2 + 10
+    ry = (pes[:, 1].max() - pes[:, 1].min()) / 2 + 10
+    elipse = Point(0, 0).buffer(1.0, quad_segs=24)
+    elipse = trimesh.creation.extrude_polygon(elipse, height=4.0)
+    elipse.apply_scale([rx, ry, 1.0])
+    elipse.apply_translation([cx, cy, -3.2])              # 0,8 mm dentro dos pés
+
+    # apoiar tudo no plano z=0
+    pecas = [("Policial (corpo)", corpo, COR_CORPO),
+             ("Base de apoio", elipse, COR_BASE)]
+    if letras is not None:
+        pecas.append(("POLÍCIA MILITAR (amarelo)", letras, COR_LETRA))
+    dz = -elipse.bounds[0][2]
+    for nome, g, _cor in pecas:
+        g.apply_translation([0, 0, dz])
+        print(f"{nome}: {len(g.faces)} faces, watertight={g.is_watertight}")
+
+    escrever_3mf(saida, [(g, nome, cor) for nome, g, cor in pecas])
+    alt_total = corpo.bounds[1][2]
+    print(f"gerado: {saida} — altura do boneco {alt_total:.0f} mm")
+
+
+def gerar_letras(corpo: trimesh.Trimesh) -> trimesh.Trimesh:
+    """Texto em relevo curvado sobre as costas do colete."""
     # ---- profundidade das costas na área do texto (ray casting de +Y p/ -Y)
     alt_texto = TEXTO_LARG * 0.22 * 2 + 4      # duas linhas + folga
     xs = np.linspace(-TEXTO_LARG / 2, TEXTO_LARG / 2, 13)
@@ -67,32 +100,7 @@ def main():
     verts[:, 1] += prof + RELEVO
     letras.vertices = verts
     letras.fix_normals()
-
-    # ---- base elíptica sob os pés
-    pes = corpo.vertices[corpo.vertices[:, 2] < 6.0]
-    cx, cy = pes[:, 0].mean(), pes[:, 1].mean()
-    rx = (pes[:, 0].max() - pes[:, 0].min()) / 2 + 10
-    ry = (pes[:, 1].max() - pes[:, 1].min()) / 2 + 10
-    elipse = Point(0, 0).buffer(1.0, quad_segs=24)
-    elipse = trimesh.creation.extrude_polygon(elipse, height=4.0)
-    elipse.apply_scale([rx, ry, 1.0])
-    elipse.apply_translation([cx, cy, -3.2])              # 0,8 mm dentro dos pés
-
-    # apoiar tudo no plano z=0
-    dz = -elipse.bounds[0][2]
-    for g in (corpo, letras, elipse):
-        g.apply_translation([0, 0, dz])
-
-    for nome, g in (("corpo", corpo), ("letras", letras), ("base", elipse)):
-        print(f"{nome}: {len(g.faces)} faces, watertight={g.is_watertight}")
-
-    escrever_3mf(saida, [
-        (corpo, "Policial (corpo)", COR_CORPO),
-        (elipse, "Base de apoio", COR_BASE),
-        (letras, "POLÍCIA MILITAR (amarelo)", COR_LETRA),
-    ])
-    alt_total = corpo.bounds[1][2]
-    print(f"gerado: {saida} — altura do boneco {alt_total:.0f} mm")
+    return letras
 
 
 if __name__ == "__main__":
