@@ -1,0 +1,3425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dashboard de Contratos – 3º CRPM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1117;--sb:#1a1d27;--card:#1e2130;--card2:#232638;
+  --bdr:#333650;--txt:#e2e8f0;--txt2:#94a3b8;--lbl:#64748b;
+  --blue:#4f8ef7;--green:#22c55e;--red:#ef4444;--yel:#f59e0b;
+  --pur:#a855f7;--cyn:#06b6d4;--orn:#f97316;--pk:#ec4899;
+  --lm:#84cc16;--hov:#2a2d3e;--inp:#252836;
+}
+/* TEMA CLARO */
+body.light{
+  --bg:#f0f2f8;--sb:#ffffff;--card:#ffffff;--card2:#f8f9fc;
+  --bdr:#d1d5e8;--txt:#1a1d2e;--txt2:#5a6480;--lbl:#8892b0;
+  --hov:#eef0f8;--inp:#f0f2f8;
+}
+body.light ::-webkit-scrollbar-track{background:#e8eaf2}
+body.light ::-webkit-scrollbar-thumb{background:#c4c9e0}
+body.light .top-bar{background:#ffffff}
+body.light .tabs-bar{background:#ffffff}
+body.light table.dt th{background:#f0f2f8}
+body.light table.dt tr:nth-child(even) td{background:#f8f9fc}
+body.light table.dt tr:hover td{background:#eef0f8}
+body.light .exec-track{background:#e2e6f0}
+body.light .alrt-panel{background:#fffbeb;border-color:#f59e0b}
+body.light .alrt-track{background:#e2e6f0}
+body.light .drop-zone{background:#ffffff;border-color:#d1d5e8}
+body.light .nf-wrap{background:#ffffff;border-color:#d1d5e8}
+body.light .ac{border-color:#d1d5e8}
+body.light .ac.ac-g{background:#f0fdf4;border-color:#86efac}
+body.light .ac.ac-y{background:#fffbeb;border-color:#fcd34d}
+body.light .ac.ac-o{background:#fff7ed;border-color:#fdba74}
+body.light .ac.ac-r{background:#fef2f2;border-color:#fca5a5}
+body.light .toast{background:#ffffff}
+/* Botão toggle */
+.btn-theme{background:transparent;border:1px solid var(--bdr);color:var(--txt2);border-radius:6px;padding:6px 10px;font-size:16px;cursor:pointer;transition:all .2s;line-height:1}
+.btn-theme:hover{border-color:var(--blue);color:var(--blue)}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--sb)}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--blue)}
+
+/* LAYOUT */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:260px;min-width:260px;background:var(--sb);display:flex;flex-direction:column;overflow-y:auto;border-right:1px solid var(--bdr)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.main-scroll{flex:1;overflow-y:auto;padding:20px}
+
+/* SIDEBAR */
+.sb-head{padding:18px 16px 14px;border-bottom:1px solid var(--bdr)}
+.sb-logo{font-size:28px;margin-bottom:8px}
+.sb-head h2{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.sb-head p{font-size:11px;color:var(--txt2);margin-top:3px}
+.f-sec{padding:12px 16px;border-bottom:1px solid var(--bdr)}
+.f-lbl{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--lbl);margin-bottom:5px;display:block}
+.f-sel{width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:7px 28px 7px 10px;font-size:12px;font-family:inherit;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.f-sel:focus{border-color:var(--blue)}
+.f-sel option{background:var(--inp)}
+.btn-clr{width:calc(100% - 32px);margin:12px 16px;background:transparent;border:1px solid var(--bdr);color:var(--txt2);padding:8px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s;display:block}
+.btn-clr:hover{border-color:var(--red);color:var(--red)}
+
+/* TOP BAR */
+.top-bar{background:var(--sb);border-bottom:1px solid var(--bdr);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap}
+.top-bar-info{flex:1}
+.top-bar-title{font-size:13px;font-weight:700;white-space:nowrap}
+.top-bar-sub{font-size:11px;color:var(--txt2)}
+.btn-pri{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .2s}
+.btn-pri:hover{background:#3b7de8}
+.btn-sec{background:transparent;color:var(--txt2);border:1px solid var(--bdr);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-sec:hover{border-color:var(--blue);color:var(--blue)}
+.file-name-tag{background:var(--hov);border:1px solid var(--bdr);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);display:none;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-name-tag.show{display:inline-block}
+
+/* TABS */
+.tabs-bar{background:var(--sb);border-top:1px solid var(--bdr);overflow-x:auto;display:flex;flex-shrink:0;height:40px;align-items:stretch}
+.tabs-bar::-webkit-scrollbar{height:3px}
+.tab-i{padding:0 14px;white-space:nowrap;cursor:pointer;font-size:11px;font-weight:500;color:var(--txt2);border-bottom:3px solid transparent;display:flex;align-items:center;transition:all .2s;flex-shrink:0}
+.tab-i:hover{color:var(--txt);background:rgba(79,142,247,.08)}
+.tab-i.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* DROP ZONE */
+.drop-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:60px 30px;text-align:center;border:2px dashed var(--bdr);border-radius:12px;background:var(--card);cursor:pointer;transition:all .3s;margin:30px 0}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--blue);background:rgba(79,142,247,.07)}
+.drop-icon{font-size:56px;opacity:.5}
+.drop-title{font-size:18px;font-weight:600;color:var(--txt)}
+.drop-sub{font-size:13px;color:var(--txt2);max-width:400px}
+.drop-formats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.drop-fmt{background:var(--inp);border:1px solid var(--bdr);border-radius:4px;padding:3px 10px;font-size:11px;font-weight:600;color:var(--lbl)}
+.drop-btn{background:var(--blue);color:#fff;border:none;border-radius:7px;padding:10px 24px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:4px}
+.drop-btn:hover{background:#3b7de8}
+
+/* SPINNER */
+.spinner-ov{display:none;position:fixed;inset:0;background:rgba(15,17,23,.85);z-index:999;justify-content:center;align-items:center;flex-direction:column;gap:14px}
+.spinner-ov.show{display:flex}
+.spinner{width:44px;height:44px;border:4px solid var(--bdr);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-txt{color:var(--txt2);font-size:13px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e2130;border:1px solid var(--bdr);border-radius:8px;padding:12px 18px;font-size:12px;color:var(--txt2);z-index:1000;display:none;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.toast.show{display:block}
+.toast.toast-err{border-color:var(--red);color:var(--red)}
+.toast.toast-ok{border-color:var(--green);color:var(--green)}
+
+/* SECTION LABEL */
+.sec-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--lbl);margin-bottom:10px;margin-top:2px}
+
+/* KPI GRIDS */
+.kpi-g7{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+.kpi-g5{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.kpi-g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+@media(max-width:900px){.kpi-g4{grid-template-columns:repeat(2,1fr)}}
+.emp-venc-alert{background:#1c0a0a;border:1px solid var(--red);border-radius:8px;padding:14px 18px;margin-bottom:14px}
+.emp-venc-alert .alrt-title{color:var(--red)}
+.emp-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+.emp-badge-ab{background:rgba(34,197,94,.15);color:var(--green)}   /* Aberto e Vigente */
+.emp-badge-pa{background:rgba(79,142,247,.15);color:var(--blue)}   /* Pago */
+.emp-badge-ve{background:rgba(239,68,68,.15);color:var(--red)}     /* Vencido Aberto */
+.emp-badge-pr{background:rgba(245,158,11,.15);color:var(--yel)}
+.emp-badge-ex{background:rgba(100,116,139,.15);color:var(--lbl)}
+.kpi-g8{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:1100px){.kpi-g8{grid-template-columns:repeat(2,1fr)}}
+
+.kc{background:var(--card);border-radius:10px;padding:26px 24px 22px;border-top:4px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.3);min-height:110px;display:flex;flex-direction:column;justify-content:center}
+.kc .kl{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--lbl);margin-bottom:10px}
+.kc .kv{font-size:32px;font-weight:700;line-height:1.2}
+.kc .ks{font-size:12px;color:var(--txt2);margin-top:6px}
+.kc.big .kv{font-size:22px}
+
+/* EXEC BAR */
+.exec-wrap{background:var(--card);border-radius:8px;padding:14px 18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.exec-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+.exec-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2)}
+.exec-leg{display:flex;gap:14px;font-size:11px;flex-wrap:wrap}
+.exec-leg span{display:flex;align-items:center;gap:5px;color:var(--txt2)}
+.exec-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.exec-track{background:#2a2d3e;border-radius:4px;height:18px;overflow:hidden;display:flex}
+.exec-fill{height:100%;transition:width 1.2s ease}
+
+/* CHARTS */
+.cr6040{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:14px}
+.cr5050{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:1200px){.cr6040,.cr5050{grid-template-columns:1fr}}
+.cc{background:var(--card);border-radius:8px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.cc h3{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);margin-bottom:12px}
+
+/* ALERT PANEL */
+.alrt-panel{background:#1c1a0e;border:1px solid var(--yel);border-radius:8px;padding:14px 18px;margin-bottom:14px}
+.alrt-title{font-size:12px;font-weight:700;color:var(--yel);margin-bottom:3px}
+.alrt-sub{font-size:11px;color:var(--txt2);margin-bottom:12px}
+.alrt-item{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.alrt-lbl{width:200px;min-width:200px;font-size:11px;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alrt-track{flex:1;background:#2a2d3e;border-radius:3px;height:12px;overflow:hidden}
+.alrt-fill{height:100%;background:var(--red);border-radius:3px;transition:width 1s}
+.alrt-val{width:100px;text-align:right;font-size:11px;font-weight:600;color:var(--red)}
+.alrt-ok{text-align:center;padding:12px;color:var(--green);font-size:12px;font-weight:500}
+
+/* TABLE */
+.tbl-wrap{background:var(--card);border-radius:8px;padding:14px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.tbl-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.tbl-ttl{font-size:13px;font-weight:700}
+.tbl-badge{background:var(--blue);color:#fff;border-radius:12px;padding:1px 9px;font-size:10px;font-weight:700;margin-left:6px}
+.tbl-search{background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:6px 10px;font-size:11px;font-family:inherit;outline:none;width:200px}
+.tbl-search:focus{border-color:var(--blue)}
+.tbl-cont{overflow-x:auto;max-height:360px;overflow-y:auto}
+table.dt{width:100%;border-collapse:collapse;font-size:11px;min-width:800px}
+table.dt th{background:#252836;color:var(--lbl);font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:9px 10px;text-align:left;position:sticky;top:0;z-index:1;white-space:nowrap}
+table.dt td{padding:9px 10px;border-bottom:1px solid rgba(51,54,80,.35);vertical-align:middle;white-space:nowrap}
+table.dt tr:nth-child(even) td{background:var(--card2)}
+table.dt tr:hover td{background:var(--hov);cursor:pointer}
+.td-blue{font-weight:700;color:var(--blue)}
+.td-sub{font-size:10px;color:var(--txt2);margin-top:2px}
+.td-g{color:var(--green)}.td-r{color:var(--red)}
+
+/* BADGES */
+.badge{display:inline-block;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
+.bg-g{background:#166534}.bg-y{background:#854d0e;color:#fef08a}.bg-o{background:#9a3412}
+.bg-r{background:#7f1d1d}.bg-gr{background:#374151}.bg-b{background:#1e40af}
+.bg-c{background:#164e63}.bg-p{background:#581c87}
+
+/* MAIN HEADER */
+.mh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.mh h1{font-size:19px;font-weight:700}.mh p{font-size:12px;color:var(--txt2);margin-top:3px}
+
+/* DETAIL */
+.detail-hdr{background:var(--card);border-radius:8px;padding:18px 22px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;box-shadow:0 2px 8px rgba(0,0,0,.3);flex-wrap:wrap}
+.dh-gms{font-size:24px;font-weight:700;color:var(--blue);margin-bottom:3px}
+.dh-emp{font-size:15px;font-weight:600;margin-bottom:8px}
+.dh-badges{display:flex;gap:7px;flex-wrap:wrap}
+
+/* TIMELINE */
+.tl-wrap{background:var(--card);border-radius:8px;padding:16px 20px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.tl-track{position:relative;height:6px;background:#2a2d3e;border-radius:3px;margin:18px 0 12px}
+.tl-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:3px;transition:width 1s}
+.tl-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:var(--yel);border:2px solid var(--bg);box-shadow:0 0 0 3px rgba(245,158,11,.3)}
+.tl-dates{display:flex;justify-content:space-between;font-size:11px;color:var(--txt2)}
+.tl-info{display:flex;justify-content:center;gap:24px;font-size:11px;color:var(--txt2);margin-top:6px;flex-wrap:wrap}
+.tl-info strong{color:var(--txt);font-weight:600}
+
+/* PROGRESS BAR */
+.prog-wrap{background:var(--card);border-radius:8px;padding:14px 18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.prog-bar{background:#2a2d3e;border-radius:6px;height:22px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;border-radius:6px;transition:width 1s;display:flex;align-items:center;padding-left:10px;font-size:11px;font-weight:600;color:#fff}
+
+/* ALERT CARDS */
+.ac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;margin-bottom:14px}
+.ac{border-radius:8px;padding:16px 18px;border-left:4px solid}
+.ac-y{background:#1c1a0e;border-color:var(--yel)}.ac-o{background:#1c100a;border-color:var(--orn)}
+.ac-r{background:#1c0a0a;border-color:var(--red)}.ac-g{background:#0a1c0e;border-color:var(--green)}
+.ac h4{font-size:12px;font-weight:700;margin-bottom:5px}.ac p{font-size:11px;color:var(--txt2)}
+
+/* MINI PROGRESS */
+.mp{background:#2a2d3e;border-radius:3px;height:5px;overflow:hidden;margin-top:3px}
+.mp-f{height:100%;border-radius:3px;transition:width .8s}
+
+/* NF TABLE */
+.nf-wrap{background:var(--card);border-radius:8px;padding:14px 16px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.nf-filters{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.nf-filters select,.nf-filters input{background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:5px;padding:5px 8px;font-size:11px;font-family:inherit;outline:none}
+.nf-filters select:focus,.nf-filters input:focus{border-color:var(--blue)}
+
+/* LEGEND */
+.leg{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.leg-i{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--txt2)}
+.leg-d{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* RESUMO TABS */
+.res-tabs{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.res-tab{padding:7px 14px;font-size:11px;font-weight:500;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.res-tab:hover{color:var(--txt)}.res-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* INFO GRID */
+.info-grid{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;background:var(--card);border-radius:8px;padding:14px 18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.info-item .il{color:var(--lbl);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.info-item .iv{font-weight:600;margin-top:2px}
+
+/* VIEWS */
+.view{display:none}.view.show{display:block}
+.fade-in{animation:fi .2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* MODE TOGGLE */
+.mode-toggle{display:none;background:var(--hov);border-radius:7px;padding:2px;gap:2px;flex-shrink:0}
+.mode-toggle.show{display:flex}
+.btn-mode{background:transparent;border:none;color:var(--txt2);border-radius:5px;padding:6px 13px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.btn-mode:hover{color:var(--txt)}
+.btn-mode.active-mode{background:var(--card);color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.mode-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:4px;background:var(--blue);color:#fff;vertical-align:middle}
+body.serv-mode .mode-badge.food-badge{background:var(--orn)}
+/* SERV OVERVIEW */
+.serv-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+.serv-contract-card{background:var(--card);border-radius:10px;padding:20px;border-left:4px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.3);margin-bottom:12px;cursor:pointer;transition:all .2s}
+.serv-contract-card:hover{border-left-color:var(--cyn);background:var(--card2)}
+.scc-gms{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:4px}
+.scc-emp{font-size:13px;font-weight:600;margin-bottom:10px}
+.scc-stats{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--txt2)}
+.scc-stat strong{color:var(--txt);font-weight:700}
+
+/* HAMBURGER / SIDEBAR RESPONSIVO */
+.hamburger{display:none;background:transparent;border:1px solid var(--bdr);color:var(--txt2);border-radius:6px;padding:6px 10px;font-size:18px;cursor:pointer;line-height:1;flex-shrink:0}
+.hamburger:hover{border-color:var(--blue);color:var(--blue)}
+@media(max-width:800px){
+  .hamburger{display:flex;align-items:center}
+  .sidebar{position:fixed;left:-270px;top:0;bottom:0;z-index:200;transition:left .25s;box-shadow:none}
+  .sidebar.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.5)}
+  .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+  .sb-overlay.show{display:block}
+}
+/* TAB TOOLTIP */
+.tab-i{position:relative}
+.tab-tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--bdr);border-radius:7px;padding:10px 14px;font-size:11px;color:var(--txt);white-space:nowrap;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.5);pointer-events:none;min-width:210px;line-height:1.7}
+.tab-tip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--bdr)}
+.tab-i:hover .tab-tip{display:block}
+/* IMPORT HISTORY */
+.hist-item{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px solid var(--bdr);font-size:10px;color:var(--txt2)}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:3px}
+/* SORTABLE TABLE */
+table.dt th.sortable{cursor:pointer;user-select:none}
+table.dt th.sortable:hover{color:var(--blue)}
+table.dt th.sort-asc::after{content:' ▲';color:var(--blue)}
+table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
+/* CHART PAGINATION */
+.ch-pag{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:8px;font-size:11px;color:var(--txt2)}
+.ch-pag button{background:var(--inp);border:1px solid var(--bdr);color:var(--txt2);border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit}
+.ch-pag button:hover{border-color:var(--blue);color:var(--blue)}
+.ch-pag button:disabled{opacity:.4;cursor:not-allowed}
+/* REF DATE */
+.ref-date{font-size:10px;color:var(--lbl);padding:3px 8px;border:1px solid var(--bdr);border-radius:4px;display:none;white-space:nowrap}
+.ref-date.show{display:inline-block}
+/* VALIDATION MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;justify-content:center;align-items:center}
+.modal-ov.show{display:flex}
+.modal-box{background:var(--card);border-radius:10px;padding:24px 28px;max-width:520px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5);border:1px solid var(--bdr)}
+.modal-box h3{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--txt)}
+.modal-sheet{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--bdr);font-size:12px}
+.modal-sheet:last-child{border-bottom:none}
+.modal-sheet .ms-ok{color:var(--green);font-size:13px}
+.modal-sheet .ms-no{color:var(--red);font-size:13px}
+.modal-sheet .ms-cnt{margin-left:auto;font-size:10px;color:var(--txt2)}
+/* MODAL LANÇAR NF */
+.modal-nf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;justify-content:center;align-items:center}
+.modal-nf-overlay.show{display:flex}
+.modal-nf{background:var(--sb);border:1px solid var(--bdr);border-radius:12px;padding:24px 28px;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.modal-nf h3{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--txt)}
+.modal-nf .modal-sub{font-size:11px;color:var(--txt2);margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--bdr)}
+.nf-field{margin-bottom:14px}
+.nf-field label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--lbl);margin-bottom:5px}
+.nf-field select,.nf-field input{width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none}
+.nf-field select:focus,.nf-field input:focus{border-color:var(--blue)}
+.nf-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-nf-footer{display:flex;gap:10px;margin-top:20px;padding-top:14px;border-top:1px solid var(--bdr)}
+.btn-success{background:var(--green);color:#fff;border:none;border-radius:6px;padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex:1;transition:background .2s}
+.btn-success:hover{background:#16a34a}
+/* GOOGLE DRIVE */
+.btn-gdrive{background:#1a73e8;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:background .2s}
+.btn-gdrive:hover{background:#1557b0}
+/* PRINT PDF */
+@media print{
+  .sidebar,.top-bar,.tabs-bar,.btn-theme,.btn-sec,.btn-pri,.btn-clr,.nf-filters,.tbl-search,.file-name-tag,.spinner-ov,.toast,.hamburger,.sb-overlay,.modal-ov{display:none!important}
+  .app{display:block}
+  .main{overflow:visible}
+  .main-scroll{overflow:visible;padding:10px}
+  .view{display:block!important}
+  body{background:#fff!important;color:#000!important;font-size:11px}
+  .kc,.cc,.tbl-wrap,.prog-wrap,.tl-wrap,.alrt-panel,.nf-wrap,.info-grid,.exec-wrap,.ac,.detail-hdr{break-inside:avoid;box-shadow:none!important;border:1px solid #ddd!important}
+  .kc .kv{font-size:18px!important}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+
+<!-- MODAL LANÇAR EMPENHO -->
+<div class="modal-nf-overlay" id="modal-emp-overlay" onclick="if(event.target===this)fecharModalEmp()">
+  <div class="modal-nf">
+    <h3>🏦 Lançar Empenho</h3>
+    <div class="modal-sub" id="modal-emp-sub">Registre um novo empenho para o contrato</div>
+    <div class="nf-field">
+      <label>Contrato (GMS / Fornecedor)</label>
+      <select id="emp-modal-contrato" onchange="onEmpContratoChange()">
+        <option value="">— Selecione o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-field">
+      <label>Unidade OPM</label>
+      <select id="emp-modal-unidade">
+        <option value="">— Selecione primeiro o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Número do Empenho</label>
+        <input type="text" id="emp-modal-numero" placeholder="Ex: 2025NE000123">
+      </div>
+      <div class="nf-field">
+        <label>Valor do Empenho (R$)</label>
+        <input type="text" id="emp-modal-valor" placeholder="Ex: 45.000,00">
+      </div>
+    </div>
+    <div class="nf-field">
+      <label>Vencimento do Empenho</label>
+      <input type="date" id="emp-modal-vencimento">
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalEmp()">Cancelar</button>
+      <button class="btn-success" style="background:var(--pur)" onclick="salvarEmpenho()">🏦 Gravar Empenho</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LANÇAR NOTA FISCAL -->
+<div class="modal-nf-overlay" id="modal-nf-overlay" onclick="if(event.target===this)fecharModalNF()">
+  <div class="modal-nf">
+    <h3>🧾 Lançar Nota Fiscal</h3>
+    <div class="modal-sub" id="modal-nf-sub">Selecione o contrato e a unidade para ver os empenhos em aberto</div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Contrato (GMS / Fornecedor)</label>
+        <select id="nf-modal-contrato" onchange="onNFContratoChange()">
+          <option value="">— Selecione o contrato —</option>
+        </select>
+      </div>
+      <div class="nf-field">
+        <label>Unidade OPM</label>
+        <select id="nf-modal-unidade" onchange="onNFUnidadeChange()">
+          <option value="">— Selecione primeiro o contrato —</option>
+        </select>
+      </div>
+    </div>
+    <div class="nf-field" id="nf-empenho-field" style="display:none">
+      <label>Empenho em Aberto</label>
+      <select id="nf-modal-empenho" onchange="onNFEmpenhoChange()">
+        <option value="">— Selecione o empenho —</option>
+      </select>
+      <div id="nf-empenho-info" style="display:none;font-size:11px;color:var(--txt2);margin-top:5px;padding:8px 10px;background:var(--inp);border-radius:6px;line-height:1.7"></div>
+    </div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Número da NF</label>
+        <input type="text" id="nf-modal-numero" placeholder="Ex: 000123">
+      </div>
+      <div class="nf-field">
+        <label>Valor NF (R$)</label>
+        <input type="text" id="nf-modal-valor" placeholder="Ex: 9.500,00" oninput="onNFValorInput()">
+      </div>
+    </div>
+    <div class="nf-field">
+      <label>Data de Pagamento</label>
+      <input type="date" id="nf-modal-data">
+    </div>
+    <div id="nf-estorno-box" style="display:none;margin-top:10px;padding:10px;border:1px dashed var(--orn);border-radius:6px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt)">
+        <input type="checkbox" id="nf-estorno-check" onchange="onNFValorInput()" style="width:16px;height:16px;cursor:pointer">
+        <span>↩ Estornar o saldo restante após esta NF</span>
+      </label>
+      <div id="nf-estorno-info" style="font-size:11px;color:var(--txt2);margin-top:6px"></div>
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalNF()">Cancelar</button>
+      <button class="btn-success" onclick="salvarNF()">🧾 Gravar Nota Fiscal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ESTORNAR EMPENHO -->
+<div class="modal-nf-overlay" id="modal-ext-overlay" onclick="if(event.target===this)fecharModalExt()">
+  <div class="modal-nf">
+    <h3>↩ Estornar Saldo de Empenho</h3>
+    <div class="modal-sub" id="modal-ext-sub">Registre o estorno do saldo remanescente para liquidar o empenho</div>
+    <div class="nf-field">
+      <label>Contrato (GMS / Fornecedor)</label>
+      <select id="ext-modal-contrato" onchange="onExtContratoChange()">
+        <option value="">— Selecione o contrato —</option>
+      </select>
+    </div>
+    <div class="nf-field">
+      <label>Empenho com Saldo em Aberto</label>
+      <select id="ext-modal-empenho" onchange="onExtEmpenhoChange()">
+        <option value="">— Selecione o empenho —</option>
+      </select>
+    </div>
+    <div id="ext-emp-info" style="display:none;font-size:11px;color:var(--txt2);margin-bottom:12px;padding:8px 10px;background:var(--inp);border-radius:6px;line-height:1.7"></div>
+    <div class="nf-row">
+      <div class="nf-field">
+        <label>Unidade</label>
+        <input type="text" id="ext-modal-unidade" readonly style="background:var(--hov);cursor:default" placeholder="Auto-preenchido">
+      </div>
+      <div class="nf-field">
+        <label>Valor do Estorno (R$)</label>
+        <input type="text" id="ext-modal-valor" placeholder="Ex: 500,00">
+      </div>
+    </div>
+    <div class="nf-field">
+      <label>Motivo do Estorno <span style="color:var(--lbl);font-weight:400">(opcional)</span></label>
+      <input type="text" id="ext-modal-motivo" placeholder="Ex: Saldo remanescente não utilizado">
+    </div>
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--txt2);margin-bottom:4px">
+      ⚠️ O estorno será registrado na coluna <strong>G (Valor Extornado)</strong> da aba do contrato. A fórmula de Saldo recalculará automaticamente e o status passará para <strong>Extornado</strong>.
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharModalExt()" style="flex:0;padding:9px 18px">Cancelar</button>
+      <button class="btn-success" style="background:var(--orn)" onclick="salvarExtorno()">↩ Registrar Estorno na Planilha</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT VALIDATION MODAL -->
+<div class="modal-ov" id="modal-val" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal-box">
+    <h3>📋 Resumo da Importação</h3>
+    <div id="modal-val-content"></div>
+    <div style="margin-top:16px;text-align:right"><button class="btn-pri" onclick="document.getElementById('modal-val').classList.remove('show')">OK</button></div>
+  </div>
+</div>
+
+<!-- SPINNER -->
+<div class="spinner-ov" id="spinner">
+  <div class="spinner"></div>
+  <div class="spinner-txt" id="spinner-txt">Lendo planilha...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="sb-logo">🛡️</div>
+      <h2>3º CRPM – Contratos</h2>
+      <p>Gêneros Alimentícios</p>
+    </div>
+    <div class="f-sec"><label class="f-lbl">Código GMS</label><select class="f-sel" id="f-gms" onchange="applyFilters()"><option value="">Todos</option></select></div>
+    <div class="f-sec"><label class="f-lbl">Fornecedor</label><select class="f-sel" id="f-empresa" onchange="applyFilters()"><option value="">Todos</option></select></div>
+    <div class="f-sec"><label class="f-lbl">Unidade OPM</label><select class="f-sel" id="f-unidade" onchange="applyFilters()"><option value="">Todas</option></select></div>
+    <div class="f-sec"><label class="f-lbl">Objeto / Tipo</label><select class="f-sel" id="f-tipo" onchange="applyFilters()"><option value="">Todos</option></select></div>
+    <div class="f-sec"><label class="f-lbl">Status Vigência</label><select class="f-sel" id="f-status" onchange="applyFilters()"><option value="">Todos</option></select></div>
+    <button class="btn-clr" onclick="clearFilters()">✕ Limpar Filtros</button>
+    <!-- RECARREGAR -->
+    <div class="f-sec">
+      <button class="btn-clr" onclick="recarregarDados()" id="btn-gdrive-reload">🔄 Recarregar Dados</button>
+      <div id="gdrive-status" style="font-size:10px;color:var(--lbl);margin-top:6px">Dados carregados automaticamente da planilha</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <div class="top-bar-info">
+        <div class="top-bar-title">Dashboard Unificado – Contratos e Notas Fiscais</div>
+        <div class="top-bar-sub">Gestão Avançada de Contratos – 3º Comando Regional PM</div>
+      </div>
+      <div class="mode-toggle" id="mode-toggle">
+        <button class="btn-mode active-mode" id="btn-mode-food" onclick="switchMode('food')">🍽 Gêneros Alimentícios</button>
+        <button class="btn-mode" id="btn-mode-serv" onclick="switchMode('serv')">🏢 Serviços PRODUSERV</button>
+      </div>
+      <span class="ref-date" id="ref-date"></span>
+      <span class="file-name-tag" id="file-name-tag">📄 —</span>
+      <button class="btn-sec" id="btn-export-xlsx" onclick="exportExcel()" style="display:none" title="Exportar tabela atual para Excel">📥 Excel</button>
+      <button class="btn-sec" id="btn-export-pdf" onclick="exportPDF()" style="display:none" title="Imprimir / exportar como PDF">🖨 PDF</button>
+      <button class="btn-pri" style="background:var(--pur);display:none" id="btn-lancar-emp" onclick="abrirModalEmp()" title="Lançar Empenho">🏦 Lançar Empenho</button>
+      <button class="btn-pri" style="background:var(--green);display:none" id="btn-lancar-nf" onclick="abrirModalNF()" title="Lançar Nota Fiscal">🧾 Lançar NF</button>
+      <button class="btn-pri" style="background:var(--orn);display:none" id="btn-estornar-emp" onclick="abrirModalExt()" title="Estornar saldo de Empenho">↩ Estornar Empenho</button>
+      <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
+    </div>
+
+    <!-- SCROLL AREA -->
+    <div class="main-scroll" id="main-scroll">
+
+      <!-- LOADING STATE (GAS: dados carregam automaticamente) -->
+      <div class="view show" id="v-empty">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:18px;margin-top:40px">
+          <div style="font-size:48px">📊</div>
+          <div style="font-size:17px;font-weight:700">Dashboard de Contratos – 3º CRPM</div>
+          <div style="font-size:13px;color:var(--txt2)">Carregando dados da planilha...</div>
+          <div class="spinner" style="display:block"></div>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="view" id="v-overview">
+        <div class="mh">
+          <div><h1>Dashboard Unificado de Contratos</h1><p id="dash-sub">3º Comando Regional PM</p></div>
+          <button class="btn-sec" onclick="recarregarDados()">🔄 Recarregar Dados</button>
+        </div>
+        <!-- KPI VIGÊNCIA -->
+        <div class="sec-lbl">Indicadores de Vigência</div>
+        <div class="kpi-g7">
+          <div class="kc" style="border-top-color:var(--blue)"><div class="kl">Contratos</div><div class="kv" id="k-total">0</div><div class="ks">no filtro</div></div>
+          <div class="kc" style="border-top-color:var(--red)"><div class="kl">Vence ≤30d</div><div class="kv" id="k-30">0</div></div>
+          <div class="kc" style="border-top-color:var(--orn)"><div class="kl">Vence ≤60d</div><div class="kv" id="k-60">0</div></div>
+          <div class="kc" style="border-top-color:var(--yel)"><div class="kl">Vence ≤90d</div><div class="kv" id="k-90">0</div></div>
+          <div class="kc" style="border-top-color:var(--green)"><div class="kl">Vence ≤180d</div><div class="kv" id="k-180">0</div></div>
+          <div class="kc" style="border-top-color:var(--lm)"><div class="kl">Confortável >180d</div><div class="kv" id="k-ok">0</div><div class="ks">vigência tranquila</div></div>
+          <div class="kc" style="border-top-color:var(--pur)"><div class="kl">Reajustes</div><div class="kv" id="k-reaj">0</div><div class="ks">pendentes</div></div>
+          <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Prorrogados</div><div class="kv" id="k-prorr">0</div></div>
+        </div>
+        <!-- KPI FINANCEIRO -->
+        <div class="sec-lbl" style="margin-top:2px">Indicadores Financeiros</div>
+        <div class="kpi-g5">
+          <div class="kc big" style="border-top-color:var(--lbl)"><div class="kl">Valor Global Contratado</div><div class="kv" id="k-global">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Valor Original Anual</div><div class="kv" id="k-anual">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Valor Anual c/ Reajuste</div><div class="kv" id="k-anual-reaj">0,00</div><div class="ks">após reajuste contratual</div></div>
+          <div class="kc big" style="border-top-color:var(--green)"><div class="kl">Total Executado / Pago</div><div class="kv" id="k-pago">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--lm)"><div class="kl">Executado 2026</div><div class="kv" id="k-exec2026">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--cyn)"><div class="kl">Saldo Disponível</div><div class="kv" id="k-saldo">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Provisão Mensal Total</div><div class="kv" id="k-mensal">0,00</div></div>
+          <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Efetivo Total (todas unidades)</div><div class="kv" id="k-efetivo">0</div><div class="ks">policiais atendidos</div></div>
+          <div class="kc big" style="border-top-color:var(--pk)"><div class="kl">Custo Total / Policial</div><div class="kv" id="k-custo-pol">0,00</div><div class="ks">executado ÷ efetivo</div></div>
+          <div class="kc big" style="border-top-color:var(--blue)"><div class="kl">Contratos Gêneros Alim.</div><div class="kv" id="k-ct-gen">0</div><div class="ks">gêneros alimentícios</div></div>
+          <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Contratos Hortifrutigr.</div><div class="kv" id="k-ct-hort">0</div><div class="ks">hortifrutigranjeiros</div></div>
+          <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Contratos Coffee Break</div><div class="kv" id="k-ct-coffee">0</div><div class="ks">coffee break</div></div>
+        </div>
+        <!-- EXEC BAR -->
+        <div class="exec-wrap">
+          <div class="exec-top">
+            <span class="exec-title">Execução Orçamentária Comparativa (Vigência Total)</span>
+            <div class="exec-leg">
+              <span><span class="exec-dot" style="background:var(--green)"></span><span id="lbl-exec">Executado (0%)</span></span>
+              <span><span class="exec-dot" style="background:var(--blue)"></span><span id="lbl-saldo">Saldo (0%)</span></span>
+            </div>
+          </div>
+          <div class="exec-track">
+            <div class="exec-fill" id="ef-exec" style="width:0%;background:var(--green)"></div>
+            <div class="exec-fill" id="ef-saldo" style="width:0%;background:var(--blue)"></div>
+          </div>
+          <div class="exec-top" style="margin-top:10px">
+            <span class="exec-title">Execução Anual 2026 vs Valor Anual c/ Reajuste</span>
+            <div class="exec-leg">
+              <span><span class="exec-dot" style="background:var(--orn)"></span><span id="lbl-exec26">Executado 2026 (0%)</span></span>
+              <span><span class="exec-dot" style="background:#555"></span><span id="lbl-rest26">Restante (0%)</span></span>
+            </div>
+          </div>
+          <div class="exec-track" id="track-exec26">
+            <div class="exec-fill" id="ef-exec26" style="width:0%;background:var(--orn)"></div>
+            <div class="exec-fill" id="ef-rest26" style="width:0%;background:#555"></div>
+          </div>
+        </div>
+        <!-- CHARTS ROW 1 -->
+        <div class="cr6040">
+          <div class="cc"><h3>Valores Globais por Fornecedor</h3><canvas id="ch-forn" height="200"></canvas></div>
+          <div class="cc"><h3>Distribuição do Valor Global por Unidade</h3><canvas id="ch-uni" height="200"></canvas><div class="leg" id="leg-uni"></div></div>
+        </div>
+        <!-- CHARTS ROW 2 -->
+        <div class="cr5050">
+          <div class="cc">
+            <h3>% Execução por Contrato</h3>
+            <div id="ch-pct-wrap" style="position:relative"><canvas id="ch-pct" height="240"></canvas></div>
+            <div class="ch-pag" id="pct-pag" style="display:none">
+              <button id="pct-prev" onclick="pctPageChange(-1)" disabled>◀ Ant.</button>
+              <span id="pct-page-lbl"></span>
+              <button id="pct-next" onclick="pctPageChange(1)">Próx. ▶</button>
+            </div>
+          </div>
+          <div class="cc"><h3>Executado 2025 vs 2026 por Fornecedor</h3><canvas id="ch-anos" height="240"></canvas></div>
+        </div>
+        <!-- CHART MENSAL -->
+        <div class="cc" id="cc-monthly" style="margin-bottom:14px"><h3>Evolução Mensal de Pagamentos (NFs)</h3><canvas id="ch-monthly" height="140"></canvas></div>
+        <!-- KPI EMPENHOS -->
+        <div id="sec-empenhos-wrap" style="display:none">
+          <div class="sec-lbl" style="margin-top:2px">Empenhos</div>
+          <div class="kpi-g4">
+            <div class="kc big" style="border-top-color:var(--pur)"><div class="kl">Empenhos em Aberto</div><div class="kv" id="k-emp-qt">0</div><div class="ks">com saldo disponível</div></div>
+            <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Saldo a Liquidar</div><div class="kv" id="k-emp-saldo">0,00</div><div class="ks">ainda não pago</div></div>
+            <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Empenhos Vencidos</div><div class="kv" id="k-emp-vencidos">0</div><div class="ks" id="k-emp-vencidos-val">R$ 0,00 em aberto</div></div>
+            <div class="kc big" style="border-top-color:var(--red)"><div class="kl">⚡ Vencendo em 15 dias</div><div class="kv" id="k-emp-venc">0</div><div class="ks" id="k-emp-venc-val">R$ 0,00 em risco</div></div>
+          </div>
+        </div>
+        <!-- ALERTAS -->
+        <div class="alrt-panel">
+          <div class="alrt-title">⚠ PROSPECÇÃO DE SUPLEMENTAÇÃO NECESSÁRIA</div>
+          <div class="alrt-sub">Contratos com indicação de necessidade de suplementação orçamentária</div>
+          <div id="alrt-content"></div>
+        </div>
+        <!-- ALERTA EMPENHOS VENCENDO -->
+        <div class="emp-venc-alert" id="emp-venc-alert" style="display:none">
+          <div class="alrt-title">🔴 EMPENHOS VENCENDO NOS PRÓXIMOS 15 DIAS</div>
+          <div class="alrt-sub">Empenhos com saldo em aberto próximos do vencimento — providencie o pagamento ou extorno</div>
+          <div id="emp-venc-content"></div>
+        </div>
+        <!-- TABELA DE EMPENHOS ABERTOS -->
+        <div class="tbl-wrap" id="emp-table-wrap" style="display:none;margin-bottom:14px">
+          <div class="tbl-hdr">
+            <div><span class="tbl-ttl">📋 Empenhos em Aberto</span><span class="tbl-badge" id="emp-tbl-cnt">0</span></div>
+            <input type="text" class="tbl-search" id="emp-search" placeholder="🔍 Nº empenho, contrato ou empresa..." oninput="filterEmpTable(this.value)">
+          </div>
+          <div class="tbl-cont">
+            <table class="dt"><thead><tr>
+              <th>Nº Empenho</th>
+              <th>Contrato</th>
+              <th>Empresa</th>
+              <th>Unidade</th>
+              <th style="text-align:right">Valor Empenho</th>
+              <th style="text-align:right">Valor Pago</th>
+              <th style="text-align:right">Saldo</th>
+              <th>Emissão</th>
+              <th>Vencimento</th>
+              <th>Status</th>
+            </tr></thead><tbody id="emp-tbl-body"></tbody></table>
+          </div>
+        </div>
+        <!-- RESUMO TABS -->
+        <div class="cc" style="margin-bottom:14px">
+          <div class="res-tabs">
+            <div class="res-tab active" onclick="showResTab('emp',this)">Por Empresa</div>
+            <div class="res-tab" onclick="showResTab('uni',this)">Por Unidade</div>
+            <div class="res-tab" onclick="showResTab('tipo',this)">Por Tipo</div>
+          </div>
+          <div id="res-content"></div>
+        </div>
+        <!-- TABELA GERAL -->
+        <div class="tbl-wrap">
+          <div class="tbl-hdr">
+            <div><span class="tbl-ttl">Registros de Contratos</span><span class="tbl-badge" id="tbl-cnt">0</span></div>
+            <input type="text" class="tbl-search" id="tbl-search" placeholder="🔍 GMS ou Empresa..." oninput="filterTable(this.value)">
+          </div>
+          <div class="tbl-cont">
+            <table class="dt"><thead><tr>
+              <th class="sortable" onclick="sortTable('gms')">Nº GMS</th>
+              <th class="sortable" onclick="sortTable('empresa')">Fornecedor / Unid. Principal</th>
+              <th>Tipo</th>
+              <th class="sortable" onclick="sortTable('valorGlobal')">Valor Global</th>
+              <th class="sortable" onclick="sortTable('executadoTotal')">Executado</th>
+              <th class="sortable" onclick="sortTable('saldo')">Saldo</th>
+              <th class="sortable" onclick="sortTable('pctExecTotal')">% Exec.</th>
+              <th class="sortable" onclick="sortTable('valorMensal')">Provisão/Mês</th>
+              <th class="sortable" onclick="sortTable('mediaGastoMensal')">Gasto/Mês</th>
+              <th>% Exec. Mensal</th>
+              <th class="sortable" onclick="sortTable('statusVigencia')">Status</th>
+              <th class="sortable" onclick="sortTable('diasRestantes')">Fim Vigência</th>
+              <th>Suplementação</th>
+            </tr></thead><tbody id="tbl-body"></tbody></table>
+          </div>
+        </div>
+      </div><!-- /overview -->
+
+      <!-- DETAIL VIEW -->
+      <div class="view" id="v-detail"></div>
+
+      <!-- SERV OVERVIEW (PRODUSERV) -->
+      <div class="view" id="v-serv"></div>
+
+      <!-- SERV DETAIL VIEW -->
+      <div class="view" id="v-serv-detail"></div>
+
+    </div><!-- /main-scroll -->
+
+    <!-- TABS BAR -->
+    <div class="tabs-bar" id="tabs-bar">
+      <div class="tab-i active" id="tab-ov" onclick="showOverview()">📊 Visão Geral</div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ============================================================
+// CONSTANTS
+// ============================================================
+const PAL=['#4f8ef7','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4','#f97316','#ec4899','#84cc16','#38bdf8','#fb7185','#a3e635'];
+const gc=i=>PAL[i%PAL.length];
+const TT={backgroundColor:'#1e2130',titleColor:'#e2e8f0',bodyColor:'#94a3b8',borderColor:'#333650',borderWidth:1};
+const GC='#2a2d3e',TC='#64748b';
+
+// Nomes das abas — Gêneros Alimentícios
+const SHEET_PAINEL='Painel Consolidado';
+const SHEET_BASE='Base Detalhada por Unidade';
+const SHEET_EMP='Resumo por Empresa';
+const SHEET_UNI='Resumo por Unidade';
+const SHEET_TIPO='Resumo por Tipo';
+
+// Nomes das abas — Serviços PRODUSERV
+const SHEET_SERV_PAINEL='Painel postos de Serviços';
+const SHEET_SERV_BASE='Base Detalhada Serviços';
+const SHEET_SERV_EMP='Resumo Empresa PRODUSERV';
+const SHEET_SERV_TIPO='Resumo Tipo PRODUSERV';
+
+// Abas que NÃO são individuais de contratos
+const SUMMARY_SHEETS=new Set([
+  SHEET_PAINEL,SHEET_BASE,SHEET_EMP,SHEET_UNI,SHEET_TIPO,
+  SHEET_SERV_PAINEL,SHEET_SERV_BASE,SHEET_SERV_EMP,SHEET_SERV_TIPO,
+  'EMPENHOS'
+]);
+
+// ============================================================
+// STATE
+// ============================================================
+let STATE={
+  // Gêneros Alimentícios
+  painel:[],base:[],res_emp:[],res_uni:[],res_tipo:[],
+  filtered:[],
+  // Serviços PRODUSERV
+  serv_painel:[],serv_base:[],serv_res_emp:[],serv_res_tipo:[],
+  serv_filtered:[],
+  // Empenhos
+  empenhos:[],
+  // Shared
+  nfs:{},nfsIndex:{},
+  charts:{},currentGMS:null,currentEmp:null,
+  tableSearch:'',resTab:'emp',fileName:'',
+  _currentNFs:[],
+  importDate:null,
+  sortCol:null,sortDir:1,
+  pctPage:0,pctPageSize:10,
+  _pctRows:[],
+  mode:'food' // 'food' | 'serv'
+};
+
+// ============================================================
+// UTILS
+// ============================================================
+function brl(v){const n=parseFloat(v)||0;return'R\$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function pct(v){const n=parseFloat(v)||0;const p=Math.abs(n)>2?n:(n*100);return p.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'}
+function pctV(v){const n=parseFloat(v)||0;const p=Math.abs(n)>2?n:(n*100);return p}
+function fDate(v){
+  if(!v||v==='00/00/0000'||v==='N/A'||v===0)return'—';
+  if(v instanceof Date){
+    const y=v.getFullYear();
+    if(y<1900||y>2100)return'—';
+    return v.toLocaleDateString('pt-BR');
+  }
+  if(typeof v==='number'){
+    if(v<10000)return'—';
+    const d=new Date(Math.round((v-25569)*86400*1000));
+    if(!isNaN(d.getTime())&&d.getFullYear()>1900)return d.toLocaleDateString('pt-BR');
+    return'—';
+  }
+  if(typeof v==='string'){
+    const m=v.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m)return`${m[3]}/${m[2]}/${m[1]}`;
+    if(v.match(/^\d{2}\/\d{2}\/\d{4}$/))return v;
+    return v;
+  }
+  return'—';
+}
+function num(v){
+  if(v===null||v===undefined||v==='')return 0;
+  if(typeof v==='number')return v;
+  if(v instanceof Date)return 0;
+  let s=String(v).trim().replace(/[^\d.,-]/g,'');
+  if(!s)return 0;
+  // Detecta formato: se última vírgula vem depois do último ponto → formato BR (1.234,56)
+  const li=s.lastIndexOf(','),ld=s.lastIndexOf('.');
+  if(li>ld){s=s.replace(/\./g,'').replace(',','.')}  // BR: remove pontos, troca vírgula
+  else{s=s.replace(/,/g,'')}                           // US / sem sep: remove vírgulas
+  return parseFloat(s)||0;
+}
+function str(v){return v===null||v===undefined?'':String(v).trim()}
+function destroyC(k){if(STATE.charts[k]){STATE.charts[k].destroy();delete STATE.charts[k]}}
+// Converte serial de data do Excel ou objeto Date para string 'yyyy-mm-dd'
+function excelSerialToDate(v){
+  if(!v)return null;
+  if(v instanceof Date){const y=v.getFullYear();return y>1900&&y<2100?v.toISOString().split('T')[0]:null}
+  const n=parseFloat(v);
+  if(isNaN(n)||n<10000)return str(v)||null;
+  const d=new Date(Math.round((n-25569)*86400*1000));
+  if(isNaN(d.getTime()))return null;
+  return d.toISOString().split('T')[0];
+}
+
+// ============================================================
+// TEMA CLARO / ESCURO
+// ============================================================
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  document.getElementById('btn-theme').textContent=light?'☀️':'🌙';
+  localStorage.setItem('theme',light?'light':'dark');
+  // Atualiza cores dos gráficos já renderizados
+  Object.values(STATE.charts).forEach(c=>{
+    if(!c)return;
+    try{
+      c.options.scales&&Object.values(c.options.scales).forEach(ax=>{
+        if(ax.grid)ax.grid.color=light?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';
+        if(ax.ticks)ax.ticks.color=light?'#5a6480':'#94a3b8';
+      });
+      c.update('none');
+    }catch(e){}
+  });
+}
+function initTheme(){
+  const saved=localStorage.getItem('theme');
+  if(saved==='light'){document.body.classList.add('light');document.getElementById('btn-theme').textContent='☀️'}
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let _toastTimer=null;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className=`toast show ${type?'toast-'+type:''}`;
+  clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>el.classList.remove('show'),5000);
+}
+
+// ============================================================
+// FILE HANDLING
+// ============================================================
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file=e.dataTransfer.files[0];
+  if(file)processFile(file);
+}
+function handleFileInput(input){
+  if(input.files[0])processFile(input.files[0]);
+  input.value='';
+}
+
+function processFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(!['xlsx','xls','ods','csv'].includes(ext)){
+    toast('Formato não suportado. Use .xlsx, .xls ou .ods.','err');return;
+  }
+  STATE.fileName=file.name;
+  showSpinner(`Lendo "${file.name}"...`);
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      parseWorkbook(e.target.result,file.name);
+    }catch(err){
+      hideSpinner();
+      toast('Erro ao ler planilha: '+err.message,'err');
+      console.error(err);
+    }
+  };
+  reader.onerror=()=>{hideSpinner();toast('Erro ao ler arquivo.','err')};
+  reader.readAsArrayBuffer(file);
+}
+
+function showSpinner(txt){
+  document.getElementById('spinner-txt').textContent=txt||'Processando...';
+  document.getElementById('spinner').classList.add('show');
+}
+function hideSpinner(){document.getElementById('spinner').classList.remove('show')}
+
+// ============================================================
+// PARSE WORKBOOK (SheetJS)
+// ============================================================
+function parseWorkbook(buffer,fileName){
+  const wb=XLSX.read(buffer,{type:'array',cellDates:true,dateNF:'yyyy-mm-dd'});
+
+  // Parse named summary sheets — Gêneros Alimentícios
+  STATE.painel  = sheetToObjs(wb,SHEET_PAINEL);
+  STATE.base    = sheetToObjs(wb,SHEET_BASE);
+  STATE.res_emp = sheetToObjs(wb,SHEET_EMP);
+  STATE.res_uni = sheetToObjs(wb,SHEET_UNI);
+  STATE.res_tipo= sheetToObjs(wb,SHEET_TIPO);
+
+  // Parse summary sheets — Serviços PRODUSERV
+  STATE.serv_painel  = sheetToObjs(wb,SHEET_SERV_PAINEL);
+  STATE.serv_base    = sheetToObjs(wb,SHEET_SERV_BASE);
+  STATE.serv_res_emp = sheetToObjs(wb,SHEET_SERV_EMP);
+  STATE.serv_res_tipo= sheetToObjs(wb,SHEET_SERV_TIPO);
+
+  // Individual contract sheets → NF records + empenho data
+  STATE.nfs={};
+  STATE.nfsIndex={};
+  STATE.empenhos=[];
+  wb.SheetNames.forEach(name=>{
+    if(SUMMARY_SHEETS.has(name))return;
+    const parsed=parseNFSheet(wb,name);
+    STATE.nfs[name]=parsed.nfs;
+    // Acumula empenhos de todas as abas
+    if(parsed.empenhos&&parsed.empenhos.length)STATE.empenhos.push(...parsed.empenhos);
+    // Indexa por GMS|empresa usando GMS extraído do parseNFSheet
+    const gms=parsed.gms;
+    if(gms){
+      try{
+        const ws=wb.Sheets[name];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+        if(rows[1]){const empresa=str(rows[1][2]);if(empresa)STATE.nfsIndex[gms+'|'+empresa]=name;}
+      }catch(e){}
+    }
+  });
+  // Se existir aba EMPENHOS dedicada, usa ela (prevalece sobre dados das abas de contrato)
+  const empDedicados=parseEmpenhos(wb);
+  if(empDedicados.length)STATE.empenhos=empDedicados;
+
+  hideSpinner();
+
+  if(!STATE.painel.length){
+    toast('Aba "Painel Consolidado" não encontrada ou vazia. Verifique a planilha.','err');return;
+  }
+
+  // Reference date
+  STATE.importDate=new Date();
+  const refEl=document.getElementById('ref-date');
+  if(refEl){refEl.textContent='🗓 Atualizado em '+STATE.importDate.toLocaleDateString('pt-BR');refEl.classList.add('show')}
+
+  // Update UI
+  const tag=document.getElementById('file-name-tag');
+  tag.textContent='📄 '+fileName;tag.classList.add('show');
+  document.getElementById('btn-ov').style.display='';
+  document.getElementById('btn-export-xlsx').style.display='';
+  document.getElementById('btn-export-pdf').style.display='';
+  document.getElementById('dash-sub').textContent=`Importado: ${fileName}`;
+
+  // Import validation modal
+  const checkSheets=[
+    {name:SHEET_PAINEL,rows:STATE.painel.length,label:'Painel Consolidado'},
+    {name:SHEET_BASE,rows:STATE.base.length,label:'Base Detalhada'},
+    {name:SHEET_EMP,rows:STATE.res_emp.length,label:'Resumo por Empresa'},
+    {name:SHEET_UNI,rows:STATE.res_uni.length,label:'Resumo por Unidade'},
+    {name:SHEET_TIPO,rows:STATE.res_tipo.length,label:'Resumo por Tipo'},
+    {name:'NFs individuais',rows:Object.keys(STATE.nfs).length,label:'Abas de Contratos (NFs)'},
+  ];
+  document.getElementById('modal-val-content').innerHTML=checkSheets.map(s=>`
+    <div class="modal-sheet">
+      <span class="${s.rows>0?'ms-ok':'ms-no'}">${s.rows>0?'✓':'✗'}</span>
+      <span style="font-weight:600;flex:1">${s.label}</span>
+      <span class="ms-cnt">${s.rows>0?s.rows+' registros':'não encontrada'}</span>
+    </div>`).join('');
+  document.getElementById('modal-val').classList.add('show');
+
+
+  // Boot dashboard — rendering is done by the init wrapper after column mapping
+  // (do not call populateFilters/applyFilters/buildTabs/showOverview here to avoid double-call with unmapped data)
+  STATE._pendingFileName=fileName;
+}
+
+// Convert sheet to array of objects using first row as header
+function sheetToObjs(wb,name){
+  const ws=wb.Sheets[name];
+  if(!ws)return[];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
+  if(rows.length<2)return[];
+  const headers=rows[0].map(h=>str(h));
+  return rows.slice(1).map(row=>{
+    const obj={};
+    headers.forEach((h,i)=>{obj[h]=row[i]??null});
+    return obj;
+  }).filter(r=>Object.values(r).some(v=>v!==null&&v!==''));
+}
+
+// Parse NF sheet: find header row "Unidade | Valor NF | ..." then collect rows
+function parseEmpenhos(wb){
+  try{
+    const name=wb.SheetNames.find(n=>n.toUpperCase()==='EMPENHOS');
+    if(!name)return[];
+    // raw:true + cellDates:true para receber Date objects e números reais
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,cellDates:true,defval:null});
+    const toDate=v=>{
+      if(!v)return null;
+      if(v instanceof Date)return v;
+      if(typeof v==='number'){// Excel serial date
+        const d=new Date(Math.round((v-25569)*86400000));return isNaN(d)?null:d;
+      }
+      const d=new Date(String(v));return isNaN(d)?null:d;
+    };
+    return rows.slice(1).map((r,i)=>{
+      if(!r||!r[3])return null;
+      const valor=typeof r[4]==='number'?r[4]:parseFloat(String(r[4]||0).replace(',','.'))||0;
+      const valorPago=typeof r[7]==='number'?r[7]:parseFloat(String(r[7]||0).replace(',','.'))||0;
+      const saldoRaw=typeof r[8]==='number'?r[8]:parseFloat(String(r[8]||0).replace(',','.'))||0;
+      const saldo=saldoRaw>0.001?saldoRaw:Math.max(0,valor-valorPago);
+      return {
+        contrato:str(r[0]),
+        empresa:str(r[1]).toUpperCase().trim(),
+        unidade:str(r[2]),
+        numero:str(r[3]),
+        valor,
+        dataEmissao:toDate(r[5]),
+        vencimento:toDate(r[6]),
+        valorPago,
+        saldo,
+        status:str(r[9])||'Aberto',
+        extornado:str(r[10]).toUpperCase()==='S',
+        rowIdx:i+2,
+      };
+    }).filter(r=>r&&r.numero);
+  }catch(e){console.error('parseEmpenhos error:',e);return[];}
+}
+
+// Nova estrutura de colunas (A-K):
+// A=Unidade B=Empenho# C=ValorEmpenho D=Vencimento E=Saldo(fórmula)
+// F=Status(fórmula) G=ValorExtornado H=NumeroNF I=ValorNF J=Data K=Ano(fórmula)
+function parseNFSheet(wb,name){
+  const ws=wb.Sheets[name];
+  if(!ws)return{nfs:[],empenhos:[],gms:''};
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,cellDates:true,defval:null});
+  // Extrai GMS (col A) e Empresa (col C) da primeira linha de dados
+  const gms=rows.length>1?str(rows[1][0]):'';
+  const empresa=rows.length>1?str(rows[1][2]):'';
+  let nfStart=-1;
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i];
+    // Novo cabeçalho: A=Unidade, B=Empenho (ou Valor NF no layout antigo)
+    if(r&&str(r[0]).toLowerCase()==='unidade'&&
+      (str(r[1]||'').toLowerCase().includes('empenho')||str(r[7]||'').toLowerCase().includes('nf'))){
+      nfStart=i+1;break;
+    }
+    // Fallback layout antigo: A=Unidade, B=Valor NF
+    if(r&&str(r[0]).toLowerCase()==='unidade'&&str(r[1]||'').toLowerCase().includes('valor')){
+      nfStart=i+1;break;
+    }
+  }
+  if(nfStart<0)return{nfs:[],empenhos:[],gms,empresa};
+  // Detectar se é layout novo (col 1 = "Empenho") ou antigo (col 1 = "Valor NF")
+  const hdrRow=rows[nfStart-1]||[];
+  const isNewLayout=str(hdrRow[1]||'').toLowerCase().includes('empenho');
+  const nfs=[];
+  const empenhos=[];
+  const empSeen=new Set();
+  for(let i=nfStart;i<rows.length;i++){
+    const r=rows[i];
+    if(!r||!r[0])continue;
+    const unidade=str(r[0]);if(!unidade)continue;
+    if(isNewLayout){
+      // Layout novo: B=Empenho#, C=ValorEmpenho, D=Vencimento, E=Saldo, F=Status, G=Extornado
+      const empNum=str(r[1]||'');
+      if(empNum&&!empSeen.has(empNum)){
+        empSeen.add(empNum);
+        const valorEmp=typeof r[2]==='number'?r[2]:parseFloat(String(r[2]||0).replace(',','.'))||0;
+        const toDate=v=>{if(!v)return null;if(v instanceof Date)return v;if(typeof v==='number'){const d=new Date(Math.round((v-25569)*86400000));return isNaN(d)?null:d;}const d=new Date(String(v));return isNaN(d)?null:d;};
+        const vencEmp=toDate(r[3]);
+        const saldoEmp=typeof r[4]==='number'?r[4]:parseFloat(String(r[4]||0).replace(',','.'))||0;
+        const statusEmp=str(r[5]||'')||'';
+        const extornado=typeof r[6]==='number'&&r[6]>0;
+        const valorPago=Math.max(0,valorEmp-saldoEmp);
+        empenhos.push({contrato:gms,sheetName:name,empresa,unidade,numero:empNum,valor:valorEmp,valorPago,vencimento:vencEmp,saldo:saldoEmp,status:statusEmp,extornado,dataEmissao:null,rowIdx:i+1});
+      }
+      // H=NumeroNF, I=ValorNF, J=Data, K=Ano
+      const numeroNF=str(r[7]||'');
+      if(!numeroNF)continue;
+      const valor=typeof r[8]==='number'?r[8]:parseFloat(String(r[8]||0).replace(',','.'))||0;
+      let dataStr='';
+      if(r[9] instanceof Date)dataStr=r[9].toLocaleDateString('pt-BR');
+      else dataStr=str(r[9]||'');
+      let ano=null;
+      if(typeof r[10]==='number')ano=Math.round(r[10]);
+      else if(r[10] instanceof Date)ano=r[10].getFullYear();
+      else if(r[9] instanceof Date)ano=r[9].getFullYear();
+      else if(r[10])ano=parseInt(r[10]);
+      nfs.push({unidade,valor,numeroNF,data:dataStr,ano,empenho:empNum||null});
+    } else {
+      // Layout antigo: B=ValorNF, C=NumeroNF, D=Data, E=Ano
+      const valor=typeof r[1]==='number'?r[1]:parseFloat(String(r[1]||0).replace(',','.'))||0;
+      let dataStr='';
+      if(r[3] instanceof Date)dataStr=r[3].toLocaleDateString('pt-BR');
+      else dataStr=str(r[3]||'');
+      let ano=null;
+      if(typeof r[4]==='number')ano=Math.round(r[4]);
+      else if(r[4] instanceof Date)ano=r[4].getFullYear();
+      else if(r[3] instanceof Date)ano=r[3].getFullYear();
+      else if(r[4])ano=parseInt(r[4]);
+      const numeroNF=str(r[2]||'');
+      if(!valor&&!numeroNF)continue;
+      nfs.push({unidade,valor,numeroNF,data:dataStr,ano,empenho:str(r[5]||'')||null});
+    }
+  }
+  return{nfs,empenhos,gms,empresa};
+}
+
+// ============================================================
+// COLUMN ACCESSORS  (flexível — aceita variações de nome)
+// ============================================================
+function col(obj,aliases){
+  for(const a of aliases){if(obj[a]!==undefined&&obj[a]!==null&&obj[a]!=='')return obj[a]}
+  return null;
+}
+
+// Campos do Painel Consolidado
+const C={
+  gms:      o=>col(o,['Numero GMS','Número GMS','GMS','Nº GMS']),
+  tipo:     o=>col(o,['Tipo','Objeto','Tipo de Contrato']),
+  empresa:  o=>col(o,['Empresa','Fornecedor','Contratada']),
+  unidsAtendidas:o=>col(o,['Unidades Atendidas','Unidade Principal','Unidades']),
+  qtdeUnidades:o=>col(o,['Qtde Unidades','Quantidade Unidades']),
+  efetTotal:o=>col(o,['Efetivo Total (todas unidades)','Efetivo Total','Efetivo']),
+  efetAtual:o=>col(o,['Efetivo Atual (unid. principal)','Efetivo Atual (principal)','Efetivo Atual']),
+  valorOriginal:o=>col(o,['Valor Original (anual)','Valor Original','Valor Anual Original']),
+  pctReajuste:o=>col(o,['% Reajuste Aplicado','% Reajuste','Reajuste %']),
+  valorGlobal:o=>col(o,['Valor Global (vigência)','Valor Global','Valor Total']),
+  valorMensal:o=>col(o,['Valor Mensal','Valor Mensal Total']),
+  valorMensalPol:o=>col(o,['Valor Mensal / Policial (planejado)','Valor Mensal / Policial','Valor Mensal/Policial','R$/Policial/Mês']),
+  dataInicio:o=>col(o,['Data Início','Data de Início','Início','Data Inicio']),
+  dataFim:  o=>col(o,['Data Fim Atual','Data Fim','Fim','Vencimento']),
+  diasRest: o=>col(o,['Dias Restantes','Dias Rest.','Dias']),
+  status:   o=>col(o,['Status Vigência','Status','Situação']),
+  prorrogado:o=>col(o,['Prorrogado?','Prorrogado','Foi Prorrogado']),
+  iniciarProrx:o=>col(o,['Iniciar Próx. Prorrogação','Iniciar Prorrogação','Iniciar Prox. Prorrogação']),
+  prorrogIniciar:o=>col(o,['Prorrogação a Iniciar?','Prorrogação a Iniciar','Iniciar Prorrogação?']),
+  proxReajuste:o=>col(o,['Próximo Reajuste','Prox. Reajuste','Próx. Reajuste']),
+  reajustePend:o=>col(o,['Reajuste Pendente?','Reajuste Pendente','Reajuste?']),
+  execTotal:o=>col(o,['Executado Total (real)','Executado Total','Total Executado','Executado']),
+  exec2025: o=>col(o,['Executado 2025','Exec. 2025']),
+  exec2026: o=>col(o,['Executado 2026','Exec. 2026']),
+  saldo:    o=>col(o,['Saldo do Contrato','Saldo Restante','Saldo']),
+  pctExecTotal:o=>col(o,['% Execução Total (sobre Valor Global)','% Execução Total','% Execução','Exec. %']),
+  pctExecAnual:o=>col(o,['% Execução Anual (ritmo do ano)','% Execução Anual']),
+  mediaGasto:o=>col(o,['Média Gasto Mensal','Gasto Médio Mensal','Gasto Mensal Médio']),
+  gastoMensalPol:o=>col(o,['Gasto Mensal / Policial (atual, unid. principal)','Gasto Mensal / Policial','Gasto Mensal/Policial','Gasto/Policial']),
+  mesesRest:o=>col(o,['Meses Restantes de Vigência','Meses Restantes','Meses Rest.']),
+  mesesSaldo:o=>col(o,['Meses de Saldo (ritmo atual)','Meses de Saldo','Saldo (meses)']),
+  acimaDoTeto:o=>col(o,['Acima do Teto Contratual?','Acima do Teto?','Acima do Teto','Acima Teto?']),
+  necessitaSupl:o=>col(o,['Necessita Suplementação?','Necessita Suplementação','Suplementação?']),
+  valorSupl:o=>col(o,['Valor Estimado de Suplementação','Valor Estimado Suplementação','Valor Suplementação','Suplementação R$']),
+};
+
+// Campos da Base Detalhada (v6+ — colunas corretamente alinhadas)
+const B={
+  gms:       o=>col(o,['Numero GMS','GMS']),
+  tipo:      o=>col(o,['Tipo']),
+  empresa:   o=>col(o,['Empresa','Fornecedor']),
+  unidade:   o=>col(o,['Unidade']),
+  efetivo:   o=>col(o,['Efetivo (unidade)','Efetivo (desta unidade)','Efetivo']),
+  efetTotal: o=>col(o,['Efetivo Total Contrato','Efetivo Total do Contrato','Efetivo Total']),
+  pctEfetivo:o=>col(o,['% Efetivo no Contrato','% Efetivo']),
+  valorGlobalContrato:o=>col(o,['Valor Global Contrato','Valor Global do Contrato']),
+  executado:          o=>col(o,['Executado nesta Unidade']),
+  exec2025:           o=>col(o,['Executado 2025','Exec. 2025']),
+  exec2026:           o=>col(o,['Executado 2026','Exec. 2026']),
+  saldoAlocado:       o=>col(o,['Saldo','Saldo Alocado']),
+  pctExec:            o=>col(o,['% Execução','% Execução (alocado)']),
+  dataFim:            o=>excelSerialToDate(col(o,['Data Fim Atual'])),
+  status:             o=>col(o,['Status Vigência','Status']),
+};
+
+// ============================================================
+// ACCESSORS — PRODUSERV (Painel postos de Serviços)
+// ============================================================
+const CP={
+  gms:        o=>col(o,['Numero GMS']),
+  tipo:       o=>col(o,['Tipo']),
+  empresa:    o=>col(o,['Empresa']),
+  unidPrincipal:o=>col(o,['Unidade Principal']),
+  unidsAtendidas:o=>col(o,['Unidades Atendidas']),
+  qtdeUnidades:o=>col(o,['Qtde Unidades']),
+  qtdPostos:  o=>col(o,['Qtd Total Postos']),
+  dataInicio: o=>col(o,['Data Início']),
+  dataFim:    o=>col(o,['Data Fim Atual']),
+  diasRest:   o=>col(o,['Dias Restantes']),
+  status:     o=>col(o,['Status Vigência']),
+  prorrogado: o=>col(o,['Prorrogado?']),
+  valorGlobal:o=>col(o,['Valor Global']),
+  valorMensal:o=>col(o,['Valor Mensal Total']),
+  execTotal:  o=>col(o,['Executado Total']),
+  exec2025:   o=>col(o,['Executado 2025']),
+  exec2026:   o=>col(o,['Executado 2026']),
+  saldo:      o=>col(o,['Saldo do Contrato']),
+  pctExecTotal:o=>col(o,['% Execução Total']),
+  mediaGasto: o=>col(o,['Média Gasto Mensal']),
+  mesesRest:  o=>col(o,['Meses Restantes']),
+  mesesSaldo: o=>col(o,['Meses de Saldo']),
+  acimaDoTeto:o=>col(o,['Acima do Teto?']),
+  necessitaSupl:o=>col(o,['Necessita Suplementação?']),
+  valorSupl:  o=>col(o,['Valor Estimado Suplementação']),
+};
+
+// PRODUSERV Base Detalhada Serviços
+const BP={
+  gms:        o=>col(o,['Numero GMS']),
+  tipo:       o=>col(o,['Tipo']),
+  empresa:    o=>col(o,['Empresa']),
+  unidade:    o=>col(o,['Unidade']),
+  descricao:  o=>col(o,['Descrição do Posto']),
+  qtdPostos:  o=>col(o,['Qtd Postos']),
+  valorMensalPosto:o=>col(o,['Valor Mensal (posto)']),
+  executado:  o=>col(o,['Executado nesta Unidade']),
+  exec2025:   o=>col(o,['Executado 2025']),
+  exec2026:   o=>col(o,['Executado 2026']),
+  saldoAlocado:o=>col(o,['Saldo']),
+  pctExec:    o=>col(o,['% Execução']),
+  dataFim:    o=>excelSerialToDate(col(o,['Data Fim Atual'])),
+  status:     o=>col(o,['Status']),
+};
+
+function mapPainelServ(raw){
+  return raw.map(o=>({
+    gms:str(CP.gms(o)),tipo:str(CP.tipo(o)),empresa:str(CP.empresa(o)),
+    unidPrincipal:str(CP.unidPrincipal(o)),
+    unidsAtendidas:str(CP.unidsAtendidas(o)),
+    qtdeUnidades:num(CP.qtdeUnidades(o)),qtdPostos:num(CP.qtdPostos(o)),
+    dataInicio:CP.dataInicio(o),dataFim:CP.dataFim(o),
+    diasRestantes:num(CP.diasRest(o)),statusVigencia:str(CP.status(o)),
+    prorrogado:str(CP.prorrogado(o)),
+    valorGlobal:num(CP.valorGlobal(o)),
+    executadoTotal:num(CP.execTotal(o)),executado2025:num(CP.exec2025(o)),executado2026:num(CP.exec2026(o)),
+    saldo:num(CP.saldo(o)),pctExecTotal:num(CP.pctExecTotal(o)),
+    mediaGastoMensal:num(CP.mediaGasto(o)),
+    mesesRestantes:null,mesesSaldo:CP.mesesSaldo(o),
+    acimaDoTeto:str(CP.acimaDoTeto(o)),necessitaSupl:str(CP.necessitaSupl(o)),
+    valorSupl:num(CP.valorSupl(o)),
+    // compat fields para renderização compartilhada
+    valorOriginal:0,pctReajuste:0,efetTotal:0,reajustePendente:'',
+    prorrogacaoIniciar:'',proxReajuste:null,iniciarProrx:null,
+    gastoMensalPol:0,valorMensalPol:0
+  })).filter(r=>r.gms).map(r=>{
+    let meses=0;
+    if(r.dataInicio&&r.dataFim){
+      const ini=new Date(r.dataInicio),fim=new Date(r.dataFim);
+      meses=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());
+    }
+    r.valorMensal=meses>0?r.valorGlobal/meses:0;
+    if(r.dataFim){const hoje=new Date();hoje.setHours(0,0,0,0);const fim=new Date(r.dataFim);r.mesesRestantes=Math.max(0,(fim.getFullYear()-hoje.getFullYear())*12+(fim.getMonth()-hoje.getMonth()));}else{r.mesesRestantes=0;}
+    return r;
+  });
+}
+
+function mapBaseServ(raw){
+  return raw.map(o=>({
+    gms:str(BP.gms(o)),tipo:str(BP.tipo(o)),empresa:str(BP.empresa(o)),
+    unidade:str(BP.unidade(o)),descricao:str(BP.descricao(o)),
+    qtdPostos:num(BP.qtdPostos(o)),valorMensalPosto:num(BP.valorMensalPosto(o)),
+    executado:num(BP.executado(o)),exec2025:num(BP.exec2025(o)),exec2026:num(BP.exec2026(o)),
+    saldoAlocado:num(BP.saldoAlocado(o)),pctExec:num(BP.pctExec(o)),
+    dataFim:BP.dataFim(o),status:str(BP.status(o)),
+    // compat
+    efetivo:0,efetTotal:0,valorGlobalContrato:0,valorGlobalAlocado:0,pctEfetivo:0
+  })).filter(r=>r.gms&&r.unidade);
+}
+
+function getActivePainel(){return STATE.mode==='serv'?STATE.serv_filtered:STATE.filtered}
+function getActiveBase(){
+  const gmsSet=new Set(getActivePainel().map(r=>r.gms));
+  const base=STATE.mode==='serv'?STATE.serv_base:STATE.base;
+  return base.filter(b=>gmsSet.has(b.gms));
+}
+function getActiveResEmp(){return STATE.mode==='serv'?STATE.serv_res_emp:STATE.res_emp}
+function getActiveResTipo(){return STATE.mode==='serv'?STATE.serv_res_tipo:STATE.res_tipo}
+
+function mapPainel(raw){
+  return raw.map(o=>({
+    gms:str(C.gms(o)),tipo:str(C.tipo(o)),empresa:str(C.empresa(o)),
+    unidsAtendidas:str(C.unidsAtendidas(o)),
+    unidPrincipal:str(C.unidsAtendidas(o)).split(/\s*\+\s*/)[0]||'',
+    qtdeUnidades:num(C.qtdeUnidades(o)),efetTotal:num(C.efetTotal(o)),efetAtual:num(C.efetAtual(o)),
+    valorOriginal:num(C.valorOriginal(o)),pctReajuste:num(C.pctReajuste(o)),
+    valorGlobal:num(C.valorGlobal(o)),
+    valorMensalPol:num(C.valorMensalPol(o)),
+    dataInicio:C.dataInicio(o),dataFim:C.dataFim(o),
+    diasRestantes:num(C.diasRest(o)),statusVigencia:str(C.status(o)),
+    prorrogado:str(C.prorrogado(o)),iniciarProrx:C.iniciarProrx(o),
+    prorrogacaoIniciar:str(C.prorrogIniciar(o)),proxReajuste:C.proxReajuste(o),
+    reajustePendente:str(C.reajustePend(o)),
+    executadoTotal:num(C.execTotal(o)),executado2025:num(C.exec2025(o)),executado2026:num(C.exec2026(o)),
+    saldo:num(C.saldo(o)),pctExecTotal:num(C.pctExecTotal(o)),pctExecAnual:num(C.pctExecAnual(o)),
+    mediaGastoMensal:num(C.mediaGasto(o)),gastoMensalPol:num(C.gastoMensalPol(o)),
+    mesesRestantes:null,mesesSaldo:C.mesesSaldo(o),
+    acimaDoTeto:str(C.acimaDoTeto(o)),necessitaSupl:str(C.necessitaSupl(o)),
+    valorSupl:num(C.valorSupl(o))
+  })).filter(r=>r.gms).map(r=>{
+    // Provisão/Mês = valorGlobal ÷ total de meses do contrato (dataInicio → dataFim)
+    let meses=0;
+    if(r.dataInicio&&r.dataFim){
+      const ini=new Date(r.dataInicio),fim=new Date(r.dataFim);
+      meses=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());
+    }
+    r.valorMensal=meses>0?r.valorGlobal/meses:0;
+    if(r.dataFim){const hoje=new Date();hoje.setHours(0,0,0,0);const fim=new Date(r.dataFim);r.mesesRestantes=Math.max(0,(fim.getFullYear()-hoje.getFullYear())*12+(fim.getMonth()-hoje.getMonth()));}else{r.mesesRestantes=0;}
+    return r;
+  });
+}
+
+function mapBase(raw){
+  return raw.map(o=>{
+    const valorGlobal=num(B.valorGlobalContrato(o));
+    const pctEfet=num(B.pctEfetivo(o));
+    // valorGlobalAlocado = valor proporcional ao efetivo da unidade
+    const valorGlobalAlocado=pctEfet>0?(pctEfet<=1?valorGlobal*pctEfet:valorGlobal*(pctEfet/100)):valorGlobal;
+    return{
+      gms:str(B.gms(o)),tipo:str(B.tipo(o)),empresa:str(B.empresa(o)),unidade:str(B.unidade(o)),
+      efetivo:num(B.efetivo(o)),efetTotal:num(B.efetTotal(o)),pctEfetivo:pctEfet,
+      valorGlobalContrato:valorGlobal,valorGlobalAlocado,
+      executado:num(B.executado(o)),
+      exec2025:num(B.exec2025(o)),exec2026:num(B.exec2026(o)),
+      // Saldo calculado: valorGlobalAlocado - executado (mais confiável que o da planilha)
+      saldoAlocado:Math.max(0,valorGlobalAlocado-num(B.executado(o))),
+      pctExec:num(B.pctExec(o)),dataFim:B.dataFim(o),status:str(B.status(o))
+    };
+  }).filter(r=>r.gms&&r.unidade);
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+function populateFilters(){
+  const p=STATE.mode==='serv'?STATE.serv_painel:STATE.painel;
+  fillSel('f-gms',[...new Set(p.map(r=>r.gms))].sort(),'Todos');
+  fillSel('f-empresa',[...new Set(p.map(r=>r.empresa))].sort(),'Todos');
+  const unis=new Set();
+  p.forEach(r=>{str(r.unidsAtendidas).split(/\s*\+\s*/).forEach(u=>{if(u.trim())unis.add(u.trim())})});
+  fillSel('f-unidade',[...unis].sort(),'Todas');
+  fillSel('f-tipo',[...new Set(p.map(r=>r.tipo).filter(Boolean))].sort(),'Todos');
+  fillSel('f-status',[...new Set(p.map(r=>r.statusVigencia).filter(Boolean))].sort(),'Todos');
+}
+
+function fillSel(id,opts,def){
+  const s=document.getElementById(id);const cur=s.value;
+  s.innerHTML=`<option value="">${def}</option>`;
+  opts.forEach(o=>s.innerHTML+=`<option value="${o}"${o===cur?'selected':''}>${o}</option>`);
+}
+
+function clearFilters(){
+  ['f-gms','f-empresa','f-unidade','f-tipo','f-status'].forEach(id=>document.getElementById(id).value='');
+  applyFilters();
+}
+
+function _filterRows(painel){
+  const gms=document.getElementById('f-gms').value;
+  const emp=document.getElementById('f-empresa').value;
+  const uni=document.getElementById('f-unidade').value;
+  const tipo=document.getElementById('f-tipo').value;
+  const stat=document.getElementById('f-status').value;
+  return painel.filter(r=>{
+    if(gms&&r.gms!==gms)return false;
+    if(emp&&r.empresa!==emp)return false;
+    if(uni){const us=str(r.unidsAtendidas).split(/\s*\+\s*/).map(u=>u.trim());if(!us.includes(uni))return false}
+    if(tipo&&r.tipo!==tipo)return false;
+    if(stat&&r.statusVigencia!==stat)return false;
+    return true;
+  });
+}
+function applyFilters(){
+  if(STATE.mode==='serv'){
+    if(!STATE.serv_painel.length)return;
+    STATE.serv_filtered=_filterRows(STATE.serv_painel);
+  } else {
+    if(!STATE.painel.length)return;
+    STATE.filtered=_filterRows(STATE.painel);
+  }
+  renderDash();buildTabs();
+  if(STATE.currentGMS){
+    const pool=STATE.mode==='serv'?STATE.serv_filtered:STATE.filtered;
+    if(!pool.find(r=>r.gms===STATE.currentGMS&&r.empresa===STATE.currentEmp))showOverview();
+  }
+}
+
+// ============================================================
+// ANIMATIONS
+// ============================================================
+function animMoney(id,val){
+  const el=document.getElementById(id);if(!el)return;
+  const dur=1400,s0=performance.now();
+  (function u(now){const p=Math.min((now-s0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=(val*e).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});if(p<1)requestAnimationFrame(u)})(s0);
+}
+function animNum(id,val){
+  const el=document.getElementById(id);if(!el)return;
+  const dur=700,s0=performance.now();
+  (function u(now){const p=Math.min((now-s0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(val*e);if(p<1)requestAnimationFrame(u)})(s0);
+}
+
+// ============================================================
+// RENDER DASHBOARD
+// ============================================================
+function renderDash(){
+  if(STATE.mode==='serv'){renderServDash();return}
+  const rows=STATE.filtered;
+  // Vigência
+  animNum('k-total',rows.length);
+  animNum('k-30',rows.filter(r=>num(r.diasRestantes)<=30&&num(r.diasRestantes)>=0).length);
+  animNum('k-60',rows.filter(r=>{const d=num(r.diasRestantes);return d>30&&d<=60}).length);
+  animNum('k-90',rows.filter(r=>{const d=num(r.diasRestantes);return d>60&&d<=90}).length);
+  animNum('k-180',rows.filter(r=>{const d=num(r.diasRestantes);return d>90&&d<=180}).length);
+  animNum('k-ok',rows.filter(r=>num(r.diasRestantes)>180).length);
+  animNum('k-reaj',rows.filter(r=>str(r.reajustePendente).toLowerCase()==='sim').length);
+  animNum('k-prorr',rows.filter(r=>str(r.prorrogado).toLowerCase()==='sim').length);
+  // Financeiro
+  const sg=rows.reduce((a,r)=>a+r.valorGlobal,0);
+  const so=rows.reduce((a,r)=>a+r.valorOriginal,0);
+  const sr=rows.reduce((a,r)=>{const f=Math.abs(r.pctReajuste)>2?r.pctReajuste/100:r.pctReajuste;return a+r.valorOriginal*(1+(f||0))},0);
+  const se=rows.reduce((a,r)=>a+r.executadoTotal,0);
+  const se26=rows.reduce((a,r)=>a+r.executado2026,0);
+  const ss=rows.reduce((a,r)=>a+r.saldo,0);
+  // Provisão mensal = Valor Anual c/ Reajuste ÷ 12 (quanto precisa ser provisionado por mês para 100% execução)
+  const sm=sr/12;
+  // Efetivo: soma uma vez por unidade (Base Detalhada), evita duplicar unidades presentes em vários contratos
+  const gmsSet=new Set(rows.map(r=>r.gms));
+  const uniEfet={};
+  STATE.base.filter(b=>gmsSet.has(b.gms)&&b.unidade&&b.efetivo>0).forEach(b=>{
+    if(!uniEfet[b.unidade]||b.efetivo>uniEfet[b.unidade])uniEfet[b.unidade]=b.efetivo;
+  });
+  const sef=Object.values(uniEfet).reduce((a,v)=>a+v,0);
+  const scp=sef>0?se/sef:0;
+  const ctGen=rows.filter(r=>{const t=str(r.tipo).toLowerCase();return!t.includes('hortif')&&!t.includes('coffee')}).length;
+  const ctHort=rows.filter(r=>str(r.tipo).toLowerCase().includes('hortif')).length;
+  const ctCoffee=rows.filter(r=>str(r.tipo).toLowerCase().includes('coffee')).length;
+  animMoney('k-global',sg);animMoney('k-anual',so);animMoney('k-anual-reaj',sr);
+  animMoney('k-pago',se);animMoney('k-exec2026',se26);animMoney('k-saldo',ss);animMoney('k-mensal',sm);
+  animNum('k-efetivo',sef);animMoney('k-custo-pol',scp);
+  animNum('k-ct-gen',ctGen);animNum('k-ct-hort',ctHort);animNum('k-ct-coffee',ctCoffee);
+  // Barra 1: execução total vs valor global da vigência
+  const tot=sg||1,pp=(se/tot)*100,ps=(ss/tot)*100;
+  // Barra 2: executado 2026 (NFs) vs Valor Anual Atualizado c/ Reajuste
+  const p26=sr>0?(se26/sr)*100:0,pr26=Math.max(0,100-p26);
+  // Meta proporcional: % do ano já decorrido (jan=1 a dez=12)
+  const mesAtual=new Date().getMonth()+1; // 1-12
+  const metaAnual=(mesAtual/12)*100;
+  setTimeout(()=>{
+    document.getElementById('ef-exec').style.width=Math.min(pp,100)+'%';
+    document.getElementById('ef-saldo').style.width=Math.min(ps,100-Math.min(pp,100))+'%';
+    document.getElementById('ef-exec26').style.width=Math.min(p26,100)+'%';
+    document.getElementById('ef-rest26').style.width=Math.min(pr26,100-Math.min(p26,100))+'%';
+    // Linha de meta (marcador vertical)
+    const trackEl=document.getElementById('track-exec26');
+    if(trackEl){
+      let marker=trackEl.querySelector('.exec-meta-marker');
+      if(!marker){marker=document.createElement('div');marker.className='exec-meta-marker';
+        marker.style.cssText='position:absolute;top:-4px;bottom:-4px;width:2px;background:rgba(255,255,255,0.5);border-radius:2px;pointer-events:none';
+        trackEl.style.position='relative';trackEl.appendChild(marker);}
+      marker.style.left=Math.min(metaAnual,100)+'%';
+      marker.title=`Meta: ${metaAnual.toFixed(0)}% do ano decorrido (mês ${mesAtual}/12)`;
+    }
+  },100);
+  document.getElementById('lbl-exec').textContent=`Executado (${pp.toFixed(1)}%)`;
+  document.getElementById('lbl-saldo').textContent=`Saldo (${ps.toFixed(1)}%)`;
+  const statusAnual=p26>=metaAnual?'✅ acima da meta':'⚠️ abaixo da meta';
+  document.getElementById('lbl-exec26').textContent=`Executado 2026 — ${brl(se26)} (${p26.toFixed(1)}% | meta: ${metaAnual.toFixed(0)}% ${statusAnual})`;
+  document.getElementById('lbl-rest26').textContent=`A executar — ${brl(Math.max(0,sr-se26))} (${pr26.toFixed(1)}%)`;
+  // KPIs Empenhos
+  try{renderEmpKPIs();}catch(e){console.error('renderEmpKPIs:',e);}
+  // Charts
+  renderChForn(rows);renderChUni(rows);renderChPct(rows);renderChAnos(rows);renderChMonthly();
+  renderAlertas(rows);renderResTab(STATE.resTab);renderTable(rows);
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+function renderChForn(rows){
+  destroyC('forn');
+  const mapG={},mapA={};
+  rows.forEach(r=>{
+    const k=r.empresa||'—';
+    mapG[k]=(mapG[k]||0)+r.valorGlobal;
+    const f=Math.abs(r.pctReajuste)>2?r.pctReajuste/100:r.pctReajuste;
+    mapA[k]=(mapA[k]||0)+r.valorOriginal*(1+(f||0));
+  });
+  const labs=Object.keys(mapG).sort((a,b)=>mapG[b]-mapG[a]);
+  state_charts('forn',new Chart(document.getElementById('ch-forn'),{type:'bar',
+    data:{labels:labs,datasets:[
+      {label:'Valor Global (Vigência)',data:labs.map(k=>mapG[k]),backgroundColor:'rgba(99,179,237,0.85)',borderRadius:4},
+      {label:'Valor Anual c/ Reajuste',data:labs.map(k=>mapA[k]),backgroundColor:'rgba(104,211,145,0.85)',borderRadius:4}
+    ]},
+    options:{responsive:true,plugins:{
+      legend:{display:true,labels:{color:TC,font:{size:11}}},
+      tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${brl(c.raw)}`}}
+    },
+    scales:{x:{grid:{color:GC},ticks:{color:TC,maxRotation:30,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}}));
+}
+
+function renderChUni(rows){
+  destroyC('uni');
+  const gmsSet=new Set(rows.map(r=>r.gms));
+  const map={};
+  const baseData=STATE.mode==='serv'?STATE.serv_base:STATE.base;
+  baseData.filter(b=>gmsSet.has(b.gms)).forEach(b=>{
+    const k=b.unidade||'—';
+    const val=STATE.mode==='serv'?b.executado:b.valorGlobalContrato;
+    map[k]=(map[k]||0)+val;
+  });
+  const labs=Object.keys(map).sort((a,b)=>map[b]-map[a]);
+  const data=labs.map(k=>map[k]),cols=labs.map((_,i)=>gc(i));
+  state_charts('uni',new Chart(document.getElementById('ch-uni'),{type:'doughnut',
+    data:{labels:labs,datasets:[{data,backgroundColor:cols,borderWidth:2,borderColor:'#1e2130'}]},
+    options:{responsive:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.label}: ${brl(c.raw)}`}}}}}));
+  document.getElementById('leg-uni').innerHTML=labs.slice(0,12).map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${cols[i]}"></span>${l}</span>`).join('');
+}
+
+function renderChPct(rows){
+  const sorted=[...rows].sort((a,b)=>pctV(b.pctExecTotal)-pctV(a.pctExecTotal));
+  STATE._pctRows=sorted;
+  const pageSize=STATE.pctPageSize;
+  const totalPages=Math.max(1,Math.ceil(sorted.length/pageSize));
+  STATE.pctPage=Math.min(STATE.pctPage,totalPages-1);
+  const slice=sorted.slice(STATE.pctPage*pageSize,(STATE.pctPage+1)*pageSize);
+  const labs=slice.map(r=>`${r.gms} ${r.empresa}`);
+  // % exec vs valor global da vigência
+  const dataGlobal=slice.map(r=>+pctV(r.pctExecTotal).toFixed(1));
+  // % exec vs valor anual c/ reajuste
+  const dataAnual=slice.map(r=>{
+    const f=Math.abs(r.pctReajuste)>2?r.pctReajuste/100:r.pctReajuste;
+    const va=r.valorOriginal*(1+(f||0));
+    return va>0?+Math.min((r.executadoTotal/va)*100,999).toFixed(1):0;
+  });
+  const wrap=document.getElementById('ch-pct-wrap');
+  if(wrap)wrap.style.height=Math.max(160,labs.length*36)+'px';
+  destroyC('pct');
+  state_charts('pct',new Chart(document.getElementById('ch-pct'),{type:'bar',
+    data:{labels:labs,datasets:[
+      {label:'% s/ Valor Global (Vigência)',data:dataGlobal,backgroundColor:'rgba(245,158,11,0.85)',borderRadius:3},
+      {label:'% s/ Valor Anual c/ Reajuste',data:dataAnual,backgroundColor:'rgba(99,179,237,0.85)',borderRadius:3}
+    ]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true,labels:{color:TC,font:{size:10}}},
+        tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw.toFixed(1)}%`}}
+      },
+      scales:{x:{grid:{color:GC},ticks:{color:TC,callback:v=>v+'%'}},y:{grid:{color:GC},ticks:{color:TC,font:{size:9}}}}}}));
+  const pag=document.getElementById('pct-pag');
+  if(pag){
+    pag.style.display=sorted.length>pageSize?'flex':'none';
+    document.getElementById('pct-page-lbl').textContent=`${STATE.pctPage+1} / ${totalPages}`;
+    document.getElementById('pct-prev').disabled=STATE.pctPage===0;
+    document.getElementById('pct-next').disabled=STATE.pctPage>=totalPages-1;
+  }
+}
+function pctPageChange(dir){
+  STATE.pctPage+=dir;
+  renderChPct(STATE._pctRows);
+}
+
+function renderChAnos(rows){
+  destroyC('anos');
+  const map={};rows.forEach(r=>{const k=r.empresa||'—';if(!map[k])map[k]={a:0,b:0};map[k].a+=r.executado2025;map[k].b+=r.executado2026});
+  const labs=Object.keys(map);
+  state_charts('anos',new Chart(document.getElementById('ch-anos'),{type:'bar',
+    data:{labels:labs,datasets:[
+      {label:'2025',data:labs.map(k=>map[k].a),backgroundColor:'#4f8ef7',borderRadius:3},
+      {label:'2026',data:labs.map(k=>map[k].b),backgroundColor:'#22c55e',borderRadius:3}
+    ]},
+    options:{responsive:true,plugins:{legend:{display:true,labels:{color:'#94a3b8',font:{size:10}}},tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${brl(c.raw)}`}}},
+      scales:{x:{grid:{color:GC},ticks:{color:TC,maxRotation:30,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}}));
+}
+
+function state_charts(k,c){STATE.charts[k]=c;return c}
+
+// ============================================================
+// ALERTAS
+// ============================================================
+// ============================================================
+// EMPENHOS — KPIs, tabela, alerta de vencimento
+// ============================================================
+
+
+function buildEmpNFCombinedHTML(gms,nfs,nfTotal){
+  try{
+    const gmsPure=(gms||'').replace(/[\/\s]/g,'').toUpperCase();
+    const empContrato=(STATE.empenhos||[]).filter(e=>{
+      const ec=e.contrato.replace(/[\/\s]/g,'').toUpperCase();
+      return ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec);
+    });
+    const hoje=new Date();hoje.setHours(0,0,0,0);
+    const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+    const abertos=empContrato.filter(_empAberto);
+    if(!empContrato.length&&!nfs.length)return '';
+    STATE._ctdAbertos=abertos;
+    STATE._currentNFs=nfs;
+    STATE._ctdEmpContrato=empContrato;
+    const saldoAbertoTotal=abertos.reduce((a,e)=>a+e.saldo,0);
+    const valorEmpenhado=empContrato.reduce((a,e)=>a+e.valor,0);
+    const vencendo15=abertos.filter(e=>e.vencimento&&e.vencimento<=em15);
+    const kpis='<div class="kpi-g4" style="margin-bottom:14px">'
+      +'<div class="kc" style="border-top-color:var(--pur)"><div class="kl">Empenhos em Aberto</div><div class="kv">'+abertos.length+'</div><div class="ks">com saldo disponível</div></div>'
+      +'<div class="kc" style="border-top-color:var(--blue)"><div class="kl">Valor Total Empenhado</div><div class="kv" style="font-size:14px">'+brl(valorEmpenhado)+'</div><div class="ks">soma dos empenhos</div></div>'
+      +'<div class="kc" style="border-top-color:var(--yel)"><div class="kl">Saldo a Liquidar</div><div class="kv" style="font-size:14px">'+brl(saldoAbertoTotal)+'</div><div class="ks">ainda não pago</div></div>'
+      +'<div class="kc" style="border-top-color:var(--red)"><div class="kl">⚡ Vencendo em 15 dias</div><div class="kv">'+vencendo15.length+'</div><div class="ks">'+brl(vencendo15.reduce((a,e)=>a+e.saldo,0))+' em risco</div></div>'
+      +'</div>';
+    return '<div class="nf-wrap">'
+      +'<div class="tbl-hdr" style="margin-bottom:4px"><div>'
+      +'<span class="tbl-ttl">📋 Empenhos &amp; Notas Fiscais</span>'
+      +'</div></div>'
+      +kpis
+      +'<div class="res-tabs" id="ctd-tabs">'
+      +'<div class="res-tab active" data-tab="abertos" onclick="showCtdTab(\'abertos\',this)">Empenhos em Aberto <span class="tbl-badge">'+abertos.length+'</span></div>'
+      +'<div class="res-tab" data-tab="nfs" onclick="showCtdTab(\'nfs\',this)">Notas Fiscais <span class="tbl-badge">'+nfs.length+'</span></div>'
+      +'</div>'
+      +'<div id="ctd-panel-abertos">'+renderCtdAbertosTable(abertos)+'</div>'
+      +'<div id="ctd-panel-nfs" style="display:none">'+renderCtdNFsPanel(nfs)+'</div>'
+      +'</div>';
+  }catch(e){console.error('buildEmpNFCombinedHTML:',e);return '';}
+}
+
+function renderCtdAbertosTable(abertos){
+  if(!abertos.length)return '<div style="text-align:center;padding:14px;color:var(--lbl)">Nenhum empenho em aberto. Todos os empenhos deste contrato estão pagos ou estornados.</div>';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+  const linhas=abertos.map(e=>{
+    const venc=e.vencimento;
+    const vencida=venc&&venc<hoje;
+    const proxVenc=venc&&venc<=em15&&!vencida;
+    const vencStyle=vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':'';
+    const vencTxt=venc?venc.toLocaleDateString('pt-BR')+(vencida?' (VENCIDO)':proxVenc?' (PRÓXIMO)':''):'—';
+    return '<tr>'
+      +'<td style="font-weight:700">'+e.numero+'</td>'
+      +'<td>'+(e.unidade||'—')+'</td>'
+      +'<td style="text-align:right">'+brl(e.valor)+'</td>'
+      +'<td style="text-align:right">'+brl(e.valorPago)+'</td>'
+      +'<td style="text-align:right;font-weight:700;color:var(--txt)">'+brl(e.saldo)+'</td>'
+      +'<td style="white-space:nowrap;'+vencStyle+'">'+vencTxt+'</td>'
+      +'<td>'+empStatusBadge(e)+'</td>'
+      +'</tr>';
+  }).join('');
+  return '<div class="tbl-cont" style="max-height:520px">'
+    +'<table class="dt"><thead><tr>'
+    +'<th>Nº Empenho</th><th>Unidade</th><th style="text-align:right">Valor</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th><th>Vencimento</th><th>Status</th>'
+    +'</tr></thead><tbody>'+linhas+'</tbody></table></div>';
+}
+
+function renderCtdNFsPanel(nfs){
+  if(!nfs.length)return '<div style="text-align:center;padding:18px;color:var(--lbl)">Sem registros de notas fiscais para este contrato.</div>';
+  return `<div class="tbl-hdr" style="margin-bottom:8px">
+      <div></div>
+      <div class="nf-filters">
+        <select id="nf-f-uni" onchange="filterNFs()">
+          <option value="">Todas Unidades</option>
+          ${[...new Set(nfs.map(n=>n.unidade))].sort().map(u=>`<option value="${u}">${u}</option>`).join('')}
+        </select>
+        <select id="nf-f-ano" onchange="filterNFs()">
+          <option value="">Todos Anos</option>
+          ${[...new Set(nfs.map(n=>n.ano).filter(Boolean))].sort().map(a=>`<option value="${a}">${a}</option>`).join('')}
+        </select>
+        <input type="text" id="nf-search" placeholder="🔍 Nº NF..." oninput="filterNFs()" style="width:100px">
+      </div>
+    </div>
+    <div class="tbl-cont" id="nf-table-cont" style="max-height:520px">${renderNFTable(nfs)}</div>
+    <div style="margin-top:14px"><canvas id="ch-d-nf" height="130"></canvas></div>`;
+}
+
+function showCtdTab(tab,el){
+  document.querySelectorAll('#ctd-tabs .res-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const pa=document.getElementById('ctd-panel-abertos'),pn=document.getElementById('ctd-panel-nfs');
+  if(pa)pa.style.display=tab==='abertos'?'':'none';
+  if(pn)pn.style.display=tab==='nfs'?'':'none';
+  if(tab==='nfs'&&(STATE._currentNFs||[]).length)setTimeout(()=>buildNFChart(STATE._currentNFs),60);
+}
+
+function empStatusBadge(e){
+  const s=e.status||'';
+  if(s==='Pago')return '<span class="emp-badge emp-badge-pa">Pago</span>';
+  if(s==='Vencido Aberto')return '<span class="emp-badge emp-badge-ve">Vencido Aberto</span>';
+  if(s==='Aberto e Vigente')return '<span class="emp-badge emp-badge-ab">Aberto e Vigente</span>';
+  // fallback para status legado ou computado em memória
+  if(e.saldo<0.01)return '<span class="emp-badge emp-badge-pa">Pago</span>';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  if(e.vencimento&&e.vencimento<hoje)return '<span class="emp-badge emp-badge-ve">Vencido Aberto</span>';
+  return '<span class="emp-badge emp-badge-ab">Aberto e Vigente</span>';
+}
+function _empAberto(e){
+  // Empenho em aberto = tem saldo E status não é "Pago"
+  if(e.saldo<0.01)return false;
+  const s=e.status||'';
+  return s!=='Pago';
+}
+
+function renderEmpKPIs(){
+  const emps=STATE.empenhos||[];
+  const wrap=document.getElementById('sec-empenhos-wrap');
+  if(!emps.length){if(wrap)wrap.style.display='none';return}
+  if(wrap)wrap.style.display='';
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+  const abertos=emps.filter(_empAberto);
+  const qtEmp=abertos.length;
+  const valEmp=abertos.reduce((a,e)=>a+e.valor,0);
+  const saldoEmp=abertos.reduce((a,e)=>a+e.saldo,0);
+  const vencendo=abertos.filter(e=>e.vencimento&&e.vencimento<=em15);
+  const qtVenc=vencendo.length;
+  const valVenc=vencendo.reduce((a,e)=>a+e.saldo,0);
+  const vencidos=abertos.filter(e=>e.vencimento&&e.vencimento<hoje);
+  const qtVencidos=vencidos.length;
+  const valVencidos=vencidos.reduce((a,e)=>a+e.saldo,0);
+  const setT=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setT('k-emp-qt',qtEmp);
+  setT('k-emp-saldo',brl(saldoEmp));
+  setT('k-emp-vencidos',qtVencidos);
+  setT('k-emp-vencidos-val',brl(valVencidos)+' em aberto');
+  setT('k-emp-venc',qtVenc);
+  setT('k-emp-venc-val',brl(valVenc)+' em risco');
+  // Alert panel para vencendo
+  const alertWrap=document.getElementById('emp-venc-alert');
+  if(alertWrap){
+    if(qtVenc>0){
+      alertWrap.style.display='';
+      document.getElementById('emp-venc-content').innerHTML=vencendo.map(e=>{
+        const venc=e.vencimento;
+        const vencida=venc<hoje;
+        const dias=Math.round((venc-hoje)/(86400000));
+        return `<div class="alrt-item"><strong>${e.numero}</strong> — ${e.contrato} / ${e.empresa} / ${e.unidade||'—'} — Saldo: ${brl(e.saldo)} — Vencimento: ${venc.toLocaleDateString('pt-BR')} <span style="color:${vencida?'var(--red)':'var(--yel)'}">(${vencida?'VENCIDO há '+Math.abs(dias)+' dias':dias===0?'VENCE HOJE':'em '+dias+' dia(s)'})</span></div>`;
+      }).join('');
+    } else {
+      alertWrap.style.display='none';
+    }
+  }
+  renderEmpTable(abertos,'');
+}
+
+function renderEmpTable(emps,filtro){
+  const wrap=document.getElementById('emp-table-wrap');
+  if(!wrap)return;
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const em15=new Date(hoje.getTime()+15*24*60*60*1000);
+  const f=(filtro||'').toLowerCase();
+  const lista=f?emps.filter(e=>
+    e.numero.toLowerCase().includes(f)||e.contrato.toLowerCase().includes(f)||
+    e.empresa.toLowerCase().includes(f)||(e.unidade||'').toLowerCase().includes(f)):emps;
+  if(!lista.length){wrap.style.display='none';return}
+  wrap.style.display='';
+  document.getElementById('emp-tbl-cnt').textContent=lista.length;
+  document.getElementById('emp-tbl-body').innerHTML=lista.map(e=>{
+    const venc=e.vencimento;
+    const vencida=venc&&venc<hoje;
+    const proxVenc=venc&&venc<=em15&&!vencida;
+    const pct=e.valor>0?Math.min((e.valorPago/e.valor)*100,100):0;
+    return `<tr>
+      <td style="font-weight:700;white-space:nowrap">${e.numero}</td>
+      <td>${e.contrato}</td>
+      <td>${e.empresa}</td>
+      <td>${e.unidade||'—'}</td>
+      <td style="text-align:right">${brl(e.valor)}</td>
+      <td style="text-align:right">${brl(e.valorPago)}</td>
+      <td style="text-align:right;font-weight:700;color:${e.saldo<0.01?'var(--green)':'var(--txt)'}">${brl(e.saldo)}</td>
+      <td style="white-space:nowrap">${e.dataEmissao?e.dataEmissao.toLocaleDateString('pt-BR'):'—'}</td>
+      <td style="white-space:nowrap;${vencida?'color:var(--red);font-weight:700':proxVenc?'color:var(--yel)':''}">${venc?venc.toLocaleDateString('pt-BR'):'—'}${vencida?' ⚠️':proxVenc?' ⚡':''}</td>
+      <td>${empStatusBadge(e)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterEmpTable(q){
+  const abertos=(STATE.empenhos||[]).filter(_empAberto);
+  renderEmpTable(abertos,q);
+}
+
+function renderAlertas(rows){
+  const needs=rows.filter(r=>str(r.necessitaSupl).toLowerCase().includes('sim')||str(r.necessitaSupl).toLowerCase().includes('urgente'));
+  const sorted=[...needs].sort((a,b)=>b.valorSupl-a.valorSupl);
+  const el=document.getElementById('alrt-content');
+  if(!sorted.length){el.innerHTML='<div class="alrt-ok">✓ Nenhum contrato necessita suplementação nos dados filtrados.</div>';return}
+  const mx=Math.max(...sorted.map(r=>r.valorSupl))||1;
+  el.innerHTML=sorted.map(r=>{
+    const w=Math.min((r.valorSupl/mx)*100,100);
+    const urg=str(r.necessitaSupl).toLowerCase().includes('urgente');
+    return`<div class="alrt-item">
+      <div class="alrt-lbl">${r.gms} · ${r.empresa}${urg?' <span style="font-size:9px;font-weight:700;color:var(--red);text-transform:uppercase">URGENTE</span>':''}</div>
+      <div class="alrt-track"><div class="alrt-fill" style="width:${w}%"></div></div>
+      <div class="alrt-val">${brl(r.valorSupl)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// RESUMO TABS
+// ============================================================
+function showResTab(tab,el){
+  STATE.resTab=tab;
+  document.querySelectorAll('.res-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderResTab(tab);
+}
+function renderResTab(tab){
+  const el=document.getElementById('res-content');if(!el)return;
+  if(tab==='emp'){
+    const cols=['Empresa','Qtde','Valor Global','Executado','Saldo','% Exec.'];
+    const src=getActiveResEmp();
+    el.innerHTML=resTable(cols,src.map(r=>[
+      col(r,['Empresa']),col(r,['Qtde Contratos','Quantidade']),
+      brl(col(r,['Valor Global Total','Valor Global'])),brl(col(r,['Executado Total','Executado'])),
+      brl(col(r,['Saldo Total','Saldo'])),pct(col(r,['% Execução','% Exec.']))
+    ]));
+  } else if(tab==='uni'&&STATE.mode==='food'){
+    const cols=['Unidade','Contratos','Efetivo','Val. Alocado','Executado','Saldo','% Exec.','Custo/Policial'];
+    el.innerHTML=resTable(cols,STATE.res_uni.map(r=>{
+      const unidade=col(r,['Unidade']);
+      let efetivo=num(col(r,['Efetivo (mais recente)','Efetivo']));
+      if(!efetivo&&unidade){
+        const baseRows=STATE.base.filter(b=>b.unidade===unidade&&b.efetivo>0);
+        if(baseRows.length)efetivo=Math.max(...baseRows.map(b=>b.efetivo));
+      }
+      const valAlocado=num(col(r,['Valor Global Alocado (proporcional)','Valor Global Alocado','Valor']));
+      const custoPol=efetivo>0?valAlocado/efetivo:0;
+      return[
+        unidade,
+        col(r,['Qtde Contratos','Quantidade']),
+        efetivo||'—',
+        brl(valAlocado),
+        brl(num(col(r,['Executado Total','Executado']))),
+        brl(num(col(r,['Saldo Alocado','Saldo']))),
+        pct(col(r,['% Execução','% Exec.'])),
+        efetivo>0?brl(custoPol):'—'
+      ];
+    }));
+  } else {
+    const cols=['Tipo','Qtde','Valor Global','Executado','Saldo','% Exec.','Gasto Mensal'];
+    const src=getActiveResTipo();
+    el.innerHTML=resTable(cols,src.map(r=>[
+      col(r,['Tipo','Tipo de Serviço']),col(r,['Qtde Contratos','Quantidade']),
+      brl(col(r,['Valor Global Total','Valor Global'])),brl(col(r,['Executado Total','Executado'])),
+      brl(col(r,['Saldo Total','Saldo'])),pct(col(r,['% Execução'])),brl(col(r,['Gasto Mensal Total','Gasto Mensal']))
+    ]));
+  }
+}
+function resTable(cols,rows){
+  if(!rows.length)return'<div style="text-align:center;padding:16px;color:var(--lbl)">Sem dados.</div>';
+  return`<div style="overflow-x:auto"><table class="dt" style="min-width:auto"><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map(r=>`<tr>${r.map(c=>`<td>${c??'—'}</td>`).join('')}</tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+// ============================================================
+// MAIN TABLE
+// ============================================================
+function sortTable(col){
+  if(STATE.sortCol===col){STATE.sortDir*=-1}else{STATE.sortCol=col;STATE.sortDir=1}
+  document.querySelectorAll('table.dt th.sortable').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+    if(th.getAttribute('onclick')===`sortTable('${col}')`)th.classList.add(STATE.sortDir===1?'sort-asc':'sort-desc');
+  });
+  renderTable(STATE.filtered);
+}
+function renderTable(rows){
+  const q=STATE.tableSearch.toLowerCase();
+  let disp=q?rows.filter(r=>r.gms.toLowerCase().includes(q)||r.empresa.toLowerCase().includes(q)):rows;
+  if(STATE.sortCol){
+    const k=STATE.sortCol,d=STATE.sortDir;
+    disp=[...disp].sort((a,b)=>{
+      const av=typeof a[k]==='number'?a[k]:str(a[k]).toLowerCase();
+      const bv=typeof b[k]==='number'?b[k]:str(b[k]).toLowerCase();
+      return av<bv?-d:av>bv?d:0;
+    });
+  }
+  document.getElementById('tbl-cnt').textContent=disp.length;
+  document.getElementById('tbl-body').innerHTML=disp.map(r=>{
+    const pe=pctV(r.pctExecTotal);
+    const pcl=pe>100?'td-r':pe>=70?'td-g':'';
+    // % execução mensal: gasto/mês vs provisão/mês
+    const pctMes=r.valorMensal>0?(r.mediaGastoMensal/r.valorMensal)*100:0;
+    const saldoMes=r.valorMensal-r.mediaGastoMensal;
+    const clMes=pctMes>100?'td-r':pctMes>=85?'td-g':pctMes>=60?'':'td-r';
+    const corMes=pctMes>100?'var(--red)':pctMes>=85?'var(--green)':pctMes>=50?'var(--yel)':'var(--orn)';
+    return`<tr onclick="showContract('${escJS(r.gms)}','${escJS(r.empresa)}')">
+      <td><div class="td-blue">${r.gms}</div></td>
+      <td><div style="font-weight:600">${r.empresa}</div><div class="td-sub">${r.unidPrincipal}</div></td>
+      <td><span class="badge ${r.tipo&&r.tipo.includes('Hortif')?'bg-p':'bg-b'}">${r.tipo&&r.tipo.includes('Hortif')?'Hortifr.':'Gên. Al.'}</span></td>
+      <td>${brl(r.valorGlobal)}</td>
+      <td class="td-g">${brl(r.executadoTotal)}</td>
+      <td>${brl(r.saldo)}</td>
+      <td class="${pcl}">${pct(r.pctExecTotal)}</td>
+      <td>${brl(r.valorMensal)}</td>
+      <td>${brl(r.mediaGastoMensal)}</td>
+      <td style="min-width:130px">
+        <div style="font-size:11px;font-weight:700;color:${corMes}">${pctMes.toFixed(1)}% da provisão</div>
+        <div class="mp" style="margin:3px 0"><div class="mp-f" style="width:${Math.min(pctMes,100)}%;background:${corMes}"></div></div>
+        <div style="font-size:10px;color:var(--txt2)">${saldoMes>=0?'pode gastar +'+brl(saldoMes):'excedeu '+brl(Math.abs(saldoMes))}</div>
+      </td>
+      <td>${statusBadge(r.statusVigencia)}</td>
+      <td>${fDate(r.dataFim)}</td>
+      <td>${suplBadge(r.necessitaSupl)}</td>
+    </tr>`;
+  }).join('');
+}
+function filterTable(q){STATE.tableSearch=q;renderTable(STATE.filtered)}
+function escJS(s){return String(s).replace(/'/g,"\\'")}
+
+function statusBadge(s){
+  const m={'Vigente':'bg-g','Atenção':'bg-y','Muita Atenção':'bg-o','Crítico':'bg-r','Vencido':'bg-gr'};
+  return`<span class="badge ${m[s]||'bg-gr'}">${s||'—'}</span>`;
+}
+function suplBadge(s){
+  if(!s||s==='0')return`<span class="badge bg-g">OK</span>`;
+  const sl=str(s).toLowerCase();
+  if(sl.includes('urgente'))return`<span class="badge bg-r">🚨 URGENTE</span>`;
+  if(sl.includes('sim'))return`<span class="badge bg-y">⚠ Sim</span>`;
+  if(sl.includes('indeterminado'))return`<span class="badge bg-o">Indet.</span>`;
+  if(sl.includes('não')||sl.includes('nao'))return`<span class="badge bg-g">OK</span>`;
+  return`<span class="badge bg-gr">${str(s).substring(0,14)}</span>`;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function buildTabs(){
+  const bar=document.getElementById('tabs-bar');
+  bar.querySelectorAll('.tab-contract').forEach(e=>e.remove());
+  const pool=STATE.mode==='serv'?STATE.serv_filtered:STATE.filtered;
+  pool.forEach(r=>{
+    const t=document.createElement('div');
+    t.className='tab-i tab-contract';
+    const pe=pctV(r.pctExecTotal);
+    const peColor=pe>100?'var(--red)':pe>=70?'var(--green)':'var(--yel)';
+    const dias=num(r.diasRestantes);
+    const diasColor=dias<=30?'var(--red)':dias<=90?'var(--yel)':'var(--green)';
+    t.innerHTML=`${r.gms} ${r.empresa}<div class="tab-tip">
+      <div style="font-weight:700;margin-bottom:4px">${r.gms} – ${r.empresa}</div>
+      <div>💰 Valor Global: <strong>${brl(r.valorGlobal)}</strong></div>
+      <div>📊 Execução: <strong style="color:${peColor}">${pct(r.pctExecTotal)}</strong></div>
+      <div>📅 Dias restantes: <strong style="color:${diasColor}">${dias}</strong></div>
+      <div>📍 ${r.unidPrincipal||r.unidsAtendidas||'—'}</div>
+    </div>`;
+    t.onclick=()=>showContract(r.gms,r.empresa);
+    bar.appendChild(t);
+  });
+  updateActiveTab();
+}
+function updateActiveTab(){
+  document.querySelectorAll('.tab-i').forEach(t=>{
+    t.classList.remove('active');
+    if(!STATE.currentGMS&&t.id==='tab-ov')t.classList.add('active');
+    else if(STATE.currentGMS&&t.textContent===`${STATE.currentGMS} ${STATE.currentEmp}`)t.classList.add('active');
+  });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showOverview(){
+  STATE.currentGMS=null;STATE.currentEmp=null;
+  switchView(STATE.mode==='serv'?'v-serv':'v-overview');updateActiveTab();
+}
+function switchView(id){
+  ['v-empty','v-overview','v-detail','v-serv','v-serv-detail'].forEach(v=>{
+    const el=document.getElementById(v);
+    if(el)el.classList.toggle('show',el.id===id);
+  });
+}
+
+function showContract(gms,empresa){
+  if(STATE.mode==='serv'){
+    const row=STATE.serv_filtered.find(r=>r.gms===gms&&r.empresa===empresa)
+           ||STATE.serv_painel.find(r=>r.gms===gms&&r.empresa===empresa);
+    if(!row)return;
+    STATE.currentGMS=gms;STATE.currentEmp=empresa;
+    switchView('v-serv-detail');
+    renderServDetail(row);
+    updateActiveTab();
+    document.getElementById('main-scroll').scrollTop=0;
+    return;
+  }
+  const row=STATE.filtered.find(r=>r.gms===gms&&r.empresa===empresa)
+         ||STATE.painel.find(r=>r.gms===gms&&r.empresa===empresa);
+  if(!row)return;
+  STATE.currentGMS=gms;STATE.currentEmp=empresa;
+  switchView('v-detail');
+  renderDetail(row);
+  updateActiveTab();
+  document.getElementById('main-scroll').scrollTop=0;
+}
+
+// ============================================================
+// FIND NF SHEET: match by GMS number and empresa name
+// ============================================================
+function findNFSheet(gms,empresa){
+  // Primary: use index built by reading GMS+empresa from inside each sheet
+  const key=gms+'|'+empresa;
+  if(STATE.nfsIndex[key])return STATE.nfsIndex[key];
+  // Fallback: match by GMS only
+  for(const k of Object.keys(STATE.nfsIndex)){
+    if(k.startsWith(gms+'|'))return STATE.nfsIndex[k];
+  }
+  // Last resort: fuzzy name match
+  const gmsPure=gms.replace(/\//g,'').replace(/^0+/,'');
+  const empPure=empresa.replace(/\s+/g,'').toUpperCase();
+  for(const name of Object.keys(STATE.nfs)){
+    const nPure=name.replace(/\s+/g,'').toUpperCase();
+    if(nPure.includes(gmsPure)&&nPure.includes(empPure))return name;
+  }
+  return null;
+}
+
+// ============================================================
+// DETAIL VIEW
+// ============================================================
+function renderDetail(row){
+  ['d-rosca','d-saldo','d-nf'].forEach(k=>destroyC(k));
+
+  const baseRows=STATE.base.filter(b=>b.gms===row.gms);
+  const pe=pctV(row.pctExecTotal);
+  const barColor=pe>100?'var(--red)':pe>=70?'var(--green)':'var(--yel)';
+
+  let pctTime=50,diasP=0;
+  try{
+    const parseD=v=>{
+      if(!v)return null;
+      if(v instanceof Date)return v;
+      if(typeof v==='string'){const m=v.match(/(\d{4})-(\d{2})-(\d{2})/);if(m)return new Date(v);const m2=v.match(/(\d{2})\/(\d{2})\/(\d{4})/);if(m2)return new Date(`${m2[3]}-${m2[2]}-${m2[1]}`)}
+      return null;
+    };
+    const ini=parseD(row.dataInicio),fim=parseD(row.dataFim),tod=new Date();
+    if(ini&&fim){const tot=(fim-ini)/864e5||1;diasP=(tod-ini)/864e5;pctTime=Math.max(0,Math.min((diasP/tot)*100,100))}
+  }catch(e){}
+
+  const nfSheetKey=findNFSheet(row.gms,row.empresa);
+  const nfs=nfSheetKey?STATE.nfs[nfSheetKey]||[]:[];
+  const nfTotal=nfs.reduce((a,n)=>a+n.valor,0);
+
+  document.getElementById('v-detail').innerHTML=`
+  <!-- HEADER -->
+  <div class="detail-hdr fade-in">
+    <div>
+      <div class="dh-gms">GMS ${row.gms}</div>
+      <div class="dh-emp">${row.empresa}</div>
+      <div class="dh-badges">
+        ${statusBadge(row.statusVigencia)}
+        <span class="badge ${str(row.prorrogado).toLowerCase()==='sim'?'bg-c':'bg-gr'}">${str(row.prorrogado).toLowerCase()==='sim'?'Prorrogado':'Não Prorrog.'}</span>
+        ${str(row.reajustePendente).toLowerCase()==='sim'?'<span class="badge bg-y">💰 Reajuste Pendente</span>':''}
+        ${str(row.prorrogacaoIniciar).toLowerCase()==='sim'?'<span class="badge bg-o">📅 Prorrog. a Iniciar</span>':''}
+        <span class="badge ${row.tipo&&row.tipo.includes('Hortif')?'bg-p':'bg-b'}">${row.tipo||'—'}</span>
+      </div>
+    </div>
+    <button class="btn-sec" onclick="showOverview()">← Visão Geral</button>
+  </div>
+
+  <!-- KPI 8 -->
+  <div class="sec-lbl">Indicadores do Contrato</div>
+  <div class="kpi-g8" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+    <div class="kc" style="border-top-color:var(--blue)"><div class="kl">Valor Global</div><div class="kv" style="font-size:15px">${brl(row.valorGlobal)}</div></div>
+    <div class="kc" style="border-top-color:var(--lm)"><div class="kl">Valor Anual c/ Reajuste</div><div class="kv" style="font-size:15px">${brl((()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;return row.valorOriginal*(1+(f||0));})())}</div></div>
+    <div class="kc" style="border-top-color:var(--green)"><div class="kl">Total Executado</div><div class="kv" style="font-size:15px">${brl(row.executadoTotal)}</div></div>
+    <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Saldo Restante</div><div class="kv" style="font-size:15px">${brl(row.saldo)}</div></div>
+    <div class="kc" style="border-top-color:${barColor}"><div class="kl">% Execução Total</div><div class="kv" style="font-size:20px;color:${barColor}">${pct(row.pctExecTotal)}</div></div>
+    <div class="kc" style="border-top-color:var(--pur)"><div class="kl">Meses Restantes</div><div class="kv">${row.mesesRestantes??'—'}</div></div>
+    <div class="kc" style="border-top-color:var(--yel)"><div class="kl">Média Gasto/Mês</div><div class="kv" style="font-size:14px">${brl(row.mediaGastoMensal)}</div></div>
+    <div class="kc" style="border-top-color:var(--orn)"><div class="kl">Gasto/Policial/Mês</div><div class="kv" style="font-size:14px">${brl(row.gastoMensalPol)}</div></div>
+    <div class="kc" style="border-top-color:var(--red)"><div class="kl">Val. Supl. Estimada</div><div class="kv" style="font-size:14px">${brl(row.valorSupl)}</div></div>
+  </div>
+
+  <!-- INFO GRID -->
+  <div class="info-grid">
+    <div class="info-item"><div class="il">Unidades Atendidas</div><div class="iv">${row.unidsAtendidas||'—'}</div></div>
+    <div class="info-item"><div class="il">Efetivo Total</div><div class="iv">${row.efetTotal} policiais</div></div>
+    <div class="info-item"><div class="il">Valor Original Anual</div><div class="iv">${brl(row.valorOriginal)}</div></div>
+    <div class="info-item"><div class="il">% Reajuste</div><div class="iv">${row.pctReajuste??0}%</div></div>
+    <div class="info-item"><div class="il">Valor Anual Atualizado</div><div class="iv" style="color:var(--lm);font-weight:700">${(()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;return brl(row.valorOriginal*(1+(f||0)));})()}</div></div>
+    <div class="info-item"><div class="il">Próx. Reajuste</div><div class="iv">${fDate(row.proxReajuste)}</div></div>
+    <div class="info-item"><div class="il">Executado 2025</div><div class="iv" style="color:var(--blue)">${brl(row.executado2025)}</div></div>
+    <div class="info-item"><div class="il">% Exec. 2025</div><div class="iv" style="color:var(--blue)">${(()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;const va=row.valorOriginal*(1+(f||0));return va>0?((row.executado2025/va)*100).toFixed(1)+'%':'—';})()}</div></div>
+    <div class="info-item"><div class="il">Executado 2026</div><div class="iv" style="color:var(--green)">${brl(row.executado2026)}</div></div>
+    <div class="info-item"><div class="il">% Exec. 2026</div><div class="iv" style="color:var(--green)">${(()=>{const f=Math.abs(row.pctReajuste)>2?row.pctReajuste/100:row.pctReajuste;const va=row.valorOriginal*(1+(f||0));return va>0?((row.executado2026/va)*100).toFixed(1)+'%':'—';})()}</div></div>
+    <div class="info-item"><div class="il">Total NFs Liquidadas</div><div class="iv" style="color:var(--green)">${brl(nfTotal)}</div></div>
+  </div>
+
+  <!-- BARRA EXECUÇÃO -->
+  <div class="prog-wrap">
+    <div class="sec-lbl" style="margin-bottom:6px">Progresso de Execução Orçamentária</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-bottom:5px"><span>0%</span><span style="font-weight:700;color:${barColor}">${pct(row.pctExecTotal)} executado</span><span>100%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="d-prog" style="width:0%;background:${barColor}">${pe>12?pct(row.pctExecTotal):''}</div></div>
+    ${pe>100?`<div style="color:var(--red);font-size:11px;margin-top:5px;font-weight:700">⚠ Teto contratual excedido (${pct(row.pctExecTotal)})</div>`:''}
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="tl-wrap">
+    <div class="sec-lbl" style="margin-bottom:2px">Linha do Tempo do Contrato</div>
+    <div class="tl-dates" style="margin-top:10px"><span>Início: ${fDate(row.dataInicio)}</span><span>Fim: ${fDate(row.dataFim)}</span></div>
+    <div class="tl-track">
+      <div class="tl-fill" id="d-tlfill" style="width:0%"></div>
+      <div class="tl-dot" style="left:${pctTime}%"></div>
+    </div>
+    <div class="tl-info">
+      <span>Dias decorridos: <strong>${Math.max(0,Math.floor(diasP))}</strong></span>
+      <span>Hoje: <strong>${new Date().toLocaleDateString('pt-BR')}</strong></span>
+      <span>Dias restantes: <strong>${row.diasRestantes??'—'}</strong></span>
+    </div>
+  </div>
+
+  <!-- ALERTAS DO CONTRATO -->
+  <div class="ac-grid" id="d-alerts"></div>
+
+  ${baseRows.length>1?`
+  <!-- TABELA UNIDADES -->
+  <div class="tbl-wrap">
+    <div class="tbl-hdr"><span class="tbl-ttl">Detalhamento por Unidade</span><span class="tbl-badge">${baseRows.length}</span></div>
+    <div class="tbl-cont" style="overflow-x:auto"><table class="dt"><thead><tr>
+      <th>Unidade</th><th>Efetivo</th><th>% do Contrato</th><th>Val. Global Alocado</th><th>Val. Anual (Unidade)</th><th>Executado Total</th><th>Exec. 2025</th><th>Exec. 2026</th><th>Saldo</th><th>% Execução</th><th>Custo/Policial</th><th>Status</th>
+    </tr></thead><tbody>
+    ${(()=>{
+      let mesesTotal=0;
+      if(row.dataInicio&&row.dataFim){const ini=new Date(row.dataInicio),fim=new Date(row.dataFim);mesesTotal=(fim.getFullYear()-ini.getFullYear())*12+(fim.getMonth()-ini.getMonth());}
+      // NFs deste contrato agrupadas por unidade e ano
+      const nfSheet=nfSheetKey?STATE.nfs[nfSheetKey]||[]:[];
+      const nfByUniYear={};
+      nfSheet.forEach(n=>{
+        const uni=str(n.unidade).toUpperCase().trim();
+        const yr=n.ano||0;
+        if(!nfByUniYear[uni])nfByUniYear[uni]={};
+        nfByUniYear[uni][yr]=(nfByUniYear[uni][yr]||0)+n.valor;
+      });
+      const totalGlobal=row.valorGlobal||1;
+      return baseRows.map(u=>{
+        const pu=pctV(u.pctExec);const bc=pu>100?'var(--red)':pu>=70?'var(--green)':'var(--yel)';
+        const custoPol=u.efetivo>0?u.executado/u.efetivo:0;
+        const valAnualUni=mesesTotal>0?(u.valorGlobalAlocado/mesesTotal)*12:0;
+        const pctContrato=totalGlobal>0?((u.valorGlobalAlocado/totalGlobal)*100).toFixed(1)+'%':'—';
+        // exec por ano das NFs (unidade normalizada para comparação)
+        const uKey=u.unidade.toUpperCase().trim();
+        const nfUni=nfByUniYear[uKey]||{};
+        const e25=nfUni[2025]||0;
+        const e26=nfUni[2026]||0;
+        // executado total das NFs (soma de todos os anos)
+        const execNF=Object.values(nfUni).reduce((a,v)=>a+v,0);
+        // usa exec da planilha se NFs não disponíveis, mas prefere soma das NFs
+        const execMostrado=execNF>0?execNF:u.executado;
+        const saldo=Math.max(0,u.valorGlobalAlocado-execMostrado);
+        return`<tr><td style="font-weight:600">${u.unidade}</td><td>${u.efetivo}</td>
+          <td style="color:var(--pur);font-weight:600">${pctContrato}</td>
+          <td>${brl(u.valorGlobalAlocado)}</td>
+          <td style="color:var(--lm);font-weight:600">${brl(valAnualUni)}</td>
+          <td class="td-g">${brl(execMostrado)}</td>
+          <td style="color:var(--blue)">${brl(e25)}</td>
+          <td style="color:var(--green)">${brl(e26)}</td>
+          <td>${brl(saldo)}</td>
+          <td><div style="font-size:11px;font-weight:700;color:${bc}">${pct(u.pctExec)}</div>
+            <div class="mp"><div class="mp-f" style="width:${Math.min(pu,100)}%;background:${bc}"></div></div></td>
+          <td style="color:var(--cyn);font-weight:600">${brl(custoPol)}</td>
+          <td>${statusBadge(u.status)}</td></tr>`;
+      }).join('');
+    })()}
+    </tbody></table></div>
+  </div>
+  <!-- GRÁFICOS UNIDADES -->
+  <div class="cr6040">
+    <div class="cc"><h3>Executado por Unidade</h3><div style="max-width:320px;margin:0 auto"><canvas id="ch-d-rosca" height="220"></canvas></div><div class="leg" id="leg-d-rosca"></div></div>
+    <div class="cc"><h3>Saldo por Unidade</h3><canvas id="ch-d-saldo" height="220"></canvas></div>
+  </div>`:''}
+
+  ${buildEmpNFCombinedHTML(row.gms,nfs,nfTotal)}
+  `;
+
+  // Animate bars
+  setTimeout(()=>{
+    const p=document.getElementById('d-prog');if(p)p.style.width=Math.min(pe,100)+'%';
+    const tl=document.getElementById('d-tlfill');if(tl)tl.style.width=pctTime+'%';
+  },80);
+
+  // Alerts
+  buildDetailAlerts(row);
+
+  // Multi-unit charts
+  if(baseRows.length>1){
+    setTimeout(()=>{
+      const c1=document.getElementById('ch-d-rosca'),c2=document.getElementById('ch-d-saldo');
+      if(c1){
+        const labs=baseRows.map(b=>b.unidade),data=baseRows.map(b=>b.executado),cols=labs.map((_,i)=>gc(i));
+        STATE.charts['d-rosca']=new Chart(c1,{type:'doughnut',data:{labels:labs,datasets:[{data,backgroundColor:cols,borderWidth:2,borderColor:'#1e2130'}]},options:{responsive:true,cutout:'60%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.label}: ${brl(c.raw)}`}}}}});
+        const leg=document.getElementById('leg-d-rosca');if(leg)leg.innerHTML=labs.map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${cols[i]}"></span>${l}</span>`).join('');
+      }
+      if(c2){
+        const labs=baseRows.map(b=>b.unidade);
+        STATE.charts['d-saldo']=new Chart(c2,{type:'bar',data:{labels:labs,datasets:[{label:'Saldo',data:baseRows.map(b=>b.saldoAlocado),backgroundColor:'#4f8ef7',borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},scales:{x:{grid:{color:GC},ticks:{color:TC}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+      }
+    },120);
+  }
+
+  // NF chart é renderizado ao abrir a aba "Notas Fiscais" (ver showCtdTab)
+  STATE._currentNFs=nfs;
+}
+
+function renderNFTable(nfs){
+  if(!nfs.length)return'<div style="text-align:center;padding:14px;color:var(--lbl)">Nenhum registro.</div>';
+  const empMap={};
+  (STATE._ctdEmpContrato||STATE.empenhos||[]).forEach(e=>{if(e.numero)empMap[e.numero]=e.valor;});
+  const total=nfs.reduce((a,n)=>a+n.valor,0);
+  return`<table class="dt" style="width:100%;table-layout:fixed"><colgroup>
+    <col style="width:10%"><col style="width:18%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:14%"><col style="width:8%">
+  </colgroup><thead><tr>
+    <th style="text-align:center">Unidade</th>
+    <th style="text-align:center">Nº Empenho</th>
+    <th style="text-align:center">Valor Empenho</th>
+    <th style="text-align:center">Nº NF</th>
+    <th style="text-align:center">Valor NF</th>
+    <th style="text-align:center">Data Pgto</th>
+    <th style="text-align:center">Ano</th>
+  </tr></thead>
+  <tbody>${nfs.map(n=>{
+    const valEmp=n.empenho?empMap[n.empenho]:null;
+    return`<tr>
+      <td style="text-align:center;font-weight:600">${n.unidade||'—'}</td>
+      <td style="text-align:center;font-weight:700">${n.empenho||'—'}</td>
+      <td style="text-align:center;color:var(--txt2)">${valEmp!=null?brl(valEmp):'—'}</td>
+      <td style="text-align:center;color:var(--txt2)">${n.numeroNF||'—'}</td>
+      <td style="text-align:center;font-weight:600;color:var(--green)">${brl(n.valor)}</td>
+      <td style="text-align:center">${n.data||'—'}</td>
+      <td style="text-align:center"><span class="badge ${n.ano===2026||n.ano==='2026'?'bg-g':'bg-b'}">${n.ano||'—'}</span></td>
+    </tr>`;
+  }).join('')}</tbody>
+  <tfoot><tr>
+    <td colspan="4" style="font-weight:700;padding:8px 10px;color:var(--txt2);text-align:center">TOTAL NFs</td>
+    <td style="font-weight:700;padding:8px 10px;color:var(--green);text-align:center">${brl(total)}</td>
+    <td colspan="2"></td>
+  </tr></tfoot>
+  </table>`;
+}
+
+function filterNFs(){
+  const fu=document.getElementById('nf-f-uni')?.value||'';
+  const fa=document.getElementById('nf-f-ano')?.value||'';
+  const fs=(document.getElementById('nf-search')?.value||'').toLowerCase();
+  let nfs=STATE._currentNFs||[];
+  if(fu)nfs=nfs.filter(n=>n.unidade===fu);
+  if(fa)nfs=nfs.filter(n=>String(n.ano)===fa);
+  if(fs)nfs=nfs.filter(n=>String(n.numeroNF||'').toLowerCase().includes(fs)||String(n.data||'').includes(fs));
+  const cont=document.getElementById('nf-table-cont');
+  if(cont)cont.innerHTML=renderNFTable(nfs);
+}
+
+function buildNFChart(nfs){
+  destroyC('d-nf');
+  const canvas=document.getElementById('ch-d-nf');if(!canvas)return;
+  const map={};
+  nfs.forEach(n=>{
+    let d=str(n.data);if(!d)return;
+    let y,m;
+    if(d.match(/^\d{2}\/\d{2}\/\d{4}$/)){const p=d.split('/');m=parseInt(p[1]);y=parseInt(p[2])}
+    else if(d.match(/^\d{4}-\d{2}-\d{2}$/)){const p=d.split('-');y=parseInt(p[0]);m=parseInt(p[1])}
+    else return;
+    const k=`${y}-${String(m).padStart(2,'0')}`;
+    map[k]=(map[k]||0)+n.valor;
+  });
+  const labs=Object.keys(map).sort();
+  const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const fmtL=k=>{const[y,mo]=k.split('-');return`${MN[parseInt(mo)-1]}/${y.slice(2)}`};
+  STATE.charts['d-nf']=new Chart(canvas,{type:'bar',
+    data:{labels:labs.map(fmtL),datasets:[{label:'Pagamentos',data:labs.map(k=>map[k]),backgroundColor:labs.map(k=>k.startsWith('2026')?'#22c55e':'#4f8ef7'),borderRadius:3}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},
+      scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:9}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+}
+
+function buildDetailAlerts(row){
+  const el=document.getElementById('d-alerts');if(!el)return;
+  const alerts=[];
+  const sv=str(row.statusVigencia||row.status).toLowerCase();
+  const dias=num(row.diasRestantes);
+  if(sv==='vencido')
+    alerts.push({cls:'ac-r',title:'🔴 Contrato Vencido',body:`Vigência encerrada. Data fim: <strong>${fDate(row.dataFim)}</strong>. Providenciar novo processo licitatório.`});
+  else if(sv==='crítico'||sv==='critico')
+    alerts.push({cls:'ac-r',title:'🔴 Situação Crítica',body:`Contrato em situação crítica — <strong>${dias>0?dias+' dias restantes':'prazo expirado'}</strong>. Ação imediata necessária.`});
+  else if(sv==='muita atenção'||sv==='muita atencao')
+    alerts.push({cls:'ac-o',title:'🟠 Muita Atenção',body:`Contrato requer atenção elevada — <strong>${dias} dias restantes</strong>. Iniciar processo de prorrogação/renovação.`});
+  else if(sv==='atenção'||sv==='atencao')
+    alerts.push({cls:'ac-y',title:'🟡 Atenção',body:`Contrato com prazo próximo do vencimento — <strong>${dias} dias restantes</strong>. Monitorar e planejar renovação.`});
+  if(str(row.reajustePendente).toLowerCase()==='sim')
+    alerts.push({cls:'ac-y',title:'💰 Reajuste Pendente',body:`Próximo reajuste previsto: <strong>${fDate(row.proxReajuste)||'não informado'}</strong>`});
+  if(str(row.prorrogacaoIniciar).toLowerCase()==='sim')
+    alerts.push({cls:'ac-o',title:'📅 Prorrogação a Iniciar',body:`Iniciar processo até: <strong>${fDate(row.iniciarProrx)||'não informado'}</strong>`});
+  if(str(row.acimaDoTeto).toLowerCase()==='sim')
+    alerts.push({cls:'ac-r',title:'🚨 Teto Contratual Excedido',body:'Gasto médio mensal acima da provisão contratada. Verificar suplementação urgente.'});
+  if(str(row.necessitaSupl).toLowerCase().includes('sim')||str(row.necessitaSupl).toLowerCase().includes('urgente'))
+    alerts.push({cls:'ac-r',title:'⚠ Suplementação Necessária',body:`Valor estimado de suplementação: <strong>${brl(row.valorSupl)}</strong>`});
+  if(!alerts.length)
+    alerts.push({cls:'ac-g',title:'✓ Sem Alertas',body:'Nenhum alerta identificado para este contrato.'});
+  el.innerHTML=alerts.map(a=>`<div class="ac ${a.cls}"><h4>${a.title}</h4><p>${a.body}</p></div>`).join('');
+}
+
+// ============================================================
+// SWITCH MODE
+// ============================================================
+function switchMode(mode){
+  STATE.mode=mode;
+  STATE.currentGMS=null;STATE.currentEmp=null;
+  STATE.sortCol=null;STATE.sortDir=1;STATE.pctPage=0;
+  document.getElementById('btn-mode-food').classList.toggle('active-mode',mode==='food');
+  document.getElementById('btn-mode-serv').classList.toggle('active-mode',mode==='serv');
+  // Sidebar title update
+  document.querySelector('.sb-head p').textContent=mode==='serv'?'Serviços Terceirizados':'Gêneros Alimentícios';
+  // Update top-bar sub title for overview
+  const sub=document.getElementById('dash-sub');
+  if(sub)sub.textContent=mode==='serv'?'Serviços Terceirizados – PRODUSERV':'3º Comando Regional PM';
+  populateFilters();
+  if(mode==='serv'){
+    STATE.serv_filtered=[...STATE.serv_painel];
+    applyFilters();
+    showOverview();
+  } else {
+    STATE.filtered=[...STATE.painel];
+    applyFilters();
+    showOverview();
+  }
+}
+
+// ============================================================
+// RENDER PRODUSERV DASHBOARD (overview)
+// ============================================================
+function renderServDash(){
+  const rows=STATE.serv_filtered;
+  const container=document.getElementById('v-serv');
+  if(!container)return;
+
+  const sg=rows.reduce((a,r)=>a+r.valorGlobal,0);
+  const se=rows.reduce((a,r)=>a+r.executadoTotal,0);
+  const se26=rows.reduce((a,r)=>a+r.executado2026,0);
+  const ss=rows.reduce((a,r)=>a+r.saldo,0);
+  // Provisão mensal PRODUSERV: soma valorMensalPosto × qtdPostos da base detalhada (contratos filtrados)
+  const gmsSetP=new Set(rows.map(r=>r.gms));
+  const smServ=STATE.serv_base.filter(b=>gmsSetP.has(b.gms)).reduce((a,b)=>a+(b.valorMensalPosto||0)*(b.qtdPostos||1),0);
+  const sm=smServ||rows.reduce((a,r)=>a+r.valorMensal,0);
+  const postos=rows.reduce((a,r)=>a+r.qtdPostos,0);
+  const tot=sg||1; const pp=(se/tot)*100; const ps=(ss/tot)*100;
+
+  const d30=rows.filter(r=>num(r.diasRestantes)<=30&&num(r.diasRestantes)>=0).length;
+  const d60=rows.filter(r=>{const d=num(r.diasRestantes);return d>30&&d<=60}).length;
+  const d90=rows.filter(r=>{const d=num(r.diasRestantes);return d>60&&d<=90}).length;
+  const d180=rows.filter(r=>{const d=num(r.diasRestantes);return d>90&&d<=180}).length;
+  const dok=rows.filter(r=>num(r.diasRestantes)>180).length;
+  const dprorr=rows.filter(r=>str(r.prorrogado).toLowerCase()==='sim').length;
+
+  container.innerHTML=`
+  <div class="mh fade-in">
+    <div><h1>Serviços Terceirizados – PRODUSERV</h1><p style="color:var(--txt2);font-size:12px;margin-top:3px">Contratos de Postos de Serviço – 3º CRPM</p></div>
+    <button class="btn-sec" onclick="document.getElementById('file-input').click()">📂 Trocar Planilha</button>
+  </div>
+
+  <div class="sec-lbl">Indicadores de Vigência</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:14px;margin-bottom:18px">
+    <div class="kc" style="border-top-color:var(--blue)"><div class="kl">Contratos</div><div class="kv">${rows.length}</div><div class="ks">no filtro</div></div>
+    <div class="kc" style="border-top-color:var(--red)"><div class="kl">Vence ≤30d</div><div class="kv">${d30}</div></div>
+    <div class="kc" style="border-top-color:var(--orn)"><div class="kl">Vence ≤60d</div><div class="kv">${d60}</div></div>
+    <div class="kc" style="border-top-color:var(--yel)"><div class="kl">Vence ≤90d</div><div class="kv">${d90}</div></div>
+    <div class="kc" style="border-top-color:var(--green)"><div class="kl">Vence ≤180d</div><div class="kv">${d180}</div></div>
+    <div class="kc" style="border-top-color:var(--lm)"><div class="kl">Confortável >180d</div><div class="kv">${dok}</div></div>
+    <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Prorrogados</div><div class="kv">${dprorr}</div></div>
+  </div>
+
+  <div class="sec-lbl">Indicadores Financeiros</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:18px">
+    <div class="kc big" style="border-top-color:var(--lbl)"><div class="kl">Valor Global Total</div><div class="kv" id="sv-global">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--green)"><div class="kl">Total Executado</div><div class="kv" id="sv-exec">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--lm)"><div class="kl">Executado 2026</div><div class="kv" id="sv-exec26">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--cyn)"><div class="kl">Saldo Disponível</div><div class="kv" id="sv-saldo">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--yel)"><div class="kl">Mensal Total</div><div class="kv" id="sv-mensal">0,00</div></div>
+    <div class="kc big" style="border-top-color:var(--orn)"><div class="kl">Total de Postos</div><div class="kv" id="sv-postos">${postos}</div><div class="ks">postos contratados</div></div>
+  </div>
+
+  <!-- EXEC BAR -->
+  <div class="exec-wrap">
+    <div class="exec-top">
+      <span class="exec-title">Execução Orçamentária</span>
+      <div class="exec-leg">
+        <span><span class="exec-dot" style="background:var(--green)"></span><span>Executado (${pp.toFixed(1)}%)</span></span>
+        <span><span class="exec-dot" style="background:var(--blue)"></span><span>Saldo (${ps.toFixed(1)}%)</span></span>
+      </div>
+    </div>
+    <div class="exec-track">
+      <div class="exec-fill" id="sv-ef-exec" style="width:0%;background:var(--green)"></div>
+      <div class="exec-fill" id="sv-ef-saldo" style="width:0%;background:var(--blue)"></div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="cr5050">
+    <div class="cc"><h3>Valor Global por Contrato</h3><canvas id="sv-ch-forn" height="220"></canvas></div>
+    <div class="cc"><h3>Valor Mensal por Unidade</h3><canvas id="sv-ch-uni" height="220"></canvas><div class="leg" id="sv-leg-uni"></div></div>
+  </div>
+  <div class="cr5050">
+    <div class="cc">
+      <h3>% Execução por Contrato</h3>
+      <div style="position:relative;height:130px"><canvas id="sv-ch-pct" height="130"></canvas></div>
+    </div>
+    <div class="cc"><h3>Executado 2025 vs 2026</h3><canvas id="sv-ch-anos" height="220"></canvas></div>
+  </div>
+  <div class="cc" id="sv-cc-monthly" style="margin-bottom:14px"><h3>Evolução Mensal de Pagamentos (NFs)</h3><canvas id="sv-ch-monthly" height="120"></canvas></div>
+
+  <!-- ALERTAS -->
+  <div class="alrt-panel" style="margin-bottom:14px">
+    <div class="alrt-title">⚠ PROSPECÇÃO DE SUPLEMENTAÇÃO</div>
+    <div class="alrt-sub">Contratos com indicação de suplementação necessária</div>
+    <div id="sv-alrt-content"></div>
+  </div>
+
+  <!-- RESUMO -->
+  <div class="cc" style="margin-bottom:14px">
+    <div class="res-tabs">
+      <div class="res-tab active" onclick="showResTab('emp',this)">Por Empresa</div>
+      <div class="res-tab" onclick="showResTab('tipo',this)">Por Tipo</div>
+    </div>
+    <div id="res-content"></div>
+  </div>
+
+  <!-- TABELA -->
+  <div class="tbl-wrap">
+    <div class="tbl-hdr">
+      <div><span class="tbl-ttl">Contratos PRODUSERV</span><span class="tbl-badge">${rows.length}</span></div>
+      <input type="text" class="tbl-search" id="sv-tbl-search" placeholder="🔍 GMS..." oninput="STATE.tableSearch=this.value;renderServDash()">
+    </div>
+    <div class="tbl-cont">
+      <table class="dt"><thead><tr>
+        <th>Nº GMS</th><th>Tipo</th><th>Unidades Atendidas</th><th>Postos</th>
+        <th>Valor Global</th><th>Executado</th><th>Saldo</th><th>% Exec.</th>
+        <th>Mensal</th><th>Status</th><th>Fim Vigência</th>
+      </tr></thead><tbody>
+      ${(()=>{
+        const q=STATE.tableSearch.toLowerCase();
+        const disp=q?rows.filter(r=>r.gms.toLowerCase().includes(q)||r.empresa.toLowerCase().includes(q)):rows;
+        return disp.map(r=>{
+          const pe=pctV(r.pctExecTotal);
+          const pcl=pe>100?'td-r':pe>=70?'td-g':'';
+          return`<tr onclick="showContract('${escJS(r.gms)}','${escJS(r.empresa)}')">
+            <td><div class="td-blue">${r.gms}</div><div class="td-sub">${r.empresa}</div></td>
+            <td><span class="badge bg-p" style="font-size:9px">${r.tipo||'—'}</span></td>
+            <td style="font-size:10px;color:var(--txt2)">${r.unidsAtendidas||'—'}</td>
+            <td style="font-weight:700;color:var(--orn)">${r.qtdPostos||'—'}</td>
+            <td>${brl(r.valorGlobal)}</td>
+            <td class="td-g">${brl(r.executadoTotal)}</td>
+            <td>${brl(r.saldo)}</td>
+            <td class="${pcl}">${pct(r.pctExecTotal)}</td>
+            <td>${brl(r.valorMensal)}</td>
+            <td>${statusBadge(r.statusVigencia)}</td>
+            <td>${fDate(r.dataFim)}</td>
+          </tr>`;
+        }).join('');
+      })()}
+      </tbody></table>
+    </div>
+  </div>`;
+
+  // Animate KPIs
+  animMoney('sv-global',sg);animMoney('sv-exec',se);animMoney('sv-exec26',se26);
+  animMoney('sv-saldo',ss);animMoney('sv-mensal',sm);
+  setTimeout(()=>{
+    const ee=document.getElementById('sv-ef-exec');if(ee)ee.style.width=Math.min(pp,100)+'%';
+    const es=document.getElementById('sv-ef-saldo');if(es)es.style.width=Math.min(ps,100-Math.min(pp,100))+'%';
+  },100);
+
+  // Charts (rendered after DOM update)
+  setTimeout(()=>{
+    // Bar: valor global por contrato
+    destroyC('sv-forn');
+    const labs=rows.map(r=>r.gms+' '+r.empresa);
+    const data=rows.map(r=>r.valorGlobal);
+    STATE.charts['sv-forn']=new Chart(document.getElementById('sv-ch-forn'),{type:'bar',
+      data:{labels:labs,datasets:[{data,backgroundColor:labs.map((_,i)=>gc(i)),borderRadius:4}]},
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>' '+brl(c.raw)}}},
+        scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+    // Doughnut: valor mensal por unidade (valorMensalPosto * qtdPostos)
+    destroyC('sv-uni');
+    const uMap={};
+    STATE.serv_base.filter(b=>new Set(rows.map(r=>r.gms)).has(b.gms)).forEach(b=>{uMap[b.unidade]=(uMap[b.unidade]||0)+(b.valorMensalPosto||0)*(b.qtdPostos||1)});
+    const uLabs=Object.keys(uMap).sort((a,b)=>uMap[b]-uMap[a]);
+    const uData=uLabs.map(k=>uMap[k]),uCols=uLabs.map((_,i)=>gc(i));
+    STATE.charts['sv-uni']=new Chart(document.getElementById('sv-ch-uni'),{type:'doughnut',
+      data:{labels:uLabs,datasets:[{data:uData,backgroundColor:uCols,borderWidth:2,borderColor:'#1e2130'}]},
+      options:{responsive:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.label}: ${brl(c.raw)}`}}}}});
+    const legUni=document.getElementById('sv-leg-uni');
+    if(legUni)legUni.innerHTML=uLabs.slice(0,10).map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${uCols[i]}"></span>${l}</span>`).join('');
+    // Bar: % execução
+    destroyC('sv-pct');
+    const pSorted=[...rows].sort((a,b)=>pctV(b.pctExecTotal)-pctV(a.pctExecTotal));
+    STATE.charts['sv-pct']=new Chart(document.getElementById('sv-ch-pct'),{type:'bar',
+      data:{labels:pSorted.map(r=>r.gms),datasets:[{data:pSorted.map(r=>+pctV(r.pctExecTotal).toFixed(1)),backgroundColor:pSorted.map(r=>{const v=pctV(r.pctExecTotal);return v>100?'#ef4444':v>=70?'#22c55e':'#f59e0b'}),borderRadius:3}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.raw.toFixed(1)}%`}}},
+        scales:{x:{grid:{color:GC},ticks:{color:TC,callback:v=>v+'%'}},y:{grid:{color:GC},ticks:{color:TC,font:{size:10}}}}}});
+    // Bar: 2025 vs 2026
+    destroyC('sv-anos');
+    STATE.charts['sv-anos']=new Chart(document.getElementById('sv-ch-anos'),{type:'bar',
+      data:{labels:rows.map(r=>r.gms),datasets:[
+        {label:'2025',data:rows.map(r=>r.executado2025),backgroundColor:'#4f8ef7',borderRadius:3},
+        {label:'2026',data:rows.map(r=>r.executado2026),backgroundColor:'#22c55e',borderRadius:3}
+      ]},
+      options:{responsive:true,plugins:{legend:{display:true,labels:{color:'#94a3b8',font:{size:10}}},tooltip:{...TT,callbacks:{label:c=>` ${c.dataset.label}: ${brl(c.raw)}`}}},
+        scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:10}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+    // Monthly NF chart
+    renderServMonthly();
+  },80);
+
+  // Alertas
+  const needs=rows.filter(r=>str(r.necessitaSupl).toLowerCase().includes('sim')||str(r.necessitaSupl).toLowerCase().includes('urgente'));
+  const alvEl=document.getElementById('sv-alrt-content');
+  if(alvEl){
+    if(!needs.length){alvEl.innerHTML='<div class="alrt-ok">✓ Nenhum contrato necessita suplementação.</div>'}
+    else{const mx=Math.max(...needs.map(r=>r.valorSupl))||1;alvEl.innerHTML=needs.map(r=>`<div class="alrt-item"><div class="alrt-lbl">${r.gms} · ${r.empresa}</div><div class="alrt-track"><div class="alrt-fill" style="width:${Math.min((r.valorSupl/mx)*100,100)}%"></div></div><div class="alrt-val">${brl(r.valorSupl)}</div></div>`).join('')}
+  }
+
+  // Sync resumo tabs
+  document.querySelectorAll('.res-tab').forEach((t,i)=>{t.classList.toggle('active',i===0)});
+  STATE.resTab='emp';
+  renderResTab('emp');
+}
+
+function renderServMonthly(){
+  destroyC('sv-monthly');
+  const canvas=document.getElementById('sv-ch-monthly');
+  const wrap=document.getElementById('sv-cc-monthly');
+  if(!canvas)return;
+  const gmsSet=new Set(STATE.serv_filtered.map(r=>r.gms));
+  const map={};
+  Object.keys(STATE.nfs).forEach(name=>{
+    const nfArr=STATE.nfs[name];
+    const firstGms=Object.keys(STATE.nfsIndex).find(k=>STATE.nfsIndex[k]===name);
+    if(firstGms&&gmsSet.has(firstGms.split('|')[0])){
+      nfArr.forEach(n=>{
+        let d=str(n.data);if(!d)return;
+        let y,m;
+        if(d.match(/^\d{2}\/\d{2}\/\d{4}$/)){const p=d.split('/');m=parseInt(p[1]);y=parseInt(p[2])}
+        else if(d.match(/^\d{4}-\d{2}-\d{2}$/)){const p=d.split('-');y=parseInt(p[0]);m=parseInt(p[1])}
+        else return;
+        if(y<2020||y>2030)return;
+        const k=`${y}-${String(m).padStart(2,'0')}`;
+        map[k]=(map[k]||0)+n.valor;
+      });
+    }
+  });
+  if(!Object.keys(map).length){if(wrap)wrap.style.display='none';return}
+  if(wrap)wrap.style.display='';
+  const labs=Object.keys(map).sort();
+  const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const fmtL=k=>{const[y,mo]=k.split('-');return`${MN[parseInt(mo)-1]}/${y.slice(2)}`};
+  STATE.charts['sv-monthly']=new Chart(canvas,{type:'line',
+    data:{labels:labs.map(fmtL),datasets:[{label:'Pagamentos',data:labs.map(k=>map[k]),fill:true,
+      backgroundColor:'rgba(249,115,22,.15)',borderColor:'#f97316',pointBackgroundColor:'#f97316',
+      tension:.35,borderWidth:2,pointRadius:3}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},
+      scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:9}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+}
+
+// ============================================================
+// RENDER PRODUSERV DETAIL
+// ============================================================
+function renderServDetail(row){
+  ['sv-d-rosca','sv-d-saldo','sv-d-nf'].forEach(k=>destroyC(k));
+  const baseRows=STATE.serv_base.filter(b=>b.gms===row.gms);
+  const pe=pctV(row.pctExecTotal);
+  const barColor=pe>100?'var(--red)':pe>=70?'var(--green)':'var(--yel)';
+
+  let pctTime=50,diasP=0;
+  try{
+    const parseD=v=>{if(!v)return null;if(v instanceof Date)return v;if(typeof v==='string'){const m=v.match(/(\d{4})-(\d{2})-(\d{2})/);if(m)return new Date(v);}return null};
+    const ini=parseD(row.dataInicio),fim=parseD(row.dataFim),tod=new Date();
+    if(ini&&fim){const tot=(fim-ini)/864e5||1;diasP=(tod-ini)/864e5;pctTime=Math.max(0,Math.min((diasP/tot)*100,100))}
+  }catch(e){}
+
+  const nfSheetKey=findNFSheet(row.gms,row.empresa);
+  const nfs=nfSheetKey?STATE.nfs[nfSheetKey]||[]:[];
+  const nfTotal=nfs.reduce((a,n)=>a+n.valor,0);
+
+  document.getElementById('v-serv-detail').innerHTML=`
+  <!-- HEADER -->
+  <div class="detail-hdr fade-in">
+    <div>
+      <div class="dh-gms">GMS ${row.gms}</div>
+      <div class="dh-emp">${row.empresa}</div>
+      <div class="dh-badges">
+        ${statusBadge(row.statusVigencia)}
+        <span class="badge ${str(row.prorrogado).toLowerCase()==='sim'?'bg-c':'bg-gr'}">${str(row.prorrogado).toLowerCase()==='sim'?'Prorrogado':'Não Prorrog.'}</span>
+        <span class="badge bg-p">${row.tipo||'Postos de Serviço'}</span>
+        <span class="badge bg-o">${row.qtdPostos||0} postos</span>
+      </div>
+    </div>
+    <button class="btn-sec" onclick="showOverview()">← Visão Geral</button>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="sec-lbl">Indicadores do Contrato</div>
+  <div class="kpi-g8">
+    <div class="kc" style="border-top-color:var(--blue)"><div class="kl">Valor Global</div><div class="kv" style="font-size:15px">${brl(row.valorGlobal)}</div></div>
+    <div class="kc" style="border-top-color:var(--green)"><div class="kl">Total Executado</div><div class="kv" style="font-size:15px">${brl(row.executadoTotal)}</div></div>
+    <div class="kc" style="border-top-color:var(--cyn)"><div class="kl">Saldo Restante</div><div class="kv" style="font-size:15px">${brl(row.saldo)}</div></div>
+    <div class="kc" style="border-top-color:${barColor}"><div class="kl">% Execução</div><div class="kv" style="font-size:20px;color:${barColor}">${pct(row.pctExecTotal)}</div></div>
+    <div class="kc" style="border-top-color:var(--orn)"><div class="kl">Total Postos</div><div class="kv">${row.qtdPostos||'—'}</div></div>
+    <div class="kc" style="border-top-color:var(--yel)"><div class="kl">Mensal Total</div><div class="kv" style="font-size:14px">${brl(row.valorMensal)}</div></div>
+    <div class="kc" style="border-top-color:var(--pur)"><div class="kl">Meses Restantes</div><div class="kv">${row.mesesRestantes??'—'}</div></div>
+    <div class="kc" style="border-top-color:var(--red)"><div class="kl">Supl. Estimada</div><div class="kv" style="font-size:14px">${brl(row.valorSupl)}</div></div>
+  </div>
+
+  <!-- INFO GRID -->
+  <div class="info-grid">
+    <div class="info-item"><div class="il">Unidades Atendidas</div><div class="iv">${row.unidsAtendidas||'—'}</div></div>
+    <div class="info-item"><div class="il">Qtde Unidades</div><div class="iv">${row.qtdeUnidades}</div></div>
+    <div class="info-item"><div class="il">Executado 2025</div><div class="iv" style="color:var(--blue)">${brl(row.executado2025)}</div></div>
+    <div class="info-item"><div class="il">Executado 2026</div><div class="iv" style="color:var(--green)">${brl(row.executado2026)}</div></div>
+    <div class="info-item"><div class="il">Média Gasto Mensal</div><div class="iv">${brl(row.mediaGastoMensal)}</div></div>
+    <div class="info-item"><div class="il">Total NFs Liquidadas</div><div class="iv" style="color:var(--green)">${brl(nfTotal)}</div></div>
+  </div>
+
+  <!-- BARRA EXECUÇÃO -->
+  <div class="prog-wrap">
+    <div class="sec-lbl" style="margin-bottom:6px">Progresso de Execução</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-bottom:5px"><span>0%</span><span style="font-weight:700;color:${barColor}">${pct(row.pctExecTotal)} executado</span><span>100%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="sv-d-prog" style="width:0%;background:${barColor}">${pe>12?pct(row.pctExecTotal):''}</div></div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="tl-wrap">
+    <div class="sec-lbl" style="margin-bottom:2px">Linha do Tempo</div>
+    <div class="tl-dates" style="margin-top:10px"><span>Início: ${fDate(row.dataInicio)}</span><span>Fim: ${fDate(row.dataFim)}</span></div>
+    <div class="tl-track">
+      <div class="tl-fill" id="sv-d-tlfill" style="width:0%"></div>
+      <div class="tl-dot" style="left:${pctTime}%"></div>
+    </div>
+    <div class="tl-info">
+      <span>Dias decorridos: <strong>${Math.max(0,Math.floor(diasP))}</strong></span>
+      <span>Hoje: <strong>${new Date().toLocaleDateString('pt-BR')}</strong></span>
+      <span>Dias restantes: <strong>${row.diasRestantes??'—'}</strong></span>
+    </div>
+  </div>
+
+  <!-- ALERTAS -->
+  <div class="ac-grid" id="sv-d-alerts"></div>
+
+  ${baseRows.length?`
+  <!-- TABELA POSTOS POR UNIDADE -->
+  <div class="tbl-wrap">
+    <div class="tbl-hdr"><span class="tbl-ttl">Detalhamento por Unidade</span><span class="tbl-badge">${baseRows.length}</span></div>
+    <div class="tbl-cont"><table class="dt"><thead><tr>
+      <th>Unidade</th><th>Descrição do Posto</th><th>Qtd Postos</th><th>Mensal/Posto</th>
+      <th>Executado</th><th>Exec. 2026</th><th>Saldo</th><th>% Exec.</th><th>Status</th>
+    </tr></thead><tbody>
+    ${baseRows.map(u=>{const pu=pctV(u.pctExec);const bc=pu>100?'var(--red)':pu>=70?'var(--green)':'var(--yel)';
+      return`<tr><td style="font-weight:600">${u.unidade}</td>
+        <td style="color:var(--txt2)">${u.descricao||'—'}</td>
+        <td style="font-weight:700;color:var(--orn)">${u.qtdPostos}</td>
+        <td>${brl(u.valorMensalPosto)}</td>
+        <td class="td-g">${brl(u.executado)}</td>
+        <td style="color:var(--lm)">${brl(u.exec2026||0)}</td>
+        <td>${brl(u.saldoAlocado)}</td>
+        <td><div style="font-size:11px;font-weight:700;color:${bc}">${pct(u.pctExec)}</div>
+          <div class="mp"><div class="mp-f" style="width:${Math.min(pu,100)}%;background:${bc}"></div></div></td>
+        <td>${statusBadge(u.status)}</td></tr>`;
+    }).join('')}
+    </tbody></table></div>
+  </div>
+  <!-- GRÁFICOS -->
+  <div class="cr5050">
+    <div class="cc"><h3>Executado por Unidade</h3><div style="max-width:300px;margin:0 auto"><canvas id="sv-ch-d-rosca" height="200"></canvas></div><div class="leg" id="sv-leg-d-rosca"></div></div>
+    <div class="cc"><h3>Saldo por Unidade</h3><canvas id="sv-ch-d-saldo" height="200"></canvas></div>
+  </div>`:''}
+
+  ${nfs.length?`
+  <!-- NOTAS FISCAIS -->
+  <div class="nf-wrap">
+    <div class="tbl-hdr" style="margin-bottom:8px">
+      <div><span class="tbl-ttl">Notas Fiscais / Pagamentos</span><span class="tbl-badge">${nfs.length}</span>
+        <span style="font-size:11px;color:var(--green);margin-left:10px;font-weight:600">Total: ${brl(nfTotal)}</span>
+      </div>
+      <div class="nf-filters">
+        <select id="sv-nf-f-uni" onchange="filterNFs()">
+          <option value="">Todas Unidades</option>
+          ${[...new Set(nfs.map(n=>n.unidade))].sort().map(u=>`<option value="${u}">${u}</option>`).join('')}
+        </select>
+        <select id="sv-nf-f-ano" onchange="filterNFs()">
+          <option value="">Todos Anos</option>
+          ${[...new Set(nfs.map(n=>n.ano).filter(Boolean))].sort().map(a=>`<option value="${a}">${a}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="tbl-cont" id="nf-table-cont" style="max-height:520px">${renderNFTable(nfs)}</div>
+    <div style="margin-top:14px"><canvas id="sv-ch-d-nf" height="120"></canvas></div>
+  </div>`:`<div class="cc" style="margin-bottom:14px;text-align:center;padding:18px;color:var(--lbl)">Sem registros de notas fiscais para este contrato.</div>`}
+  `;
+
+  // Animate
+  setTimeout(()=>{
+    const p=document.getElementById('sv-d-prog');if(p)p.style.width=Math.min(pe,100)+'%';
+    const tl=document.getElementById('sv-d-tlfill');if(tl)tl.style.width=pctTime+'%';
+  },80);
+
+  // Alerts
+  const aEl=document.getElementById('sv-d-alerts');
+  if(aEl){
+    const alerts=[];
+    const sv2=str(row.statusVigencia||row.status).toLowerCase();
+    const dias2=num(row.diasRestantes);
+    if(sv2==='vencido')
+      alerts.push({cls:'ac-r',title:'🔴 Contrato Vencido',body:`Vigência encerrada. Data fim: <strong>${fDate(row.dataFim)}</strong>. Providenciar novo processo.`});
+    else if(sv2==='crítico'||sv2==='critico')
+      alerts.push({cls:'ac-r',title:'🔴 Situação Crítica',body:`Contrato em situação crítica — <strong>${dias2>0?dias2+' dias restantes':'prazo expirado'}</strong>. Ação imediata necessária.`});
+    else if(sv2==='muita atenção'||sv2==='muita atencao')
+      alerts.push({cls:'ac-o',title:'🟠 Muita Atenção',body:`Requer atenção elevada — <strong>${dias2} dias restantes</strong>. Iniciar processo de renovação.`});
+    else if(sv2==='atenção'||sv2==='atencao')
+      alerts.push({cls:'ac-y',title:'🟡 Atenção',body:`Prazo próximo do vencimento — <strong>${dias2} dias restantes</strong>. Planejar renovação.`});
+    if(str(row.acimaDoTeto).toLowerCase()==='sim')
+      alerts.push({cls:'ac-r',title:'🚨 Teto Contratual Excedido',body:'Gasto médio mensal acima da provisão. Verificar suplementação.'});
+    if(str(row.necessitaSupl).toLowerCase().includes('sim')||str(row.necessitaSupl).toLowerCase().includes('urgente'))
+      alerts.push({cls:'ac-r',title:'⚠ Suplementação Necessária',body:`Valor estimado: <strong>${brl(row.valorSupl)}</strong>`});
+    if(!alerts.length)alerts.push({cls:'ac-g',title:'✓ Sem Alertas',body:'Nenhum alerta identificado para este contrato.'});
+    aEl.innerHTML=alerts.map(a=>`<div class="ac ${a.cls}"><h4>${a.title}</h4><p>${a.body}</p></div>`).join('');
+  }
+
+  // Unit charts
+  if(baseRows.length){
+    setTimeout(()=>{
+      const c1=document.getElementById('sv-ch-d-rosca'),c2=document.getElementById('sv-ch-d-saldo');
+      if(c1){
+        const labs=baseRows.map(b=>b.unidade),data=baseRows.map(b=>b.executado),cols=labs.map((_,i)=>gc(i));
+        STATE.charts['sv-d-rosca']=new Chart(c1,{type:'doughnut',data:{labels:labs,datasets:[{data,backgroundColor:cols,borderWidth:2,borderColor:'#1e2130'}]},options:{responsive:true,cutout:'60%',plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${c.label}: ${brl(c.raw)}`}}}}});
+        const leg=document.getElementById('sv-leg-d-rosca');if(leg)leg.innerHTML=labs.map((l,i)=>`<span class="leg-i"><span class="leg-d" style="background:${cols[i]}"></span>${l}</span>`).join('');
+      }
+      if(c2){
+        STATE.charts['sv-d-saldo']=new Chart(c2,{type:'bar',data:{labels:baseRows.map(b=>b.unidade),datasets:[{label:'Saldo',data:baseRows.map(b=>b.saldoAlocado),backgroundColor:'#4f8ef7',borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},scales:{x:{grid:{color:GC},ticks:{color:TC}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+      }
+    },120);
+  }
+
+  // NF chart
+  if(nfs.length){
+    STATE._currentNFs=nfs;
+    setTimeout(()=>buildNFChart(nfs),140);
+    // Remap filter selects to correct IDs
+    const fUni=document.getElementById('sv-nf-f-uni');
+    const fAno=document.getElementById('sv-nf-f-ano');
+    if(fUni)fUni.id='nf-f-uni';
+    if(fAno)fAno.id='nf-f-ano';
+  }
+}
+
+// ============================================================
+// MONTHLY CHART (NFs de todos os contratos)
+// ============================================================
+function renderChMonthly(){
+  destroyC('monthly');
+  const canvas=document.getElementById('ch-monthly');if(!canvas)return;
+  const map={};
+  Object.values(STATE.nfs).forEach(nfArr=>{
+    nfArr.forEach(n=>{
+      let d=str(n.data);if(!d)return;
+      let y,m;
+      if(d.match(/^\d{2}\/\d{2}\/\d{4}$/)){const p=d.split('/');m=parseInt(p[1]);y=parseInt(p[2])}
+      else if(d.match(/^\d{4}-\d{2}-\d{2}$/)){const p=d.split('-');y=parseInt(p[0]);m=parseInt(p[1])}
+      else return;
+      if(y<2020||y>2030)return;
+      const k=`${y}-${String(m).padStart(2,'0')}`;
+      map[k]=(map[k]||0)+n.valor;
+    });
+  });
+  const wrapper=document.getElementById('cc-monthly');
+  if(!Object.keys(map).length){if(wrapper)wrapper.style.display='none';return}
+  if(wrapper)wrapper.style.display='';
+  const labs=Object.keys(map).sort();
+  const MN=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const fmtL=k=>{const[y,mo]=k.split('-');return`${MN[parseInt(mo)-1]}/${y.slice(2)}`};
+  const data=labs.map(k=>map[k]);
+  STATE.charts['monthly']=new Chart(canvas,{type:'line',
+    data:{labels:labs.map(fmtL),datasets:[{label:'Total Pago',data,fill:true,
+      backgroundColor:'rgba(79,142,247,.15)',borderColor:'#4f8ef7',pointBackgroundColor:'#4f8ef7',
+      tension:.35,borderWidth:2,pointRadius:3}]},
+    options:{responsive:true,plugins:{legend:{display:false},tooltip:{...TT,callbacks:{label:c=>` ${brl(c.raw)}`}}},
+      scales:{x:{grid:{color:GC},ticks:{color:TC,font:{size:9}}},y:{grid:{color:GC},ticks:{color:TC,callback:v=>brl(v)}}}}});
+}
+
+// ============================================================
+// EXPORT EXCEL
+// ============================================================
+function exportExcel(){
+  if(!STATE.filtered.length){toast('Sem dados para exportar.','err');return}
+  const wb=XLSX.utils.book_new();
+  // Main table
+  const headers=['GMS','Fornecedor','Unidade Principal','Tipo','Valor Global','Executado','Saldo','% Execução','Provisão Mensal','Gasto Mensal','Status','Dias Restantes','Suplementação'];
+  const data=STATE.filtered.map(r=>[
+    r.gms,r.empresa,r.unidPrincipal,r.tipo,
+    r.valorGlobal,r.executadoTotal,r.saldo,
+    pctV(r.pctExecTotal),r.valorMensal,r.mediaGastoMensal,
+    r.statusVigencia,r.diasRestantes,r.necessitaSupl
+  ]);
+  const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
+  // Column widths
+  ws['!cols']=[{wch:14},{wch:30},{wch:20},{wch:14},{wch:16},{wch:16},{wch:16},{wch:10},{wch:16},{wch:14},{wch:14},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws,'Contratos Filtrados');
+  // NF summary
+  const nfH=['GMS','Empresa','Unidade','Nº NF','Valor','Data','Ano'];
+  const nfD=[];
+  STATE.filtered.forEach(r=>{
+    const key=findNFSheet(r.gms,r.empresa);
+    const nfs=key?STATE.nfs[key]||[]:[];
+    nfs.forEach(n=>nfD.push([r.gms,r.empresa,n.unidade,n.numeroNF,n.valor,n.data,n.ano]));
+  });
+  if(nfD.length){
+    const ws2=XLSX.utils.aoa_to_sheet([nfH,...nfD]);
+    XLSX.utils.book_append_sheet(wb,ws2,'Notas Fiscais');
+  }
+  const date=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  XLSX.writeFile(wb,`contratos-3crpm-${date}.xlsx`);
+  toast('✓ Arquivo Excel exportado.','ok');
+}
+
+// ============================================================
+// EXPORT PDF
+// ============================================================
+function exportPDF(){
+  window.print();
+}
+
+// ============================================================
+// SIDEBAR HAMBURGER
+// ============================================================
+function toggleSidebar(){
+  const sb=document.querySelector('.sidebar');
+  const ov=document.getElementById('sb-overlay');
+  const open=sb.classList.toggle('open');
+  ov.classList.toggle('show',open);
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('show');
+}
+
+// ============================================================
+// IMPORT HISTORY (localStorage)
+// ============================================================
+const HIST_KEY='crpm_import_history';
+const HIST_MAX=8;
+function saveImportHistory(fileName){
+  let hist=[];
+  try{hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]')}catch(e){}
+  const entry={name:fileName,date:new Date().toLocaleString('pt-BR')};
+  hist=hist.filter(h=>h.name!==fileName);
+  hist.unshift(entry);
+  if(hist.length>HIST_MAX)hist=hist.slice(0,HIST_MAX);
+  localStorage.setItem(HIST_KEY,JSON.stringify(hist));
+  renderImportHistory();
+}
+function renderImportHistory(){
+  let hist=[];
+  try{hist=JSON.parse(localStorage.getItem(HIST_KEY)||'[]')}catch(e){}
+  const sec=document.getElementById('hist-sec');
+  const cont=document.getElementById('hist-content');
+  if(!sec||!cont)return;
+  if(!hist.length){sec.style.display='none';return}
+  sec.style.display='';
+  cont.innerHTML=hist.map(h=>`<div class="hist-item"><span class="hist-dot"></span><div><div style="color:var(--txt);font-size:10px;font-weight:600">${h.name}</div><div style="font-size:9px;color:var(--lbl)">${h.date}</div></div></div>`).join('');
+}
+
+// ============================================================
+// GOOGLE APPS SCRIPT — CARREGAR E GRAVAR DADOS
+// ============================================================
+function recarregarDados(){
+  showSpinner('Recarregando dados da planilha...');
+  google.script.run
+    .withSuccessHandler(loadServerData)
+    .withFailureHandler(function(err){hideSpinner();toast('Erro ao recarregar: '+err.message,'err')})
+    .getDashboardData();
+}
+
+function loadServerData(jsonStr){
+  try{
+    const d=JSON.parse(jsonStr);
+    if(d.error){hideSpinner();toast('Erro ao carregar: '+d.error,'err');return}
+
+    // Preenche STATE com dados do servidor
+    STATE.painel=d.painel||[];
+    STATE.base=d.base||[];
+    STATE.res_emp=d.res_emp||[];
+    STATE.res_uni=d.res_uni||[];
+    STATE.res_tipo=d.res_tipo||[];
+    STATE.serv_painel=d.serv_painel||[];
+    STATE.serv_base=d.serv_base||[];
+    STATE.serv_res_emp=d.serv_res_emp||[];
+    STATE.serv_res_tipo=d.serv_res_tipo||[];
+
+    // Processa NFs e empenhos das abas individuais
+    STATE.nfs={};
+    STATE.nfsIndex={};
+    STATE.empenhos=[];
+    Object.entries(d.nfs||{}).forEach(([sheetName,sheetData])=>{
+      STATE.nfs[sheetName]=sheetData.nfs||[];
+      const gms=sheetData.gms;
+      const empresa=sheetData.empresa;
+      if(gms&&empresa)STATE.nfsIndex[gms+'|'+empresa]=sheetName;
+      (sheetData.empenhos||[]).forEach(e=>{
+        STATE.empenhos.push({
+          ...e,
+          vencimento:e.vencimento?new Date(e.vencimento+'T12:00:00'):null
+        });
+      });
+    });
+
+    // Aba EMPENHOS dedicada prevalece se existir
+    if(d.empenhos&&d.empenhos.length){
+      const toDate=v=>{
+        if(!v)return null;
+        if(typeof v==='string')return new Date(v+'T12:00:00');
+        return null;
+      };
+      STATE.empenhos=d.empenhos.map(r=>({
+        contrato:String(r['Contrato']||r['contrato']||''),
+        empresa:String(r['Empresa']||r['empresa']||'').toUpperCase().trim(),
+        unidade:String(r['Unidade']||r['unidade']||''),
+        numero:String(r['Número Empenho']||r['numero']||r['Numero']||''),
+        valor:parseFloat(r['Valor Empenho']||r['valor']||0)||0,
+        dataEmissao:null,
+        vencimento:toDate(r['Vencimento']||r['vencimento']||''),
+        valorPago:parseFloat(r['Valor Pago']||r['valorPago']||0)||0,
+        saldo:parseFloat(r['Saldo']||r['saldo']||0)||0,
+        status:String(r['Status']||r['status']||'Aberto'),
+        extornado:String(r['Extornado']||'').toUpperCase()==='S',
+        rowIdx:r._rowIdx||0
+      })).filter(r=>r.numero);
+    }
+
+    STATE.fileName=d.fileName||'Planilha';
+    STATE.importDate=new Date();
+
+    // Aplica mapeamento e renderiza
+    STATE.painel=mapPainel(STATE.painel);
+    STATE.base=mapBase(STATE.base);
+    STATE.filtered=[...STATE.painel];
+    STATE.serv_painel=mapPainelServ(STATE.serv_painel);
+    STATE.serv_base=mapBaseServ(STATE.serv_base);
+    STATE.serv_filtered=[...STATE.serv_painel];
+
+    if(STATE.serv_painel.length>0)document.getElementById('mode-toggle').classList.add('show');
+
+    populateFilters();applyFilters();buildTabs();showOverview();
+    hideSpinner();
+
+    toast(`✓ Dados carregados: ${STATE.painel.length} contratos.`,'ok');
+    ['btn-lancar-emp','btn-lancar-nf','btn-estornar-emp','btn-ov','btn-export-pdf','btn-export-xlsx'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.style.display='';
+    });
+    const refEl=document.getElementById('ref-date');
+    if(refEl){refEl.textContent='🗓 Atualizado em '+STATE.importDate.toLocaleDateString('pt-BR');refEl.classList.add('show')}
+    const statusEl=document.getElementById('gdrive-status');
+    if(statusEl){statusEl.textContent='✓ Dados carregados em '+STATE.importDate.toLocaleTimeString('pt-BR');statusEl.style.color='var(--green)'}
+  }catch(err){
+    hideSpinner();
+    toast('Erro ao processar dados: '+err.message,'err');
+    console.error(err);
+  }
+}
+
+// ============================================================
+// MODAL UNIFICADO EXECUÇÃO (EMPENHO + NF)
+// ============================================================
+// ============================================================
+// LANÇAR EMPENHO (modal simples, sem listar empenhos existentes)
+// ============================================================
+function abrirModalEmp(gmsPresel,empresaPresel){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de lançar empenhos.','err');return}
+  const sel=document.getElementById('emp-modal-contrato');
+  const pool=[...STATE.painel,...STATE.serv_painel];
+  sel.innerHTML='<option value="">— Selecione o contrato —</option>';
+  pool.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.gms+'|'+r.empresa;
+    opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('emp-modal-numero').value='';
+  document.getElementById('emp-modal-valor').value='';
+  document.getElementById('emp-modal-vencimento').value='';
+  document.getElementById('emp-modal-unidade').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
+  if(gmsPresel&&empresaPresel){
+    sel.value=gmsPresel+'|'+empresaPresel;
+    onEmpContratoChange();
+  }
+  document.getElementById('modal-emp-overlay').classList.add('show');
+}
+
+function fecharModalEmp(){
+  document.getElementById('modal-emp-overlay').classList.remove('show');
+}
+
+function onEmpContratoChange(){
+  const val=document.getElementById('emp-modal-contrato').value;
+  const selUni=document.getElementById('emp-modal-unidade');
+  selUni.innerHTML='<option value="">— Selecione a unidade —</option>';
+  if(!val)return;
+  const [gms,empresa]=val.split('|');
+  const baseRows=[...STATE.base,...STATE.serv_base].filter(b=>b.gms===gms);
+  if(baseRows.length){
+    const unis=[...new Set(baseRows.map(b=>b.unidade).filter(Boolean))].sort();
+    unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+  } else {
+    const sheetKey=findNFSheet(gms,empresa);
+    if(sheetKey){
+      const nfs=STATE.nfs[sheetKey]||[];
+      const unis=[...new Set(nfs.map(n=>n.unidade).filter(Boolean))].sort();
+      unis.forEach(u=>{const opt=document.createElement('option');opt.value=u;opt.textContent=u;selUni.appendChild(opt)});
+    }
+  }
+  const row=[...STATE.painel,...STATE.serv_painel].find(r=>r.gms===gms&&r.empresa===empresa);
+  if(row){
+    document.getElementById('modal-emp-sub').textContent=
+      `Saldo disponível: R$ ${(row.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · ${empresa}`;
+  }
+}
+
+function salvarEmpenho(){
+  const contratoVal=document.getElementById('emp-modal-contrato').value;
+  const unidade=document.getElementById('emp-modal-unidade').value;
+  const numero=document.getElementById('emp-modal-numero').value.trim();
+  const valorStr=document.getElementById('emp-modal-valor').value.trim();
+  const vencimento=document.getElementById('emp-modal-vencimento').value;
+  if(!contratoVal){toast('Selecione o contrato.','err');return}
+  if(!unidade){toast('Selecione a unidade.','err');return}
+  if(!numero){toast('Informe o número do empenho.','err');return}
+  if(!valorStr){toast('Informe o valor do empenho.','err');return}
+  const valor=num(valorStr);
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 45.000,00','err');return}
+  const [gms,empresa]=contratoVal.split('|');
+  const novoEmp={unidade,numero,valor,vencimento:vencimento||''};
+  _gravarEmpenhoNoSheets(gms,empresa,novoEmp);
+}
+
+// ============================================================
+// LANÇAR NOTA FISCAL (mostra apenas empenhos com saldo em aberto
+// da unidade + contrato selecionados; permite estornar saldo restante)
+// ============================================================
+function abrirModalNF(gmsPresel,empresaPresel){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de lançar NFs.','err');return}
+  const sel=document.getElementById('nf-modal-contrato');
+  const pool=[...STATE.painel,...STATE.serv_painel];
+  sel.innerHTML='<option value="">— Selecione o contrato —</option>';
+  pool.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.gms+'|'+r.empresa;
+    opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('nf-modal-numero').value='';
+  document.getElementById('nf-modal-valor').value='';
+  document.getElementById('nf-modal-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('nf-modal-unidade').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
+  document.getElementById('nf-empenho-field').style.display='none';
+  document.getElementById('nf-modal-empenho').innerHTML='<option value="">— Selecione o empenho —</option>';
+  document.getElementById('nf-empenho-info').style.display='none';
+  document.getElementById('nf-estorno-box').style.display='none';
+  document.getElementById('nf-estorno-check').checked=false;
+  if(gmsPresel&&empresaPresel){
+    sel.value=gmsPresel+'|'+empresaPresel;
+    onNFContratoChange();
+  }
+  document.getElementById('modal-nf-overlay').classList.add('show');
+}
+
+function fecharModalNF(){
+  document.getElementById('modal-nf-overlay').classList.remove('show');
+}
+
+// Ao mudar contrato: popula unidades
+function onNFContratoChange(){
+  const val=document.getElementById('nf-modal-contrato').value;
+  const selUni=document.getElementById('nf-modal-unidade');
+  selUni.innerHTML='<option value="">— Selecione a unidade —</option>';
+  document.getElementById('nf-empenho-field').style.display='none';
+  document.getElementById('nf-empenho-info').style.display='none';
+  document.getElementById('nf-estorno-box').style.display='none';
+  if(!val)return;
+  const [gms,empresa]=val.split('|');
+  const baseRows=[...STATE.base,...STATE.serv_base].filter(b=>b.gms===gms);
+  let unis=[];
+  if(baseRows.length){
+    unis=[...new Set(baseRows.map(b=>b.unidade).filter(Boolean))].sort();
+  } else {
+    const sheetKey=findNFSheet(gms,empresa);
+    if(sheetKey){unis=[...new Set((STATE.nfs[sheetKey]||[]).map(n=>n.unidade).filter(Boolean))].sort();}
+  }
+  unis.forEach(u=>{const o=document.createElement('option');o.value=u;o.textContent=u;selUni.appendChild(o)});
+  const row=[...STATE.painel,...STATE.serv_painel].find(r=>r.gms===gms&&r.empresa===empresa);
+  document.getElementById('modal-nf-sub').textContent=row?
+    `Saldo disponível: R$ ${(row.saldo||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} · Executado: R$ ${(row.executadoTotal||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}`
+    :`Contrato: GMS ${gms} — ${empresa}`;
+}
+
+// Ao mudar unidade: popula dropdown apenas com empenhos COM saldo em aberto
+function onNFUnidadeChange(){
+  const contratoVal=document.getElementById('nf-modal-contrato').value;
+  const unidade=document.getElementById('nf-modal-unidade').value;
+  const empField=document.getElementById('nf-empenho-field');
+  const empSel=document.getElementById('nf-modal-empenho');
+  document.getElementById('nf-empenho-info').style.display='none';
+  document.getElementById('nf-estorno-box').style.display='none';
+  if(!contratoVal||!unidade){empField.style.display='none';return}
+  const [gms]=contratoVal.split('|');
+  const gmsPure=gms.replace(/[\/\s]/g,'').toUpperCase();
+  const uniNorm=unidade.toUpperCase().trim();
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const abertos=(STATE.empenhos||[]).filter(e=>{
+    const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
+    const eu=(e.unidade||'').toUpperCase().trim();
+    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&eu===uniNorm&&_empAberto(e);
+  });
+  empSel.innerHTML='<option value="">— Selecione o empenho —</option>';
+  if(abertos.length){
+    abertos.forEach(e=>{
+      const o=document.createElement('option');
+      o.value=e.numero;
+      const vencInfo=e.vencimento?` | Venc: ${e.vencimento.toLocaleDateString('pt-BR')}`:'';
+      const vencida=e.vencimento&&e.vencimento<hoje;
+      o.textContent=`${e.numero} | Saldo: ${brl(e.saldo)}${vencInfo}${vencida?' ⚠️ VENCIDO':''}`;
+      empSel.appendChild(o);
+    });
+    empField.style.display='';
+  } else {
+    empSel.innerHTML='<option value="">— Nenhum empenho com saldo em aberto nesta unidade —</option>';
+    empField.style.display='';
+  }
+}
+
+function onNFEmpenhoChange(){
+  onNFValorInput();
+}
+
+// Recalcula saldo restante em tempo real conforme o valor da NF é digitado
+function onNFValorInput(){
+  const empNum=document.getElementById('nf-modal-empenho').value;
+  const info=document.getElementById('nf-empenho-info');
+  const estornoBox=document.getElementById('nf-estorno-box');
+  if(!empNum){info.style.display='none';estornoBox.style.display='none';return}
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
+  if(!emp){info.style.display='none';estornoBox.style.display='none';return}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const vencida=emp.vencimento&&emp.vencimento<hoje;
+  const valorStr=document.getElementById('nf-modal-valor').value.trim();
+  const valorNF=valorStr?num(valorStr):0;
+  const restante=Math.max(0,emp.saldo-(valorNF||0));
+  info.style.display='';
+  info.innerHTML=`💰 Saldo disponível: <strong>${brl(emp.saldo)}</strong> de ${brl(emp.valor)} empenhado`+
+    (emp.vencimento?` · Vencimento: <strong style="color:${vencida?'var(--red)':'var(--yel)'}">${emp.vencimento.toLocaleDateString('pt-BR')}${vencida?' ⚠️ VENCIDO':''}</strong>`:'')+
+    (valorNF>0?`<br>📊 Saldo restante após esta NF: <strong style="color:${restante<0.01?'var(--green)':'var(--txt)'}">${brl(restante)}</strong>`:'');
+  // Mostra checkbox de estorno do saldo restante
+  estornoBox.style.display='';
+  const chk=document.getElementById('nf-estorno-check');
+  const estInfo=document.getElementById('nf-estorno-info');
+  if(restante<=0.01){
+    chk.checked=false;chk.disabled=true;
+    estInfo.textContent='Não há saldo restante a estornar após esta NF.';
+  } else {
+    chk.disabled=false;
+    estInfo.textContent=chk.checked?
+      `✓ Será estornado: ${brl(restante)} (zera o empenho ${emp.numero})`:
+      `Saldo que ficaria em aberto: ${brl(restante)}`;
+  }
+}
+
+function salvarNF(){
+  const contratoVal=document.getElementById('nf-modal-contrato').value;
+  const unidade=document.getElementById('nf-modal-unidade').value;
+  const empNumero=document.getElementById('nf-modal-empenho').value||'';
+  const numeroNF=document.getElementById('nf-modal-numero').value.trim();
+  const valorStr=document.getElementById('nf-modal-valor').value.trim();
+  const dataVal=document.getElementById('nf-modal-data').value;
+  const estornarRestante=document.getElementById('nf-estorno-check').checked;
+  if(!contratoVal){toast('Selecione o contrato.','err');return}
+  if(!unidade){toast('Selecione a unidade.','err');return}
+  if(!numeroNF){toast('Informe o número da NF.','err');return}
+  if(!valorStr){toast('Informe o valor da NF.','err');return}
+  if(!dataVal){toast('Informe a data de pagamento.','err');return}
+  const valor=num(valorStr);
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 15.500,00','err');return}
+  let estornoValor=0;
+  if(empNumero){
+    const emp=(STATE.empenhos||[]).find(e=>e.numero===empNumero);
+    if(emp&&valor>emp.saldo+0.01){toast(`Valor da NF (${brl(valor)}) excede o saldo do empenho ${empNumero} (${brl(emp.saldo)}).`,'err');return}
+    if(emp&&estornarRestante)estornoValor=Math.max(0,emp.saldo-valor);
+  }
+  const dataObj=new Date(dataVal+'T12:00:00');
+  const novaEntrada={unidade,valor,numeroNF,data:dataObj.toLocaleDateString('pt-BR'),ano:dataObj.getFullYear(),empenho:empNumero||null,estornoValor};
+  const [gms,empresa]=contratoVal.split('|');
+  _gravarNFnoSheets(gms,empresa,novaEntrada);
+}
+
+// ============================================================
+// HELPERS: gravar NF, Empenho e Extorno via google.script.run
+// ============================================================
+// (funções de fetch direto não usadas no GAS — substituídas por google.script.run)
+
+function _gravarNFnoSheets(gms,empresa,novaEntrada){
+  fecharModalNF();
+  showSpinner('Gravando NF na planilha...');
+  const sheetKey=findNFSheet(gms,empresa);
+  const gmsPure=gms.replace(/[\/\s]/g,'').toUpperCase();
+  const empObj=novaEntrada.empenho?(STATE.empenhos||[]).find(e=>{
+    const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
+    return e.numero===novaEntrada.empenho&&(ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec));
+  }):null;
+  const params={
+    gms,sheetTitle:sheetKey||'',
+    empenhoNumero:novaEntrada.empenho||'',
+    numeroNF:novaEntrada.numeroNF,
+    valorNF:novaEntrada.valor,
+    dataNF:novaEntrada.data,
+    estornoValor:novaEntrada.estornoValor||0
+  };
+  google.script.run
+    .withSuccessHandler(function(result){
+      hideSpinner();
+      if(result.error){toast('Erro ao gravar NF: '+result.error,'err');return}
+      if(sheetKey&&STATE.nfs[sheetKey])STATE.nfs[sheetKey].push(novaEntrada);
+      else if(sheetKey)STATE.nfs[sheetKey]=[novaEntrada];
+      // Atualiza saldo do empenho em memória
+      if(empObj){
+        empObj.valorPago=(empObj.valorPago||0)+novaEntrada.valor;
+        const estornado=novaEntrada.estornoValor||0;
+        empObj.saldo=Math.max(0,empObj.valor-empObj.valorPago-estornado);
+        if(estornado>0)empObj.extornado=empObj.saldo<0.01;
+        const hoje2=new Date();hoje2.setHours(0,0,0,0);
+        if(empObj.saldo<0.01)empObj.status='Pago';
+        else if(empObj.vencimento&&empObj.vencimento<hoje2)empObj.status='Vencido Aberto';
+        else empObj.status='Aberto e Vigente';
+      }
+      const estornoMsg=novaEntrada.estornoValor>0?` · Estornado: ${brl(novaEntrada.estornoValor)}`:'';
+      toast(`✓ NF ${novaEntrada.numeroNF} gravada! Linha ${result.row}${estornoMsg}`,'ok');
+      if(STATE.currentGMS===gms)showContract(gms,empresa);
+    })
+    .withFailureHandler(function(err){hideSpinner();toast('Erro ao gravar NF: '+err.message,'err')})
+    .gravarNF(params);
+}
+
+function _gravarEmpenhoNoSheets(gms,empresa,emp){
+  fecharModalEmp();
+  showSpinner('Gravando empenho na planilha...');
+  const sheetKey=findNFSheet(gms,empresa);
+  const params={
+    gms,sheetTitle:sheetKey||'',
+    unidade:emp.unidade,numero:emp.numero,valor:emp.valor,vencimento:emp.vencimento||''
+  };
+  google.script.run
+    .withSuccessHandler(function(result){
+      hideSpinner();
+      if(result.error){toast('Erro ao gravar empenho: '+result.error,'err');return}
+      STATE.empenhos.push({
+        contrato:gms,sheetName:result.sheet||sheetKey||'',empresa,
+        unidade:emp.unidade,numero:emp.numero,valor:emp.valor,
+        vencimento:emp.vencimento?new Date(emp.vencimento+'T12:00:00'):null,
+        saldo:emp.valor,status:'Aberto e Vigente',extornado:false,rowIdx:result.row
+      });
+      toast(`✓ Empenho ${emp.numero} gravado! Linha ${result.row}`,'ok');
+    })
+    .withFailureHandler(function(err){hideSpinner();toast('Erro ao gravar empenho: '+err.message,'err')})
+    .gravarEmpenho(params);
+}
+
+// ============================================================
+// ESTORNAR EMPENHO
+// ============================================================
+function abrirModalExt(){
+  if(!STATE.painel.length&&!STATE.serv_painel.length){toast('Importe a planilha antes de registrar estornos.','err');return}
+  const sel=document.getElementById('ext-modal-contrato');
+  const pool=[...STATE.painel,...STATE.serv_painel];
+  sel.innerHTML='<option value="">— Selecione o contrato —</option>';
+  pool.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.gms+'|'+r.empresa;
+    opt.textContent=`GMS ${r.gms} — ${r.empresa}`;
+    sel.appendChild(opt);
+  });
+  document.getElementById('ext-modal-empenho').innerHTML='<option value="">— Selecione primeiro o contrato —</option>';
+  document.getElementById('ext-modal-unidade').value='';
+  document.getElementById('ext-modal-valor').value='';
+  document.getElementById('ext-modal-motivo').value='';
+  document.getElementById('ext-emp-info').style.display='none';
+  document.getElementById('modal-ext-overlay').classList.add('show');
+}
+
+function fecharModalExt(){
+  document.getElementById('modal-ext-overlay').classList.remove('show');
+}
+
+function onExtContratoChange(){
+  const val=document.getElementById('ext-modal-contrato').value;
+  const empSel=document.getElementById('ext-modal-empenho');
+  empSel.innerHTML='<option value="">— Selecione o empenho —</option>';
+  document.getElementById('ext-modal-unidade').value='';
+  document.getElementById('ext-modal-valor').value='';
+  document.getElementById('ext-emp-info').style.display='none';
+  if(!val)return;
+  const [gms]=val.split('|');
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const gmsPure=(gms||'').replace(/[\/\s]/g,'').toUpperCase();
+  // Empenhos com saldo > 0 e não extornados
+  const comSaldo=(STATE.empenhos||[]).filter(e=>{
+    const ec=(e.contrato||'').replace(/[\/\s]/g,'').toUpperCase();
+    return (ec===gmsPure||ec.includes(gmsPure)||gmsPure.includes(ec))&&_empAberto(e);
+  });
+  if(!comSaldo.length){
+    empSel.innerHTML='<option value="">— Nenhum empenho com saldo em aberto —</option>';
+    return;
+  }
+  comSaldo.forEach(e=>{
+    const opt=document.createElement('option');
+    opt.value=e.numero;
+    const vencInfo=e.vencimento?` | Venc: ${e.vencimento.toLocaleDateString('pt-BR')}`:'';
+    const vencida=e.vencimento&&e.vencimento<hoje;
+    opt.textContent=`${e.numero} | Saldo: R$ ${e.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2})}${vencInfo}${vencida?' ⚠️ VENCIDO':''}`;
+    opt.dataset.saldo=e.saldo;
+    opt.dataset.unidade=e.unidade||'';
+    empSel.appendChild(opt);
+  });
+}
+
+function onExtEmpenhoChange(){
+  const empSel=document.getElementById('ext-modal-empenho');
+  const info=document.getElementById('ext-emp-info');
+  const uniEl=document.getElementById('ext-modal-unidade');
+  const valEl=document.getElementById('ext-modal-valor');
+  const empNum=empSel.value;
+  if(!empNum){info.style.display='none';uniEl.value='';valEl.value='';return}
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
+  if(!emp){info.style.display='none';return}
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const vencida=emp.vencimento&&emp.vencimento<hoje;
+  // Pré-preenche unidade e valor do saldo
+  uniEl.value=emp.unidade||'';
+  valEl.value=emp.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  // Info box
+  info.style.display='';
+  const pct=emp.valor>0?((emp.valorPago||0)/emp.valor*100).toFixed(1):'0';
+  info.innerHTML=
+    `💰 <strong>Valor empenhado:</strong> R$ ${emp.valor.toLocaleString('pt-BR',{minimumFractionDigits:2})}<br>`+
+    `✅ <strong>Já liquidado (NFs):</strong> R$ ${(emp.valorPago||0).toLocaleString('pt-BR',{minimumFractionDigits:2})} (${pct}%)<br>`+
+    `🔴 <strong>Saldo a estornar:</strong> R$ ${emp.saldo.toLocaleString('pt-BR',{minimumFractionDigits:2})}`+
+    (emp.vencimento?`<br>📅 <strong>Vencimento:</strong> <span style="color:${vencida?'var(--red)':'var(--yel)'}">${emp.vencimento.toLocaleDateString('pt-BR')}${vencida?' — VENCIDO':''}</span>`:'');
+}
+
+function salvarExtorno(){
+  const contratoVal=document.getElementById('ext-modal-contrato').value;
+  const empNum=document.getElementById('ext-modal-empenho').value;
+  const unidade=document.getElementById('ext-modal-unidade').value;
+  const valorStr=document.getElementById('ext-modal-valor').value.trim();
+  if(!contratoVal){toast('Selecione o contrato.','err');return}
+  if(!empNum){toast('Selecione o empenho.','err');return}
+  if(!valorStr){toast('Informe o valor do estorno.','err');return}
+  const valor=num(valorStr);
+  if(!valor||valor<=0){toast('Valor inválido. Use o formato 500,00','err');return}
+  const emp=(STATE.empenhos||[]).find(e=>e.numero===empNum);
+  if(emp&&valor>emp.saldo+0.01){
+    toast(`Valor do estorno (${brl(valor)}) maior que o saldo disponível (${brl(emp.saldo)}). Corrija o valor.`,'err');return;
+  }
+  const [gms,empresa]=contratoVal.split('|');
+  const extorno={unidade:unidade||emp?.unidade||'',numero:empNum,valor};
+  _gravarExtornoNoSheets(gms,empresa,extorno);
+}
+
+function _gravarExtornoNoSheets(gms,empresa,extorno){
+  fecharModalExt();
+  showSpinner('Registrando estorno na planilha...');
+  const sheetKey=findNFSheet(gms,empresa);
+  const params={
+    gms,sheetTitle:sheetKey||'',
+    empenhoNumero:extorno.numero,
+    unidade:extorno.unidade,
+    valor:extorno.valor
+  };
+  google.script.run
+    .withSuccessHandler(function(result){
+      hideSpinner();
+      if(result.error){toast('Erro ao registrar estorno: '+result.error,'err');return}
+      const emp=(STATE.empenhos||[]).find(e=>e.numero===extorno.numero);
+      if(emp){
+        emp.saldo=Math.max(0,emp.saldo-extorno.valor);
+        emp.extornado=emp.saldo<0.01;
+        const hojeE=new Date();hojeE.setHours(0,0,0,0);
+        if(emp.saldo<0.01)emp.status='Pago';
+        else if(emp.vencimento&&emp.vencimento<hojeE)emp.status='Vencido Aberto';
+        else emp.status='Aberto e Vigente';
+      }
+      toast(`✓ Estorno de ${brl(extorno.valor)} registrado! Empenho ${extorno.numero} linha ${result.row}`,'ok');
+    })
+    .withFailureHandler(function(err){hideSpinner();toast('Erro ao registrar estorno: '+err.message,'err')})
+    .gravarExtorno(params);
+}
+
+// ============================================================
+// BOOT — carrega dados automaticamente ao abrir (GAS Web App)
+// ============================================================
+(function init(){
+  initTheme();
+  showSpinner('Carregando dados da planilha...');
+  google.script.run
+    .withSuccessHandler(loadServerData)
+    .withFailureHandler(function(err){
+      hideSpinner();
+      toast('Erro ao carregar dados: '+err.message,'err');
+      document.querySelector('#v-empty div div:last-child').textContent='Erro ao carregar. Verifique o ID da planilha no Code.gs.';
+    })
+    .getDashboardData();
+})();
+</script>
+</body>
+</html>
