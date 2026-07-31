@@ -334,9 +334,171 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
   .kc,.cc,.tbl-wrap,.prog-wrap,.tl-wrap,.alrt-panel,.nf-wrap,.info-grid,.exec-wrap,.ac,.detail-hdr{break-inside:avoid;box-shadow:none!important;border:1px solid #ddd!important}
   .kc .kv{font-size:18px!important}
 }
+
+/* ===== LOGIN ===== */
+.login-screen{
+  position:fixed;inset:0;background:var(--bg);z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+}
+.login-card{
+  background:var(--sb);border:1px solid var(--bdr);border-radius:14px;
+  padding:36px 40px;width:100%;max-width:380px;
+  box-shadow:0 12px 48px rgba(0,0,0,.5);
+}
+.login-logo{font-size:44px;text-align:center;margin-bottom:8px}
+.login-title{font-size:16px;font-weight:700;text-align:center;margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--txt2);text-align:center;margin-bottom:28px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--lbl);margin-bottom:6px}
+.login-field input{width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:7px;padding:10px 12px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box}
+.login-field input:focus{border-color:var(--blue)}
+.btn-login{width:100%;background:var(--blue);color:#fff;border:none;border-radius:7px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;margin-top:4px}
+.btn-login:hover{background:#3b7de8}
+.btn-login:disabled{opacity:.5;cursor:not-allowed}
+.login-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:6px;padding:9px 12px;font-size:12px;color:var(--red);margin-top:12px;display:none}
+.login-err.show{display:block}
+/* ===== PAINEL USUÁRIOS ===== */
+.modal-usr-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;justify-content:center;align-items:center}
+.modal-usr-overlay.show{display:flex}
+.modal-usr{background:var(--sb);border:1px solid var(--bdr);border-radius:12px;padding:0;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.6);overflow:hidden}
+.modal-usr-head{padding:20px 24px 16px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.modal-usr-head h3{font-size:15px;font-weight:700}
+.modal-usr-body{padding:20px 24px;overflow-y:auto;flex:1}
+.modal-usr-tabs{display:flex;gap:2px;margin-bottom:18px;border-bottom:1px solid var(--bdr)}
+.modal-usr-tab{padding:7px 16px;font-size:11px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.modal-usr-tab:hover{color:var(--txt)}
+.modal-usr-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.usr-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(51,54,80,.4)}
+.usr-row:last-child{border-bottom:none}
+.usr-avatar{width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.usr-info{flex:1;min-width:0}
+.usr-login{font-size:12px;font-weight:700;color:var(--txt)}
+.usr-nome{font-size:11px;color:var(--txt2)}
+.usr-badges{display:flex;gap:5px;margin-top:3px}
+.usr-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase}
+.ubg-admin{background:rgba(168,85,247,.2);color:var(--pur)}
+.ubg-ativo{background:rgba(34,197,94,.2);color:var(--green)}
+.ubg-inativo{background:rgba(100,116,139,.2);color:var(--lbl)}
+.usr-actions{display:flex;gap:5px;flex-shrink:0}
+.btn-usr{background:transparent;border:1px solid var(--bdr);color:var(--txt2);border-radius:5px;padding:4px 9px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.btn-usr:hover{border-color:var(--blue);color:var(--blue)}
+.btn-usr.danger:hover{border-color:var(--red);color:var(--red)}
+/* Menu usuário no topbar */
+.usr-menu-btn{background:var(--hov);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap}
+.usr-menu-btn:hover{border-color:var(--blue);color:var(--blue)}
+.usr-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:var(--sb);border:1px solid var(--bdr);border-radius:8px;padding:6px 0;min-width:190px;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,.4);display:none}
+.usr-dropdown.show{display:block}
+.usr-dropdown-item{padding:8px 16px;font-size:12px;color:var(--txt2);cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
+.usr-dropdown-item:hover{background:var(--hov);color:var(--txt)}
+.usr-dropdown-item.danger:hover{color:var(--red)}
+.usr-dropdown-sep{border-top:1px solid var(--bdr);margin:4px 0}
+.usr-menu-wrap{position:relative}
 </style>
 </head>
 <body>
+
+<!-- TELA DE LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🛡️</div>
+    <div class="login-title">3º CRPM – Contratos</div>
+    <div class="login-sub">Sistema de Gestão de Contratos<br>Polícia Militar do Paraná</div>
+    <div class="login-field">
+      <label>Login</label>
+      <input type="text" id="login-user" placeholder="Seu login" autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="Sua senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()">
+    </div>
+    <button class="btn-login" id="btn-fazer-login" onclick="fazerLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+    <div style="margin-top:18px;text-align:center;font-size:11px;color:var(--lbl)">
+      Problemas com acesso? Contate o administrador.
+    </div>
+  </div>
+</div>
+
+<!-- MODAL USUÁRIOS (admin) -->
+<div class="modal-usr-overlay" id="modal-usr-overlay" onclick="if(event.target===this)fecharModalUsuarios()">
+  <div class="modal-usr">
+    <div class="modal-usr-head">
+      <h3>👥 Gerenciar Usuários</h3>
+      <button class="btn-sec" onclick="fecharModalUsuarios()">✕ Fechar</button>
+    </div>
+    <div class="modal-usr-body">
+      <div class="modal-usr-tabs">
+        <div class="modal-usr-tab active" id="utab-lista" onclick="showUsrTab('lista',this)">Usuários Cadastrados</div>
+        <div class="modal-usr-tab" id="utab-novo" onclick="showUsrTab('novo',this)">+ Novo Usuário</div>
+      </div>
+      <!-- Lista de usuários -->
+      <div id="upanel-lista">
+        <div id="usr-list-content"><div style="color:var(--txt2);font-size:12px">Carregando...</div></div>
+      </div>
+      <!-- Novo usuário -->
+      <div id="upanel-novo" style="display:none">
+        <div class="nf-field">
+          <label>Nome completo</label>
+          <input type="text" id="nu-nome" placeholder="Ex: João da Silva" style="width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
+        </div>
+        <div class="nf-field" style="margin-top:12px">
+          <label>Login <span style="color:var(--lbl);font-weight:400">(sem espaços, minúsculo)</span></label>
+          <input type="text" id="nu-login" placeholder="Ex: joao.silva" style="width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
+        </div>
+        <div class="nf-field" style="margin-top:12px">
+          <label>Senha <span style="color:var(--lbl);font-weight:400">(mínimo 4 caracteres)</span></label>
+          <input type="password" id="nu-senha" placeholder="Senha inicial" style="width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
+        </div>
+        <div style="margin-top:14px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--txt)">
+            <input type="checkbox" id="nu-admin" style="width:16px;height:16px;cursor:pointer">
+            <span>Este usuário é <strong>Administrador</strong> (pode gerenciar outros usuários)</span>
+          </label>
+        </div>
+        <div style="margin-top:18px;display:flex;gap:10px">
+          <button class="btn-sec" onclick="showUsrTab('lista',document.getElementById('utab-lista'))">Cancelar</button>
+          <button class="btn-success" onclick="cadastrarNovoUsuario()" style="flex:1">✓ Cadastrar Usuário</button>
+        </div>
+      </div>
+      <!-- Redefinir senha (modal interno) -->
+      <div id="upanel-senha" style="display:none">
+        <div style="margin-bottom:14px;font-size:12px;color:var(--txt2)">Definindo nova senha para: <strong id="nu-senha-alvo" style="color:var(--txt)"></strong></div>
+        <div class="nf-field">
+          <label>Nova Senha</label>
+          <input type="password" id="nu-nova-senha" placeholder="Mínimo 4 caracteres" style="width:100%;background:var(--inp);border:1px solid var(--bdr);color:var(--txt);border-radius:6px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;box-sizing:border-box">
+        </div>
+        <div style="margin-top:14px;display:flex;gap:10px">
+          <button class="btn-sec" onclick="showUsrTab('lista',document.getElementById('utab-lista'))">Cancelar</button>
+          <button class="btn-success" onclick="confirmarRedefinirSenha()" style="flex:1">🔑 Salvar Nova Senha</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALTERAR MINHA SENHA -->
+<div class="modal-nf-overlay" id="modal-minha-senha" onclick="if(event.target===this)fecharMinhaSenha()">
+  <div class="modal-nf" style="max-width:380px">
+    <h3>🔑 Alterar Minha Senha</h3>
+    <div class="modal-sub">Informe sua senha atual e a nova senha</div>
+    <div class="nf-field">
+      <label>Senha Atual</label>
+      <input type="password" id="ms-atual" placeholder="Senha atual">
+    </div>
+    <div class="nf-field">
+      <label>Nova Senha <span style="color:var(--lbl);font-weight:400">(mínimo 4 caracteres)</span></label>
+      <input type="password" id="ms-nova" placeholder="Nova senha">
+    </div>
+    <div class="nf-field">
+      <label>Confirmar Nova Senha</label>
+      <input type="password" id="ms-conf" placeholder="Repita a nova senha">
+    </div>
+    <div class="modal-nf-footer">
+      <button class="btn-sec" onclick="fecharMinhaSenha()">Cancelar</button>
+      <button class="btn-success" onclick="salvarMinhaSenha()">🔑 Alterar Senha</button>
+    </div>
+  </div>
+</div>
 
 <!-- SIDEBAR OVERLAY (mobile) -->
 <div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
@@ -538,6 +700,18 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
       <button class="btn-pri" style="background:var(--orn);display:none" id="btn-estornar-emp" onclick="abrirModalExt()" title="Estornar saldo de Empenho">↩ Estornar Empenho</button>
       <button class="btn-sec" id="btn-ov" onclick="showOverview()" style="display:none">📊 Visão Geral</button>
       <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="Alternar tema claro/escuro">🌙</button>
+      <!-- MENU USUÁRIO -->
+      <div class="usr-menu-wrap" id="usr-menu-wrap" style="display:none">
+        <button class="usr-menu-btn" onclick="toggleUsrMenu()" id="usr-menu-btn">
+          <span id="usr-menu-label">👤 —</span> ▾
+        </button>
+        <div class="usr-dropdown" id="usr-dropdown">
+          <div class="usr-dropdown-item" onclick="abrirMinhaSenha()">🔑 Alterar Minha Senha</div>
+          <div class="usr-dropdown-item" id="usr-dd-admin" onclick="abrirModalUsuarios()" style="display:none">👥 Gerenciar Usuários</div>
+          <div class="usr-dropdown-sep"></div>
+          <div class="usr-dropdown-item danger" onclick="fazerLogout()">↩ Sair</div>
+        </div>
+      </div>
     </div>
 
     <!-- SCROLL AREA -->
@@ -730,6 +904,246 @@ table.dt th.sort-desc::after{content:' ▼';color:var(--blue)}
 </div><!-- /app -->
 
 <script>
+// ============================================================
+// AUTH — LOGIN / LOGOUT / SESSÃO
+// ============================================================
+let _SESSION_TOKEN = sessionStorage.getItem('crpm_token') || null;
+let _SESSION_NOME  = sessionStorage.getItem('crpm_nome')  || '';
+let _SESSION_ADMIN = sessionStorage.getItem('crpm_admin') === 'true';
+
+function fazerLogin(){
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const btn  = document.getElementById('btn-fazer-login');
+  const err  = document.getElementById('login-err');
+  if(!user||!pass){err.textContent='Preencha o login e a senha.';err.classList.add('show');return}
+  btn.disabled=true; btn.textContent='Entrando...'; err.classList.remove('show');
+  google.script.run
+    .withSuccessHandler(function(r){
+      btn.disabled=false; btn.textContent='Entrar';
+      if(r.error){err.textContent=r.error;err.classList.add('show');return}
+      _SESSION_TOKEN=r.token; _SESSION_NOME=r.nome; _SESSION_ADMIN=r.admin;
+      sessionStorage.setItem('crpm_token',r.token);
+      sessionStorage.setItem('crpm_nome',r.nome);
+      sessionStorage.setItem('crpm_admin',r.admin?'true':'false');
+      document.getElementById('login-screen').style.display='none';
+      document.getElementById('login-user').value='';
+      document.getElementById('login-pass').value='';
+      _pós_login_();
+    })
+    .withFailureHandler(function(e){
+      btn.disabled=false; btn.textContent='Entrar';
+      err.textContent='Erro de conexão: '+e.message; err.classList.add('show');
+    })
+    .login(user,pass);
+}
+
+function fazerLogout(){
+  closeUsrMenu();
+  if(_SESSION_TOKEN){
+    google.script.run.logout(_SESSION_TOKEN);
+  }
+  _SESSION_TOKEN=null; _SESSION_NOME=''; _SESSION_ADMIN=false;
+  sessionStorage.removeItem('crpm_token');
+  sessionStorage.removeItem('crpm_nome');
+  sessionStorage.removeItem('crpm_admin');
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('usr-menu-wrap').style.display='none';
+}
+
+function _pós_login_(){
+  // Exibe nome no menu e mostra painel admin se for admin
+  document.getElementById('usr-menu-label').textContent='👤 '+_SESSION_NOME;
+  document.getElementById('usr-menu-wrap').style.display='';
+  if(_SESSION_ADMIN) document.getElementById('usr-dd-admin').style.display='';
+  // Carrega dados
+  showSpinner('Carregando dados da planilha...');
+  google.script.run
+    .withSuccessHandler(loadServerData)
+    .withFailureHandler(function(err){hideSpinner();toast('Erro ao carregar: '+err.message,'err')})
+    .getDashboardDataAuth(_SESSION_TOKEN);
+}
+
+function recarregarDados(){
+  if(!_SESSION_TOKEN){fazerLogout();return}
+  showSpinner('Recarregando dados...');
+  google.script.run
+    .withSuccessHandler(function(j){
+      if(JSON.parse(j).error==='SESSION_EXPIRED'){fazerLogout();return}
+      loadServerData(j);
+    })
+    .withFailureHandler(function(e){hideSpinner();toast('Erro: '+e.message,'err')})
+    .getDashboardDataAuth(_SESSION_TOKEN);
+}
+
+// Menu dropdown usuário
+function toggleUsrMenu(){
+  const d=document.getElementById('usr-dropdown');
+  d.classList.toggle('show');
+}
+function closeUsrMenu(){
+  document.getElementById('usr-dropdown').classList.remove('show');
+}
+document.addEventListener('click',function(e){
+  if(!document.getElementById('usr-menu-wrap').contains(e.target))closeUsrMenu();
+});
+
+// ---- Alterar minha senha ----
+function abrirMinhaSenha(){
+  closeUsrMenu();
+  document.getElementById('ms-atual').value='';
+  document.getElementById('ms-nova').value='';
+  document.getElementById('ms-conf').value='';
+  document.getElementById('modal-minha-senha').classList.add('show');
+}
+function fecharMinhaSenha(){document.getElementById('modal-minha-senha').classList.remove('show')}
+function salvarMinhaSenha(){
+  const atual=document.getElementById('ms-atual').value;
+  const nova=document.getElementById('ms-nova').value;
+  const conf=document.getElementById('ms-conf').value;
+  if(!atual||!nova){toast('Preencha todos os campos.','err');return}
+  if(nova!==conf){toast('Nova senha e confirmação não conferem.','err');return}
+  if(nova.length<4){toast('Nova senha deve ter ao menos 4 caracteres.','err');return}
+  showSpinner('Alterando senha...');
+  google.script.run
+    .withSuccessHandler(function(r){
+      hideSpinner();
+      if(r.error){toast('Erro: '+r.error,'err');return}
+      fecharMinhaSenha();
+      toast('✓ Senha alterada com sucesso!','ok');
+    })
+    .withFailureHandler(function(e){hideSpinner();toast('Erro: '+e.message,'err')})
+    .alterarMinhaSenha(_SESSION_TOKEN,atual,nova);
+}
+
+// ---- Gerenciar usuários (admin) ----
+function abrirModalUsuarios(){
+  closeUsrMenu();
+  showUsrTab('lista',document.getElementById('utab-lista'));
+  document.getElementById('modal-usr-overlay').classList.add('show');
+  carregarListaUsuarios();
+}
+function fecharModalUsuarios(){document.getElementById('modal-usr-overlay').classList.remove('show')}
+
+function showUsrTab(tab,el){
+  ['lista','novo','senha'].forEach(t=>{
+    document.getElementById('upanel-'+t).style.display=t===tab?'':'none';
+    const tabEl=document.getElementById('utab-'+t);
+    if(tabEl)tabEl.classList.toggle('active',t===tab);
+  });
+  if(el&&!el.classList.contains('modal-usr-tab')){/* clique vindo de botão interno, sem tab-nav */}
+}
+
+function carregarListaUsuarios(){
+  document.getElementById('usr-list-content').innerHTML='<div style="color:var(--txt2);font-size:12px">Carregando...</div>';
+  google.script.run
+    .withSuccessHandler(function(r){
+      if(r.error){document.getElementById('usr-list-content').innerHTML='<div style="color:var(--red);font-size:12px">'+r.error+'</div>';return}
+      renderListaUsuarios(r.usuarios);
+    })
+    .withFailureHandler(function(e){document.getElementById('usr-list-content').innerHTML='<div style="color:var(--red);font-size:12px">'+e.message+'</div>'})
+    .listarUsuarios(_SESSION_TOKEN);
+}
+
+function renderListaUsuarios(usuarios){
+  const cont=document.getElementById('usr-list-content');
+  if(!usuarios.length){cont.innerHTML='<div style="color:var(--txt2);font-size:12px">Nenhum usuário cadastrado.</div>';return}
+  cont.innerHTML=usuarios.map(u=>`
+    <div class="usr-row">
+      <div class="usr-avatar" style="background:${u.admin?'var(--pur)':'var(--blue)'}">${(u.nome||u.login).charAt(0).toUpperCase()}</div>
+      <div class="usr-info">
+        <div class="usr-login">${u.login}</div>
+        <div class="usr-nome">${u.nome}</div>
+        <div class="usr-badges">
+          ${u.admin?'<span class="usr-badge ubg-admin">Admin</span>':''}
+          <span class="usr-badge ${u.ativo?'ubg-ativo':'ubg-inativo'}">${u.ativo?'Ativo':'Inativo'}</span>
+        </div>
+      </div>
+      <div class="usr-actions">
+        <button class="btn-usr" onclick="iniciarRedefinirSenha('${u.login}')">🔑 Senha</button>
+        <button class="btn-usr" onclick="toggleAtivo('${u.login}',${!u.ativo})">${u.ativo?'Desativar':'Ativar'}</button>
+        <button class="btn-usr danger" onclick="confirmarRemover('${u.login}','${u.nome}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function cadastrarNovoUsuario(){
+  const nome=document.getElementById('nu-nome').value.trim();
+  const login=document.getElementById('nu-login').value.trim();
+  const senha=document.getElementById('nu-senha').value;
+  const isAdmin=document.getElementById('nu-admin').checked;
+  if(!nome||!login||!senha){toast('Preencha todos os campos.','err');return}
+  showSpinner('Cadastrando usuário...');
+  google.script.run
+    .withSuccessHandler(function(r){
+      hideSpinner();
+      if(r.error){toast('Erro: '+r.error,'err');return}
+      document.getElementById('nu-nome').value='';
+      document.getElementById('nu-login').value='';
+      document.getElementById('nu-senha').value='';
+      document.getElementById('nu-admin').checked=false;
+      toast('✓ Usuário "'+login+'" cadastrado!','ok');
+      showUsrTab('lista',document.getElementById('utab-lista'));
+      carregarListaUsuarios();
+    })
+    .withFailureHandler(function(e){hideSpinner();toast('Erro: '+e.message,'err')})
+    .cadastrarUsuario(_SESSION_TOKEN,login,senha,nome,isAdmin);
+}
+
+function iniciarRedefinirSenha(login){
+  document.getElementById('nu-senha-alvo').textContent=login;
+  document.getElementById('nu-senha-alvo').dataset.login=login;
+  document.getElementById('nu-nova-senha').value='';
+  document.getElementById('upanel-lista').style.display='none';
+  document.getElementById('upanel-novo').style.display='none';
+  document.getElementById('upanel-senha').style.display='';
+}
+
+function confirmarRedefinirSenha(){
+  const login=document.getElementById('nu-senha-alvo').dataset.login;
+  const nova=document.getElementById('nu-nova-senha').value;
+  if(!nova){toast('Informe a nova senha.','err');return}
+  showSpinner('Redefinindo senha...');
+  google.script.run
+    .withSuccessHandler(function(r){
+      hideSpinner();
+      if(r.error){toast('Erro: '+r.error,'err');return}
+      toast('✓ Senha de "'+login+'" redefinida!','ok');
+      showUsrTab('lista',document.getElementById('utab-lista'));
+      carregarListaUsuarios();
+    })
+    .withFailureHandler(function(e){hideSpinner();toast('Erro: '+e.message,'err')})
+    .redefinirSenha(_SESSION_TOKEN,login,nova);
+}
+
+function toggleAtivo(login,novoStatus){
+  showSpinner('Atualizando...');
+  google.script.run
+    .withSuccessHandler(function(r){
+      hideSpinner();
+      if(r.error){toast('Erro: '+r.error,'err');return}
+      toast('✓ Usuário '+(novoStatus?'ativado':'desativado')+'!','ok');
+      carregarListaUsuarios();
+    })
+    .withFailureHandler(function(e){hideSpinner();toast('Erro: '+e.message,'err')})
+    .alterarStatusUsuario(_SESSION_TOKEN,login,novoStatus);
+}
+
+function confirmarRemover(login,nome){
+  if(!confirm(`Remover o usuário "${login}" (${nome})?\nEsta ação não pode ser desfeita.`))return;
+  showSpinner('Removendo...');
+  google.script.run
+    .withSuccessHandler(function(r){
+      hideSpinner();
+      if(r.error){toast('Erro: '+r.error,'err');return}
+      toast('✓ Usuário "'+login+'" removido.','ok');
+      carregarListaUsuarios();
+    })
+    .withFailureHandler(function(e){hideSpinner();toast('Erro: '+e.message,'err')})
+    .removerUsuario(_SESSION_TOKEN,login);
+}
+
 // ============================================================
 // CONSTANTS
 // ============================================================
@@ -2877,14 +3291,6 @@ function renderImportHistory(){
 // ============================================================
 // GOOGLE APPS SCRIPT — CARREGAR E GRAVAR DADOS
 // ============================================================
-function recarregarDados(){
-  showSpinner('Recarregando dados da planilha...');
-  google.script.run
-    .withSuccessHandler(loadServerData)
-    .withFailureHandler(function(err){hideSpinner();toast('Erro ao recarregar: '+err.message,'err')})
-    .getDashboardData();
-}
-
 function loadServerData(jsonStr){
   try{
     const d=JSON.parse(jsonStr);
@@ -3248,7 +3654,7 @@ function _gravarNFnoSheets(gms,empresa,novaEntrada){
       if(STATE.currentGMS===gms)showContract(gms,empresa);
     })
     .withFailureHandler(function(err){hideSpinner();toast('Erro ao gravar NF: '+err.message,'err')})
-    .gravarNF(params);
+    .gravarNFAuth(_SESSION_TOKEN,params);
 }
 
 function _gravarEmpenhoNoSheets(gms,empresa,emp){
@@ -3272,7 +3678,7 @@ function _gravarEmpenhoNoSheets(gms,empresa,emp){
       toast(`✓ Empenho ${emp.numero} gravado! Linha ${result.row}`,'ok');
     })
     .withFailureHandler(function(err){hideSpinner();toast('Erro ao gravar empenho: '+err.message,'err')})
-    .gravarEmpenho(params);
+    .gravarEmpenhoAuth(_SESSION_TOKEN,params);
 }
 
 // ============================================================
@@ -3402,23 +3808,20 @@ function _gravarExtornoNoSheets(gms,empresa,extorno){
       toast(`✓ Estorno de ${brl(extorno.valor)} registrado! Empenho ${extorno.numero} linha ${result.row}`,'ok');
     })
     .withFailureHandler(function(err){hideSpinner();toast('Erro ao registrar estorno: '+err.message,'err')})
-    .gravarExtorno(params);
+    .gravarExtornoAuth(_SESSION_TOKEN,params);
 }
 
 // ============================================================
-// BOOT — carrega dados automaticamente ao abrir (GAS Web App)
+// BOOT — mostra tela de login; carrega dados após autenticação
 // ============================================================
 (function init(){
   initTheme();
-  showSpinner('Carregando dados da planilha...');
-  google.script.run
-    .withSuccessHandler(loadServerData)
-    .withFailureHandler(function(err){
-      hideSpinner();
-      toast('Erro ao carregar dados: '+err.message,'err');
-      document.querySelector('#v-empty div div:last-child').textContent='Erro ao carregar. Verifique o ID da planilha no Code.gs.';
-    })
-    .getDashboardData();
+  // Se há token salvo, tenta retomar sessão sem pedir login novamente
+  if(_SESSION_TOKEN){
+    document.getElementById('login-screen').style.display='none';
+    _pós_login_();
+  }
+  // Senão, a tela de login já está visível (display:flex por padrão)
 })();
 </script>
 </body>

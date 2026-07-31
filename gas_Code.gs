@@ -4,14 +4,227 @@
 // ============================================================
 const SPREADSHEET_ID = 'COLE_AQUI_O_ID_DA_PLANILHA';
 
+// Sessão dura 8 horas; admin padrão criado na primeira execução
+const SESSION_HOURS = 8;
+const ADMIN_LOGIN_PADRAO = 'admin';
+const ADMIN_SENHA_PADRAO = 'admin123';
+
 // ============================================================
 // ENTRY POINT — serve a página web
 // ============================================================
 function doGet(e) {
+  _inicializarAdminSeVazio_();
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Dashboard Contratos 3º CRPM')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+}
+
+// ============================================================
+// AUTENTICAÇÃO — LOGIN / LOGOUT / SESSÃO
+// ============================================================
+function login(usuario, senha) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const raw = props.getProperty('user_' + usuario.toLowerCase().trim());
+    if (!raw) return {error: 'Usuário ou senha incorretos.'};
+    const u = JSON.parse(raw);
+    if (!u.ativo) return {error: 'Usuário desativado. Contate o administrador.'};
+    const hash = _hashSenha_(senha);
+    if (hash !== u.senhaHash) return {error: 'Usuário ou senha incorretos.'};
+    // Gera token de sessão
+    const token = Utilities.getUuid();
+    const cache = CacheService.getScriptCache();
+    cache.put('sess_' + token, JSON.stringify({usuario: usuario.toLowerCase().trim(), nome: u.nome, admin: u.admin}), SESSION_HOURS * 3600);
+    return {success: true, token, nome: u.nome, admin: u.admin};
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+function logout(token) {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove('sess_' + token);
+    return {success: true};
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+function verificarSessao(token) {
+  if (!token) return null;
+  try {
+    const cache = CacheService.getScriptCache();
+    const raw = cache.get('sess_' + token);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) {
+    return null;
+  }
+}
+
+// ============================================================
+// GERENCIAMENTO DE USUÁRIOS (somente admin)
+// ============================================================
+function listarUsuarios(token) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'Sessão expirada. Faça login novamente.'};
+  if (!sess.admin) return {error: 'Acesso negado. Somente administradores.'};
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const lista = JSON.parse(props.getProperty('users_list') || '[]');
+    return {
+      success: true,
+      usuarios: lista.map(login => {
+        const raw = props.getProperty('user_' + login);
+        if (!raw) return null;
+        const u = JSON.parse(raw);
+        return {login, nome: u.nome, admin: u.admin, ativo: u.ativo};
+      }).filter(Boolean)
+    };
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+function cadastrarUsuario(token, novoLogin, senha, nome, isAdmin) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'Sessão expirada. Faça login novamente.'};
+  if (!sess.admin) return {error: 'Acesso negado. Somente administradores.'};
+  try {
+    const loginNorm = novoLogin.toLowerCase().trim().replace(/\s+/g, '');
+    if (!loginNorm) return {error: 'Login inválido.'};
+    if (senha.length < 4) return {error: 'Senha deve ter ao menos 4 caracteres.'};
+    const props = PropertiesService.getScriptProperties();
+    if (props.getProperty('user_' + loginNorm)) return {error: 'Login "' + loginNorm + '" já existe.'};
+    const userData = {nome: nome.trim(), senhaHash: _hashSenha_(senha), admin: !!isAdmin, ativo: true};
+    props.setProperty('user_' + loginNorm, JSON.stringify(userData));
+    const lista = JSON.parse(props.getProperty('users_list') || '[]');
+    lista.push(loginNorm);
+    props.setProperty('users_list', JSON.stringify(lista));
+    return {success: true};
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+function alterarStatusUsuario(token, loginAlvo, ativo) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'Sessão expirada. Faça login novamente.'};
+  if (!sess.admin) return {error: 'Acesso negado.'};
+  const loginNorm = loginAlvo.toLowerCase().trim();
+  if (loginNorm === sess.usuario && !ativo) return {error: 'Não é possível desativar sua própria conta.'};
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const raw = props.getProperty('user_' + loginNorm);
+    if (!raw) return {error: 'Usuário não encontrado.'};
+    const u = JSON.parse(raw);
+    u.ativo = ativo;
+    props.setProperty('user_' + loginNorm, JSON.stringify(u));
+    return {success: true};
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+function redefinirSenha(token, loginAlvo, novaSenha) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'Sessão expirada. Faça login novamente.'};
+  if (!sess.admin) return {error: 'Acesso negado.'};
+  if (novaSenha.length < 4) return {error: 'Senha deve ter ao menos 4 caracteres.'};
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const loginNorm = loginAlvo.toLowerCase().trim();
+    const raw = props.getProperty('user_' + loginNorm);
+    if (!raw) return {error: 'Usuário não encontrado.'};
+    const u = JSON.parse(raw);
+    u.senhaHash = _hashSenha_(novaSenha);
+    props.setProperty('user_' + loginNorm, JSON.stringify(u));
+    return {success: true};
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+function removerUsuario(token, loginAlvo) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'Sessão expirada. Faça login novamente.'};
+  if (!sess.admin) return {error: 'Acesso negado.'};
+  const loginNorm = loginAlvo.toLowerCase().trim();
+  if (loginNorm === sess.usuario) return {error: 'Não é possível remover sua própria conta.'};
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.deleteProperty('user_' + loginNorm);
+    const lista = JSON.parse(props.getProperty('users_list') || '[]').filter(l => l !== loginNorm);
+    props.setProperty('users_list', JSON.stringify(lista));
+    return {success: true};
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+function alterarMinhaSenha(token, senhaAtual, novaSenha) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'Sessão expirada. Faça login novamente.'};
+  if (novaSenha.length < 4) return {error: 'Nova senha deve ter ao menos 4 caracteres.'};
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const raw = props.getProperty('user_' + sess.usuario);
+    if (!raw) return {error: 'Usuário não encontrado.'};
+    const u = JSON.parse(raw);
+    if (_hashSenha_(senhaAtual) !== u.senhaHash) return {error: 'Senha atual incorreta.'};
+    u.senhaHash = _hashSenha_(novaSenha);
+    props.setProperty('user_' + sess.usuario, JSON.stringify(u));
+    return {success: true};
+  } catch(e) {
+    return {error: e.toString()};
+  }
+}
+
+// ============================================================
+// WRAPPERS COM VERIFICAÇÃO DE SESSÃO PARA OPERAÇÕES DE DADOS
+// ============================================================
+function getDashboardDataAuth(token) {
+  const sess = verificarSessao(token);
+  if (!sess) return JSON.stringify({error: 'SESSION_EXPIRED'});
+  return getDashboardData();
+}
+
+function gravarNFAuth(token, params) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'SESSION_EXPIRED'};
+  return gravarNF(params);
+}
+
+function gravarEmpenhoAuth(token, params) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'SESSION_EXPIRED'};
+  return gravarEmpenho(params);
+}
+
+function gravarExtornoAuth(token, params) {
+  const sess = verificarSessao(token);
+  if (!sess) return {error: 'SESSION_EXPIRED'};
+  return gravarExtorno(params);
+}
+
+// ============================================================
+// HELPERS INTERNOS — AUTH
+// ============================================================
+function _hashSenha_(senha) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, senha, Utilities.Charset.UTF_8);
+  return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+}
+
+function _inicializarAdminSeVazio_() {
+  const props = PropertiesService.getScriptProperties();
+  const lista = props.getProperty('users_list');
+  if (!lista || JSON.parse(lista).length === 0) {
+    const userData = {nome: 'Administrador', senhaHash: _hashSenha_(ADMIN_SENHA_PADRAO), admin: true, ativo: true};
+    props.setProperty('user_' + ADMIN_LOGIN_PADRAO, JSON.stringify(userData));
+    props.setProperty('users_list', JSON.stringify([ADMIN_LOGIN_PADRAO]));
+  }
 }
 
 // ============================================================
